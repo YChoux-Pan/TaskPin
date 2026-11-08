@@ -1,0 +1,18 @@
+# 构建产物
+build/
+TaskPinQt/build/
+bin/
+obj/
+[Dd]ebug/
+[Rr]elease/
+*.user
+*.autosave
+
+# 回归脚本的原始输出（截图 / dump / selftest 报告，可随时重跑生成）
+docs/artifacts/
+
+# 运行期文件，万一落到源码目录
+*.db
+*.db-shm
+*.db-wal
+*.log

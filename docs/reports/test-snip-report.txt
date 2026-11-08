@@ -1,0 +1,26 @@
+﻿PASS  app is running
+PASS  fixture window shown  -> TaskPinTestImage
+PASS  dump works  -> settings/tasks/hotkeys parsed
+PASS  region snip copies a bitmap  -> 371x131
+PASS  region snip output is physical pixels (371x131)  -> 371x131
+PASS  logical selection x dpr == physical output  -> logical 297x105 -> physical 371x131
+PASS  click snaps the whole window (720x220)  -> 720x220
+PASS  last region re-uses the snapped rectangle (720x220)  -> 720x220
+PASS  tools round leaves no overlay  -> card restored
+PASS  OCR hotkey creates exactly one task  -> open 1 -> 2
+PASS  OCR text reaches TimeParser (due 15:00 parsed)  -> log: ocr task created
+PASS  OCR engine returned text  -> log: ocr ok
+PASS  pin window opened  -> pins=1 group=默认
+PASS  pins can be hidden and shown again  -> toggle ok
+PASS  colour picker copies a hex value  -> #FFFFFF
+PASS  whiteboard copies the full frozen frame  -> 2560x1600
+PASS  transparent whiteboard copies a full-size image  -> 2560x1600
+PASS  full screen capture copies the whole desktop  -> 2560x1600
+PASS  settings reload resizes the card (300 x 159)  -> card 300x159
+PASS  requested hotkey is honoured or degraded to a fallback  -> Ctrl+Alt+A
+PASS  autostart writes the logon entry  -> autostart=True
+PASS  delayed snip honours the configured delay  -> log: startSnip: delayed 1.0s
+PASS  final dump written  -> version 0.2.0
+PASS  history keeps captures  -> n=50
+PASS  hotkeys registered  -> snip=Ctrl+Alt+A, full=Ctrl+Alt+F, last=Ctrl+Alt+R, pin=Ctrl+Alt+V, pins=Ctrl+Alt+H, quick=Ctrl+Shift+F10, toggle=Ctrl+Shift+F11, history=Ctrl+Alt+G
+PASS  OCR engine reported available  -> Windows.Media.Ocr

@@ -1,0 +1,76 @@
+TaskPinQt self test  2026-11-08T18:23:30
+
+== store ==
+PASS  open db  -> D:\TaskPin\repo\docs\artifacts\selftest/selftest.db
+PASS  add two tasks  -> open=2
+PASS  complete one  -> open=1
+PASS  soft delete keeps row  -> dropped=1
+PASS  deleted hidden from open list  -> open=0
+PASS  restore brings it back  -> open=1
+PASS  purge removes row  -> dropped=0
+PASS  priority sorts urgent first  -> 带截止时间的任务
+PASS  due stored as ISO  -> 2026-11-08T15:00:00
+PASS  dayTasks lists every task_day row  -> n=3
+PASS  dayTasks keeps the done row  -> open
+PASS  dayStats counts open rows  -> pending=2 done=1
+PASS  setPriority reorders  -> 普通任务
+
+== dpi math ==
+PASS  logical 301x141 -> 376x176  -> 376x176
+PASS  dpr round trip  -> 301
+
+== config ==
+PASS  default rows  -> 6
+PASS  default width  -> 340
+PASS  hotkey default has modifier  -> Ctrl+Alt+A
+PASS  every action has a default chord
+PASS  setChord overrides  -> Ctrl+Shift+F9
+PASS  empty chord falls back to default  -> Ctrl+Alt+A
+PASS  lastRegion round trip  -> 120,80,301,141
+PASS  broken lastRegion is ignored  -> broken
+
+== file naming ==
+PASS  pattern expands  -> TaskPin-20261108-163125.png
+PASS  sanitize replaces illegal chars  -> a_b_c__.png
+PASS  uniquePath avoids collisions  -> D:/TaskPin/repo/docs/artifacts/selftest/uniq-25-1.png
+
+== time parser ==
+PASS  明天 resolves to +1 day  -> 2026-11-09T15:00:00
+PASS  15:00 parsed  -> 15:00
+PASS  tag extracted  -> 报价
+PASS  title cleaned  -> 给王总发报价
+PASS  周五下午两点 -> Friday 14:00  -> 2026-11-13T14:00:00
+PASS  !! raises priority to P0  -> 0
+PASS  plain text keeps no due
+PASS  describeDue tomorrow  -> 明天15:00
+
+== hotkeys ==
+PASS  parse Ctrl+Alt+A  -> Ctrl+Alt+A
+PASS  parse F1
+PASS  reject unknown modifier
+PASS  record Ctrl+F9  -> Ctrl+F9
+PASS  modifier-only press is not a chord
+PASS  format round trip  -> Ctrl+Alt+A
+
+== annotations ==
+PASS  mosaic samples the frozen frame  -> #ff0000
+PASS  mosaic stays inside its rect  -> #0000ff
+PASS  arrow hit test on the line
+PASS  arrow misses far away
+PASS  translate moves points
+PASS  bounds cover the shape
+PASS  blur runs without a source crash
+
+== settings recovery ==
+PASS  broken settings backed up  -> D:\TaskPin\repo\docs\artifacts\selftest/settings.json.broken
+PASS  defaults survive a broken file  -> 6
+
+== history ==
+PASS  history save writes a png  -> D:/TaskPin/repo/docs/artifacts/selftest/history/snip/snip-20261108-182330-771.png
+PASS  history lists it back  -> n=1
+PASS  history dir under dataDir  -> D:\TaskPin\repo\docs\artifacts\selftest/history/snip
+
+== environment ==
+PASS  windows OCR reachable  -> Windows.Media.Ocr via PowerShell
+
+== summary: 53 passed, 0 failed ==
