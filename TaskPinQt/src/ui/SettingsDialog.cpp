@@ -136,7 +136,8 @@ QWidget *SettingsDialog::buildCardPage()
     m_ui->cardOpacity->setValue(qRound(qBound(0.4, s.opacity, 1.0) * 100));
     form->addRow(QStringLiteral("背景不透明度 %"), m_ui->cardOpacity);
 
-    m_ui->alwaysOnTop = new QCheckBox(QStringLiteral("始终置顶（关闭后会被最大化窗口盖住）"), page);
+    m_ui->alwaysOnTop =
+        new QCheckBox(QStringLiteral("卡片全局置顶（取消勾选 = 贴在桌面层：壁纸上方，会被普通窗口盖住）"), page);
     m_ui->alwaysOnTop->setChecked(s.alwaysOnTop);
     form->addRow(QString(), m_ui->alwaysOnTop);
 

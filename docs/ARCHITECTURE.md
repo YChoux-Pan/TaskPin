@@ -1,7 +1,7 @@
 # TaskPin 架构说明
 
 > 本文是**架构的唯一事实源**。代码与本文不一致时，以本文为准并修代码；架构变更必须先改本文。
-> 最后更新：2026-11-08（单一 Qt 实现线 0.2；C# 版已归档删除，仅差扫码）
+> 最后更新：2026-11-09（单一 Qt 实现线 0.2 + 卡片层级切换；C# 版已归档删除，仅差扫码）
 
 ---
 
@@ -219,12 +219,28 @@ Ctrl+R / 贴图右键「识别为任务」
 
 | 窗口 | 技术要点 |
 |---|---|
-| **卡片** | `Qt::Tool︱Frameless︱StaysOnTop` + `WA_TranslucentBackground` + `WA_ShowWithoutActivating`；`paintEvent` 自绘圆角、渐变、行、计数；拖动后把坐标写回 `settings.cardX/Y` |
+| **卡片** | `Qt::Tool︱Frameless`（**不设** `WindowStaysOnTopHint`，z-order 由 Win32 断言）+ `WA_TranslucentBackground` + `WA_ShowWithoutActivating`；`paintEvent` 自绘圆角、渐变、行、计数；拖动后把坐标写回 `settings.cardX/Y`；两种层级见 6.1 |
 | **截图浮层** | 全屏 `Frameless︱StaysOnTop`，`paintEvent` 先 `drawPixmap` 冻结图，再画遮罩/标注/工具栏；工具栏图标用 QPainter 矢量绘制 |
 | **贴图** | `Qt::Tool` + `WA_TranslucentBackground`；`windowOpacity` 做不透明度；穿透用 `WS_EX_TRANSPARENT` |
 | **透明白板** | 同上，但**背景必须铺 alpha=1**，否则整块区域点不到 |
-| **日历 / 历史 / 设置** | 原生标题栏窗口 + `WindowStaysOnTopHint`；卡片是 `WS_EX_NOACTIVATE`，打开它们后要 `WindowFx::forceForeground()` 抢一次前台 |
+| **日历 / 历史 / 设置** | 原生标题栏窗口 + `WindowStaysOnTopHint`；卡片是不可激活的，打开它们后要 `WindowFx::forceForeground()` 抢一次前台 |
 | **托盘** | `QSystemTrayIcon` + `QMenu`（Qt 原生菜单，避免 C# 版「能画不能点」的坑） |
+
+### 6.1 卡片的两种层级（T11）
+
+| 模式 | 实现 | 效果 |
+|---|---|---|
+| **全局置顶**（`alwaysOnTop=true`，默认） | `WindowFx::setTopMost(hwnd, true)` → `SetWindowPos(HWND_TOPMOST)` | 压在所有普通窗口之上 |
+| **桌面层**（`alwaysOnTop=false`） | 先 `HWND_NOTOPMOST`，再 `WindowFx::sendToBottom()` → `HWND_BOTTOM`；同时在 `CardWindow::nativeEvent` 里把每条 `WM_WINDOWPOSCHANGING` 的 `hwndInsertAfter` 改回 `HWND_BOTTOM` | 位于壁纸（Progman）之上、所有普通窗口之下；点它/显示它都不会被抬起来 |
+
+细节与坑：
+
+- **不能靠 Qt 的 `setWindowFlag(WindowStaysOnTopHint)` 切换**：那会销毁并重建 HWND，菜单/焦点状态全丢。所以构造函数里干脆不设这个 flag，改由 `applyZOrder()` 统一用 Win32 断言。
+- **`WM_WINDOWPOSCHANGING` 要原地改结构体再放行**：返回"已处理"会连位置/尺寸变更一起取消，卡片的 `resize()` 就失效了。
+- **切换后必须验证**：Windows 偶尔会在"恢复一大批窗口"之后静默忽略第一次 `HWND_TOPMOST`。`applyZOrder()` 会检查 `WS_EX_TOPMOST`，没生效就在下一轮事件循环重试一次并记日志。
+- **桌面层会被最大化窗口盖住**，这是"不置顶"的必然结果（C# 版同样如此）；`Win+D` 时卡片也会随其它窗口一起被最小化。
+- 状态唯一来源是 `settings.alwaysOnTop`；托盘勾选项、卡片右键、设置页、`--card-top/--card-desktop/--card-layer` 都走 `CardWindow::setDesktopLayer()`，再通过 `zOrderChanged()` 回写托盘勾选状态。
+
 
 **踩过的坑（务必保留）**：
 1. 卡片/贴图若用 `WS_EX_NOACTIVATE`，托管菜单能显示但收不到输入 → 必须用原生菜单或在可激活宿主窗口上弹。
@@ -317,7 +333,7 @@ D:\TaskPin\repo\TaskPinQt\build.cmd   # CMake + Ninja → TaskPinQt\build\TaskPi
 | 层次 | 手段 | 现状 |
 |---|---|---|
 | 单元 | `--selftest`：Store CRUD/聚合、DPR 换算、配置默认与 `.broken`、文件名、中文时间解析、热键文本、标注（马赛克取样/命中/移动）、历史 | ✅ 53 项 |
-| 交互 | `scripts/test-snip.ps1`：模拟鼠标键盘跑真 UI，断言剪贴板尺寸 / 任务数 / 卡片几何，截图存档 | ✅ 26 项 |
+| 交互 | `scripts/test-snip.ps1`：模拟鼠标键盘跑真 UI，断言剪贴板尺寸 / 任务数 / 卡片几何 / 层级切换 / 日历看板点击，截图存档 | ✅ 37 项 |
 | 端到端 | CLI 触发 → 剪贴板/文件校验；OCR → 任务 → 卡片 | ✅ |
 | 回归 | 上面两个脚本每次改动后都跑 | ✅ 已落盘 |
 

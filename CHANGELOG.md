@@ -5,6 +5,30 @@
 > 从 0.2 起 **Qt 主线**有独立版本号（`qt-0.x.y`）。C# 旧版（0.3.x）已归档删除，
 > 其历史保存在 `D:\TaskPin\backup\repo-csharp-history.bundle`（机器外无需保留）。
 
+## [qt-0.2.1] - 2026-11-09
+
+### 新增
+- **卡片层级切换**（T11）：桌面卡片可以在「全局置顶」和「桌面层」之间切换。
+  桌面层 = 壁纸上方、所有普通窗口之下（`HWND_BOTTOM` + 拦截 `WM_WINDOWPOSCHANGING`），
+  点它、显示它都不会把自己抬起来。四个入口同步：托盘勾选项 `卡片全局置顶`、
+  卡片右键 `全局置顶显示`、设置页「卡片全局置顶」复选框、`--card-top / --card-desktop / --card-layer`。
+  选择写入 `settings.json` 的 `alwaysOnTop`，重启后恢复。
+- `--dump` 的 `card` 增加 `desktopLayer` / `topMost` / `zOrder`，方便排查"到底置没置顶"。
+- 日历增加诊断日志：`calendar opened/select/month/today`，卡片双击日期也记一条。
+
+### 修复
+- Windows 偶尔会在"恢复一大批窗口"后静默忽略第一次 `HWND_TOPMOST`；`applyZOrder()` 现在会
+  校验 `WS_EX_TOPMOST`，未生效则在下一轮事件循环重试一次并记日志（回归里曾出现过一次 `native topmost=0`）。
+- 卡片不再通过 Qt 的 `setWindowFlag(WindowStaysOnTopHint)` 切层级（那会重建 HWND，菜单/焦点状态丢失），
+  改为构造时不设该 flag、由 `applyZOrder()` 统一用 Win32 断言。
+
+### 工程
+- 交互回归扩到 **37 项**：新增卡片层级、桌面层真实点击、桌面层右键菜单、从桌面层双击日期开日历、
+  日历看板点击选中某天、切换回置顶、显示/隐藏、以及"重启后层级恢复"。
+  脚本会临时最小化挡住卡片的窗口再恢复（桌面层本来就会被普通窗口盖住）。
+- 回归脚本保持**纯 ASCII**：PowerShell 5.1 按 ANSI 读取 `.ps1`，中文窗口标题字面量会被写成乱码，
+  日历标题改用码点拼出来。
+
 ## [qt-0.2.0] - 2026-11-08
 
 ### 新增

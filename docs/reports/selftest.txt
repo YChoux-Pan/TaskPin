@@ -1,4 +1,4 @@
-TaskPinQt self test  2026-11-08T18:23:30
+TaskPinQt self test  2026-11-09T09:56:46
 
 == store ==
 PASS  open db  -> D:\TaskPin\repo\docs\artifacts\selftest/selftest.db
@@ -9,7 +9,7 @@ PASS  deleted hidden from open list  -> open=0
 PASS  restore brings it back  -> open=1
 PASS  purge removes row  -> dropped=0
 PASS  priority sorts urgent first  -> 带截止时间的任务
-PASS  due stored as ISO  -> 2026-11-08T15:00:00
+PASS  due stored as ISO  -> 2026-11-09T15:00:00
 PASS  dayTasks lists every task_day row  -> n=3
 PASS  dayTasks keeps the done row  -> open
 PASS  dayStats counts open rows  -> pending=2 done=1
@@ -66,8 +66,8 @@ PASS  broken settings backed up  -> D:\TaskPin\repo\docs\artifacts\selftest/sett
 PASS  defaults survive a broken file  -> 6
 
 == history ==
-PASS  history save writes a png  -> D:/TaskPin/repo/docs/artifacts/selftest/history/snip/snip-20261108-182330-771.png
-PASS  history lists it back  -> n=1
+PASS  history save writes a png  -> D:/TaskPin/repo/docs/artifacts/selftest/history/snip/snip-20261109-095646-193.png
+PASS  history lists it back  -> n=3
 PASS  history dir under dataDir  -> D:\TaskPin\repo\docs\artifacts\selftest/history/snip
 
 == environment ==

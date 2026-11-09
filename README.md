@@ -3,7 +3,7 @@
 一个很好用的截图工具，包含每日行程记录，资源占用小巧。
 
 - **截图 / 贴图**（Snipaste 类）：热键截图 → 标注 → 复制 / 保存 / 贴到桌面 / OCR 变任务
-- **桌面任务卡片**：右上角半透明卡片显示今天的任务，支持顺延、优先级、日历回看
+- **桌面任务卡片**：右上角半透明卡片显示今天的任务，支持顺延、优先级、日历回看、**全局置顶 ↔ 桌面层切换**
 
 C++17 / Qt 6.4.3（MinGW 11.2），Windows 10/11。**仓库只有这一条实现线**：早期 C# 版已移除，
 仅保留一份历史 bundle 在仓库外的 `backup\`（见 `docs/HANDOVER.md` §0）。
@@ -32,8 +32,9 @@ TaskPinQt\build\TaskPinQt.exe          # 常驻：托盘 + 右上角卡片
 TaskPinQt\build\TaskPinQt.exe --snip   # 直接进截图（自动化入口，比模拟全局热键可靠）
 ```
 
-命令行动词（15 个）：`--snip --full --last --pin --pins --color --board --board-transparent
---quick --toggle --recycle --history --calendar --settings --quit`，另有 `--dump [path]`、`--selftest [dir]`。
+命令行动词（18 个）：`--snip --full --last --pin --pins --color --board --board-transparent
+--quick --toggle --card-top --card-desktop --card-layer --recycle --history --calendar --settings --quit`，
+另有 `--dump [path]`、`--selftest [dir]`。
 
 常用热键（可在设置窗口里录制）：`Ctrl+Alt+A` 截图 · `Ctrl+Alt+F` 全屏 · `Ctrl+Alt+R` 上次区域 ·
 `Ctrl+Alt+V` 贴住剪贴板 · `Ctrl+Alt+H` 显示/隐藏贴图 · `Ctrl+Alt+Space` 速记 · `Ctrl+Alt+D` 卡片 · `Ctrl+Alt+G` 历史。

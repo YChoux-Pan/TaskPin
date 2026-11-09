@@ -69,6 +69,39 @@ bool forceForeground(QWidget *window)
     return GetForegroundWindow() == hwnd;
 }
 
+void setTopMost(QWidget *window, bool on)
+{
+    HWND hwnd = handleOf(window);
+    if (!hwnd) return;
+    SetWindowPos(hwnd, on ? HWND_TOPMOST : HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+}
+
+bool isTopMost(QWidget *window)
+{
+    HWND hwnd = handleOf(window);
+    if (!hwnd) return false;
+    return (GetWindowLongPtrW(hwnd, GWL_EXSTYLE) & WS_EX_TOPMOST) != 0;
+}
+
+void sendToBottom(QWidget *window)
+{
+    HWND hwnd = handleOf(window);
+    if (!hwnd) return;
+    SetWindowPos(hwnd, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+}
+
+void clampToDesktopLayer(void *nativeMessage)
+{
+    auto *msg = static_cast<MSG *>(nativeMessage);
+    if (!msg || msg->message != WM_WINDOWPOSCHANGING) return;
+    auto *pos = reinterpret_cast<WINDOWPOS *>(msg->lParam);
+    if (!pos) return;
+    if (pos->flags & SWP_NOZORDER) return;   // position-only change: nothing to clamp
+    // Mutate in place and let the message continue: consuming WM_WINDOWPOSCHANGING here would
+    // also cancel the move/resize it belongs to.
+    pos->hwndInsertAfter = HWND_BOTTOM;
+}
+
 #else
 
 void setClickThrough(QWidget *, bool) {}
@@ -76,6 +109,10 @@ bool isClickThrough(QWidget *) { return false; }
 void setNoActivate(QWidget *, bool) {}
 void keepOnTop(QWidget *) {}
 bool forceForeground(QWidget *) { return false; }
+void setTopMost(QWidget *, bool) {}
+bool isTopMost(QWidget *) { return false; }
+void sendToBottom(QWidget *) {}
+void clampToDesktopLayer(void *) {}
 
 #endif
 

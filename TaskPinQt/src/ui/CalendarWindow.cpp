@@ -1,5 +1,6 @@
 #include "ui/CalendarWindow.h"
 
+#include <QDebug>
 #include <QFont>
 #include <QKeyEvent>
 #include <QLocale>
@@ -49,6 +50,8 @@ CalendarWindow::CalendarWindow(Store *store, QWidget *parent)
 
     connect(m_store, &Store::changed, this, [this] { reload(); });
     reload();
+    qInfo("calendar opened month=%s selected=%s", qUtf8Printable(m_month.toString("yyyy-MM")),
+          qUtf8Printable(m_selected.toString(Qt::ISODate)));
 }
 
 void CalendarWindow::setSelectedDay(const QDate &day)
@@ -72,6 +75,7 @@ void CalendarWindow::goMonth(int delta)
     m_month = m_month.addMonths(delta);
     m_selected = m_month;
     reload();
+    qInfo("calendar month %s", qUtf8Printable(m_month.toString("yyyy-MM")));
 }
 
 void CalendarWindow::goToday()
@@ -80,6 +84,7 @@ void CalendarWindow::goToday()
     m_month = QDate(today.year(), today.month(), 1);
     m_selected = today;
     reload();
+    qInfo("calendar today %s", qUtf8Printable(today.toString(Qt::ISODate)));
 }
 
 void CalendarWindow::keyPressEvent(QKeyEvent *e)
@@ -113,6 +118,7 @@ void CalendarWindow::mousePressEvent(QMouseEvent *e)
         if (!cell.first.contains(pos)) continue;
         m_selected = cell.second;
         reload();
+        qInfo("calendar select %s", qUtf8Printable(m_selected.toString(Qt::ISODate)));
         return;
     }
 }

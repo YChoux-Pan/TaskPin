@@ -17,7 +17,7 @@ TaskPin 是一个 Windows 桌面常驻工具，把两件事合成一个软件：
 
 ### 当前状态（一句话）
 
-**仓库里现在只有一条实现线：C++/Qt。** 早期 C# 版（0.3.4）已从其仓库和本机删除，只保留一份 git bundle 在 `D:\TaskPin\backup\`（见 §0 版本控制）。Qt 0.2 已补齐「截图（窗口吸附 / 马赛克 / 模糊 / 橡皮 / 微调）+ 输出（复制 / 保存 / 快速保存 / 自动保存 / 贴图 / OCR / 打印）+ 贴图窗口 + 截屏历史 + 日历 + 设置窗口（热键录制）+ 中文时间解析 + 白板 + 透明白板 + 取色器 + CLI」，**只剩二维码 / 条码（R2）未实现**。
+**仓库里现在只有一条实现线：C++/Qt。** 早期 C# 版（0.3.4）已从其仓库和本机删除，只保留一份 git bundle 在 `D:\TaskPin\backup\`（见 §0 版本控制）。Qt 0.2 已补齐「截图（窗口吸附 / 马赛克 / 模糊 / 橡皮 / 微调）+ 输出（复制 / 保存 / 快速保存 / 自动保存 / 贴图 / OCR / 打印）+ 贴图窗口 + 截屏历史 + 日历 + 设置窗口（热键录制）+ 中文时间解析 + 白板 + 透明白板 + 取色器 + **卡片全局置顶 ↔ 桌面层切换** + CLI」，**只剩二维码 / 条码（R2）未实现**。
 
 ### 三条命令
 
@@ -39,7 +39,7 @@ D:\TaskPin\repo\TaskPinQt\build\TaskPinQt.exe --snip
 Start-Process -Wait -PassThru D:\TaskPin\repo\TaskPinQt\build\TaskPinQt.exe `
   -ArgumentList '--selftest','D:\TaskPin\repo\docs\artifacts\selftest'
 
-# 真机交互回归：26 项断言（模拟鼠标键盘，截图存 docs/）
+# 真机交互回归：37 项断言（模拟鼠标键盘，截图存 docs/）
 powershell -NoProfile -ExecutionPolicy Bypass -File D:\TaskPin\repo\TaskPinQt\scripts\test-snip.ps1
 ```
 
@@ -192,6 +192,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File D:\TaskPin\repo\TaskPinQt\sc
 | T8 | 双击日期开日历 `[Qt]` | 双击卡片右上角日期打开日历 |
 | T9 | 外观自定义 `[Qt]` | 背景色 / 文字色 / 不透明度 / 位置 / 行数；拖动位置会被记住 |
 | T10 | 中文时间解析 `[Qt]` | 「明天 15:00 前」「周五下午两点」→ 到期时间；`#标签`、`！！` 优先级同样生效 |
+| T11 | 卡片层级切换 `[Qt]` | 全局置顶 ↔ 桌面层（壁纸上方、普通窗口会盖住它）。托盘勾选项、卡片右键「全局置顶显示」、设置页复选框、`--card-top / --card-desktop / --card-layer` 四处同步；选择会写进 `settings.json` 并在下次启动恢复 |
 
 ### 2.7 日历
 
@@ -222,7 +223,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File D:\TaskPin\repo\TaskPinQt\sc
 | 编号 | 功能 | 行为与验收 |
 |---|---|---|
 | S1 | 全局热键 `[Qt]` | 8 个动作都可配置；被占用时降级到备用键并记日志；设置页可直接录制 |
-| S2 | 托盘 `[Qt]` | 截图 / 全屏 / 上次区域 / 新建 / 贴图 / 显示贴图 / 取色 / 白板 / 历史 / 日历 / 回收站 / 设置 / 卡片 / 退出 |
+| S2 | 托盘 `[Qt]` | 截图 / 全屏 / 上次区域 / 新建 / 贴图 / 显示贴图 / 取色 / 白板 / 历史 / 日历 / 回收站 / 设置 / 卡片 / **卡片全局置顶（勾选）** / 退出 |
 | S3 | 单实例 `[Qt]` | 二次启动只唤出已有实例 |
 | S4 | 命令行 `[Qt]` | 15 个动词，见 §6.1 |
 | S5 | 开机自启 `[Qt]` | 当前用户 `HKCU\...\Run` 运行项（见 §9 与 C# 计划的差异） |
@@ -305,7 +306,7 @@ D:\TaskPin\repo\TaskPinQt\
 ├─ CMakeLists.txt          # Qt6 Core/Gui/Widgets/Sql/Network/PrintSupport + windeployqt
 ├─ build.cmd               # 一键构建（固定 Qt/MinGW/CMake/Ninja 路径）
 ├─ scripts\
-│  ├─ test-snip.ps1        # 真机交互回归（26 项断言，截图到 docs/）
+│  ├─ test-snip.ps1        # 真机交互回归（37 项断言，截图到 docs/）
 │  └─ show-image.ps1       # 回归用的固定测试窗口（已知位置 / 已知文字）
 └─ src\
    ├─ main.cpp             # 单实例、CLI 转发、日志、区域设置、--dump/--selftest
@@ -402,6 +403,8 @@ task_day(task_id, day, state, seen_at, PRIMARY KEY(task_id, day))
 | `--pins` | 显示 / 隐藏全部贴图 |
 | `--quick` | 打开速记输入 |
 | `--toggle` | 显示/隐藏卡片 |
+| `--card-top` / `--card-desktop` | 卡片切到全局置顶 / 桌面层（壁纸上方，会被普通窗口盖住） |
+| `--card-layer` | 在两种层级之间切换（等价于点托盘勾选项） |
 | `--recycle` | 打开回收站 |
 | `--history` | 打开截屏历史 |
 | `--calendar` | 打开日历 |
@@ -417,13 +420,14 @@ task_day(task_id, day, state, seen_at, PRIMARY KEY(task_id, day))
 ```json
 {
   "app": "TaskPinQt",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "time": "2026-11-08T17:20:00",
   "dataDir": "...", "dbPath": "...", "logPath": "...", "historyDir": "...",
   "settings": { "...全部配置..." },
   "tasks": { "open": 3, "carried": 1, "done": 12, "dropped": 2 },
   "hotkeys": [ {"action": "snip", "chord": "Ctrl+Alt+A", "registered": true} ],
-  "card": { "x": 2110, "y": 30, "w": 340, "h": 177, "visible": true },
+  "card": { "x": 2110, "y": 30, "w": 340, "h": 177, "visible": true,
+            "desktopLayer": false, "topMost": true, "zOrder": "topmost" },
   "pins": { "count": 2, "group": "默认", "groups": ["默认"] },
   "history": { "count": 26, "limit": 50 },
   "ocr": { "available": true, "engine": "Windows.Media.Ocr" },
@@ -465,7 +469,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File D:\TaskPin\repo\TaskPinQt\sc
 
 1. 读本文 §0 / §2 / §6。
 2. 跑一次 `build.cmd`，确认 `build\TaskPinQt.exe` 存在且 0 warning。
-3. 跑 `--selftest`（应 53/53）与 `scripts\test-snip.ps1`（应 26/26）。
+3. 跑 `--selftest`（应 53/53）与 `scripts\test-snip.ps1`（应 37/37）。
 4. 启动应用，确认右上角出现卡片；`--dump` 生成 JSON。
 5. 读 `docs/ARCHITECTURE.md`，确认模块边界。
 6. 从 §4.2 的 ⏳（目前只有扫码）或 §9 的技术债里挑一项开工，按 §8 交付。
@@ -500,8 +504,9 @@ powershell -NoProfile -ExecutionPolicy Bypass -File D:\TaskPin\repo\TaskPinQt\sc
 | `SnipOverlay` 仍有 ~900 行 | 维护成本 | `Annotation` 已拆出，工具栏可继续拆 `SnipToolbar.*` |
 | OCR 依赖 Windows 语言包 | 无中文包时识别失败 | 日志已给出原因；可在设置页提示安装语言包 |
 | 打印未做真机验收 | 可能有边距/缩放差异 | 有打印机时补一次 `O7` 验收 |
+| 桌面层模式下卡片会被最大化/全屏窗口盖住 | 属设计取舍（不置顶的代价） | 需要时切回全局置顶：托盘勾选项 / 卡片右键 / `--card-top` |
 
-### 验证记录（2026-11-08，Qt 0.2）
+### 验证记录（2026-11-09，Qt 0.2 + 卡片层级切换）
 
 ```
 > TaskPinQt.exe --selftest D:\TaskPin\repo\docs\artifacts\selftest
@@ -516,20 +521,32 @@ PASS  OCR hotkey creates exactly one task                 -> open 5 -> 6
 PASS  OCR text reaches TimeParser (due 15:00 parsed)      -> log: ocr task created
 PASS  pin window opened                                   -> pins=1 group=默认
 PASS  colour picker copies a hex value                    -> #FFFFFF
+PASS  card starts topmost                                 -> zOrder=topmost
+PASS  card switches to the desktop layer                  -> zOrder=desktop
+PASS  card window is findable by title                    -> hwnd=394904
+PASS  card reacts to a real click on the desktop layer    -> open 4 -> 3
+PASS  card context menu opens on the desktop layer        -> new app windows: 2
+PASS  date double-click opens the calendar from the desktop layer -> hwnd=1770850
+PASS  calendar board click selects a day                  -> log: calendar select
+PASS  calendar month arrow switches month                 -> log: calendar month
+PASS  card returns to topmost                             -> zOrder=topmost
+PASS  card show/hide toggle keeps working                 -> visible True -> False -> True
 PASS  whiteboard copies the full frozen frame             -> 2560x1600
 PASS  transparent whiteboard copies a full-size image      -> 2560x1600
 PASS  full screen capture copies the whole desktop        -> 2560x1600
 PASS  settings reload resizes the card (300 x 159)        -> card 300x159
 PASS  autostart writes the logon entry                    -> autostart=True
+PASS  saved z-order mode is restored on start             -> zOrder=desktop
 PASS  delayed snip honours the configured delay           -> log: startSnip: delayed 1.0s
-== summary: 26 passed, 0 failed ==        (exit code 0)
+== summary: 37 passed, 0 failed ==        (exit code 0)
 
 > TaskPinQt.exe --dump D:\TaskPin\repo\docs\dump.json
-dump via running instance: ok -> D:\TaskPin\repo\docs\dump.json   (v0.2.0)
+dump via running instance: ok -> D:\TaskPin\repo\docs\dump.json   (v0.2.1)
 ```
 
 > 注意：`TaskPinQt.exe` 是 GUI 子系统程序，PowerShell 里直接用 `&` 不会等它结束，
 > 要拿退出码请用 `Start-Process -Wait -PassThru`。
+> 回归脚本会临时最小化挡住卡片的窗口（截图后立即恢复），因为桌面层模式本来就会被普通窗口盖住。
 
 ### 证据截图（`D:\TaskPin\repo\docs\screenshots\`）
 
@@ -543,7 +560,11 @@ dump via running instance: ok -> D:\TaskPin\repo\docs\dump.json   (v0.2.0)
 | `test-pin.png` | 贴图窗口浮在桌面上 |
 | `test-history.png` | 截屏历史缩略图列表 |
 | `test-calendar.png` | 月历 + 每日计数 + 当日清单 |
+| `test-calendar-click.png` | 从卡片双击日期打开日历后，点击看板选中 11/10 |
 | `test-settings.png` | 设置窗口五页中的「卡片」页 |
+| `test-card-desktop.png` | 卡片贴在桌面层（壁纸上方），普通窗口已让开 |
+| `test-card-menu.png` | 桌面层模式下卡片右键菜单（含「全局置顶显示」勾选项） |
+| `test-card-top.png` | 切回全局置顶后的卡片 |
 | `test-board.png` | 白板（冻结画面 + 手写） |
 | `test-board-transparent.png` | 透明白板（笔迹浮在桌面上） |
 
@@ -552,7 +573,7 @@ dump via running instance: ok -> D:\TaskPin\repo\docs\dump.json   (v0.2.0)
 | 文件 | 内容 |
 |---|---|
 | `selftest.txt` | `--selftest` 原始输出（53 项） |
-| `test-snip-report.txt` | 交互回归原始输出（26 项） |
+| `test-snip-report.txt` | 交互回归原始输出（37 项） |
 
 ---
 

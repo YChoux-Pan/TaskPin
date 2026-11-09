@@ -21,6 +21,7 @@
 #include "ui/SnipOverlay.h"
 #include "ui/WhiteboardWindow.h"
 
+#include <QAction>
 #include <QApplication>
 #include <QClipboard>
 #include <QDateTime>
@@ -45,6 +46,7 @@
 #include <QPrinter>
 #include <QPushButton>
 #include <QScreen>
+#include <QSignalBlocker>
 #include <QSystemTrayIcon>
 #include <QTimer>
 #include <QUrl>
@@ -173,6 +175,7 @@ void AppHost::start(const QString &initialCommand)
     connect(m_card, &CardWindow::recycleBinRequested, this, &AppHost::showRecycleBin);
     connect(m_card, &CardWindow::calendarRequested, this, &AppHost::showCalendar);
     connect(m_card, &CardWindow::settingsRequested, this, &AppHost::showSettings);
+    connect(m_card, &CardWindow::zOrderChanged, this, &AppHost::syncCardTopAction);
 
     m_ocr = new Ocr(this);
     connect(m_ocr, &Ocr::finished, this, &AppHost::onOcrFinished);
@@ -233,6 +236,9 @@ void AppHost::handleCommand(const QString &command)
     else if (command == QLatin1String("board-transparent")) showTransparentBoard();
     else if (command == QLatin1String("quick")) quickAdd();
     else if (command == QLatin1String("toggle")) toggleCard();
+    else if (command == QLatin1String("card-top")) setCardOnTop(true);
+    else if (command == QLatin1String("card-desktop")) setCardOnTop(false);
+    else if (command == QLatin1String("card-layer")) toggleCardLayer();
     else if (command == QLatin1String("recycle")) showRecycleBin();
     else if (command == QLatin1String("history")) showHistory();
     else if (command == QLatin1String("calendar")) showCalendar();
@@ -269,6 +275,11 @@ void AppHost::buildTray()
     menu->addAction(QStringLiteral("设置…"), this, &AppHost::showSettings);
     menu->addSeparator();
     menu->addAction(QStringLiteral("显示 / 隐藏卡片"), this, &AppHost::toggleCard);
+    m_cardTopAction = menu->addAction(QStringLiteral("卡片全局置顶"));
+    m_cardTopAction->setCheckable(true);
+    m_cardTopAction->setChecked(Settings::instance().alwaysOnTop);
+    m_cardTopAction->setToolTip(QStringLiteral("取消勾选后卡片贴在桌面层：壁纸上方，会被普通窗口盖住"));
+    connect(m_cardTopAction, &QAction::triggered, this, [this](bool checked) { setCardOnTop(checked); });
     menu->addAction(QStringLiteral("退出"), this, &AppHost::quitApp);
 
     m_tray->setContextMenu(menu);
@@ -701,8 +712,35 @@ void AppHost::applySettings()
     qInfo("settings applied");
     registerHotkeys();
     if (m_card) m_card->applySettings();
+    syncCardTopAction();
     Autostart::setEnabled(Settings::instance().autostart, QCoreApplication::applicationFilePath());
     toast(QStringLiteral("设置已保存"));
+}
+
+void AppHost::setCardOnTop(bool onTop)
+{
+    if (m_card) {
+        m_card->setDesktopLayer(!onTop);
+    } else {
+        auto &s = Settings::instance();
+        s.alwaysOnTop = onTop;
+        s.save();
+    }
+    syncCardTopAction();
+    qInfo("card layer set: %s", onTop ? "topmost" : "desktop");
+    toast(onTop ? QStringLiteral("卡片已全局置顶")
+                : QStringLiteral("卡片已贴到桌面层（壁纸上方，普通窗口会盖住它）"));
+}
+
+void AppHost::toggleCardLayer() { setCardOnTop(!Settings::instance().alwaysOnTop); }
+
+void AppHost::syncCardTopAction()
+{
+    if (!m_cardTopAction) return;
+    const bool onTop = m_card ? !m_card->isDesktopLayer() : Settings::instance().alwaysOnTop;
+    if (m_cardTopAction->isChecked() == onTop) return;
+    const QSignalBlocker blocker(m_cardTopAction);
+    m_cardTopAction->setChecked(onTop);
 }
 
 void AppHost::toggleCard()
@@ -712,7 +750,9 @@ void AppHost::toggleCard()
         m_card->hide();
     } else {
         m_card->show();
-        m_card->raise();
+        // showEvent 里已经按模式重新排过 z-order；置顶模式再抬一次，桌面层模式保持最底层
+        if (!m_card->isDesktopLayer()) m_card->raise();
+        else m_card->applyZOrder();
     }
 }
 
@@ -822,6 +862,9 @@ QJsonObject AppHost::dumpState() const
         card["w"] = m_card->width();
         card["h"] = m_card->height();
         card["visible"] = m_card->isVisible();
+        card["desktopLayer"] = m_card->isDesktopLayer();
+        card["topMost"] = WindowFx::isTopMost(m_card);
+        card["zOrder"] = m_card->isDesktopLayer() ? QStringLiteral("desktop") : QStringLiteral("topmost");
         o["card"] = card;
     }
 

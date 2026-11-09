@@ -15,6 +15,7 @@ class HistoryDialog;
 class Hotkeys;
 class Ocr;
 class PinWindow;
+class QAction;
 class QImage;
 class QLocalServer;
 class QSystemTrayIcon;
@@ -48,6 +49,9 @@ public slots:
     void showWhiteboard();
     void showTransparentBoard();
     void toggleCard();
+    /// true = 全局置顶；false = 桌面层（壁纸上方，被普通窗口盖住）
+    void setCardOnTop(bool onTop);
+    void toggleCardLayer();
     void showRecycleBin();
     void showHistory();
     void showCalendar();
@@ -62,6 +66,7 @@ private:
     void buildTray();
     void registerHotkeys();
     void handleCommand(const QString &command);
+    void syncCardTopAction();
 
     void captureAndEdit(bool preselectLast);
     void captureWhiteboard(bool transparent);
@@ -86,6 +91,7 @@ private:
     QLocalServer *m_cmd = nullptr;
     Ocr *m_ocr = nullptr;
     AiClient *m_ai = nullptr;
+    QAction *m_cardTopAction = nullptr;
 
     QPointer<HistoryDialog> m_history;
     QPointer<CalendarWindow> m_calendar;

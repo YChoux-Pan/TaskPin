@@ -2,11 +2,13 @@
 
 #include "core/Settings.h"
 #include "core/Store.h"
+#include "platform/WindowFx.h"
 
 #include <QApplication>
 #include <QClipboard>
 #include <QContextMenuEvent>
 #include <QDateTime>
+#include <QDebug>
 #include <QLocale>
 #include <QGuiApplication>
 #include <QMenu>
@@ -14,6 +16,8 @@
 #include <QPainter>
 #include <QPainterPath>
 #include <QScreen>
+#include <QShowEvent>
+#include <QTimer>
 #include <QWheelEvent>
 
 namespace {
@@ -25,11 +29,17 @@ constexpr int kHeaderH = 26;
 CardWindow::CardWindow(Store *store, QWidget *parent)
     : QWidget(parent), m_store(store)
 {
-    setWindowFlags(Qt::Tool | Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint | Qt::NoDropShadowWindowHint);
+    // No Qt::WindowStaysOnTopHint here: the z-order is asserted through Win32 in applyZOrder()
+    // so the two modes can be switched at runtime without Qt recreating the window handle.
+    setWindowFlags(Qt::Tool | Qt::FramelessWindowHint | Qt::NoDropShadowWindowHint);
     setAttribute(Qt::WA_TranslucentBackground, true);
     setAttribute(Qt::WA_ShowWithoutActivating, true);
     setMouseTracking(true);
     setCursor(Qt::ArrowCursor);
+    // stable title so the regression harness can find the window among the process' other HWNDs
+    setWindowTitle(QStringLiteral("TaskPinCard"));
+
+    m_desktopLayer = !Settings::instance().alwaysOnTop;
 
     connect(m_store, &Store::changed, this, &CardWindow::refresh);
     relayout();
@@ -74,14 +84,57 @@ void CardWindow::placeOnScreen()
 
 void CardWindow::applySettings()
 {
-    const bool onTop = Settings::instance().alwaysOnTop;
-    if (onTop != windowFlags().testFlag(Qt::WindowStaysOnTopHint)) {
-        setWindowFlag(Qt::WindowStaysOnTopHint, onTop);
-        show();
-    }
     relayout();
     if (Settings::instance().cardX < 0) placeOnScreen();
+    applyZOrder();
     update();
+}
+
+void CardWindow::applyZOrder()
+{
+    const bool onTop = Settings::instance().alwaysOnTop;
+    m_desktopLayer = !onTop;
+    if (onTop) {
+        WindowFx::setTopMost(this, true);
+        if (!WindowFx::isTopMost(this)) {
+            // Windows occasionally swallows the first HWND_TOPMOST request right after a burst of
+            // z-order changes (e.g. restoring a dozen windows). Verify once more on the next tick.
+            QTimer::singleShot(0, this, [this] {
+                if (!Settings::instance().alwaysOnTop || WindowFx::isTopMost(this)) return;
+                WindowFx::setTopMost(this, true);
+                qInfo("card z-order retry: topmost=%d", int(WindowFx::isTopMost(this)));
+            });
+        }
+    } else {
+        WindowFx::setTopMost(this, false);
+        WindowFx::sendToBottom(this);
+    }
+    qInfo("card z-order: %s (native topmost=%d)", onTop ? "topmost" : "desktop-layer",
+          int(WindowFx::isTopMost(this)));
+}
+
+void CardWindow::setDesktopLayer(bool on)
+{
+    m_desktopLayer = on;
+    auto &s = Settings::instance();
+    s.alwaysOnTop = !on;
+    s.save();
+    applyZOrder();
+    emit zOrderChanged();
+    qInfo("card layer -> %s", on ? "desktop" : "topmost");
+}
+
+void CardWindow::showEvent(QShowEvent *e)
+{
+    QWidget::showEvent(e);
+    // show()/raise() can pull the window back up; re-assert the configured layer every time
+    applyZOrder();
+}
+
+bool CardWindow::nativeEvent(const QByteArray &eventType, void *message, qintptr *result)
+{
+    if (m_desktopLayer) WindowFx::clampToDesktopLayer(message);
+    return QWidget::nativeEvent(eventType, message, result);
 }
 
 void CardWindow::refresh()
@@ -277,6 +330,8 @@ void CardWindow::mouseReleaseEvent(QMouseEvent *)
 
 void CardWindow::mouseDoubleClickEvent(QMouseEvent *e)
 {
+    qInfo("card double-click at %d,%d dateRect=%d,%d %dx%d", e->pos().x(), e->pos().y(), m_dateRect.x(),
+          m_dateRect.y(), m_dateRect.width(), m_dateRect.height());
     if (e->button() == Qt::LeftButton && m_dateRect.contains(e->pos())) {
         emit calendarRequested();   // T8: double-click the date to open the calendar
         return;
@@ -316,6 +371,10 @@ void CardWindow::contextMenuEvent(QContextMenuEvent *e)
         menu.addAction(QStringLiteral("日历…"), this, &CardWindow::calendarRequested);
         menu.addAction(QStringLiteral("设置…"), this, &CardWindow::settingsRequested);
         menu.addSeparator();
+        auto *top = menu.addAction(QStringLiteral("全局置顶显示"));
+        top->setCheckable(true);
+        top->setChecked(Settings::instance().alwaysOnTop);
+        connect(top, &QAction::triggered, this, [this](bool checked) { setDesktopLayer(!checked); });
         menu.addAction(QStringLiteral("隐藏卡片"), this, &QWidget::hide);
     }
     menu.exec(e->globalPos());
