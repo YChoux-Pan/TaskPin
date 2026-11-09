@@ -39,7 +39,7 @@ D:\TaskPin\repo\TaskPinQt\build\TaskPinQt.exe --snip
 Start-Process -Wait -PassThru D:\TaskPin\repo\TaskPinQt\build\TaskPinQt.exe `
   -ArgumentList '--selftest','D:\TaskPin\repo\docs\artifacts\selftest'
 
-# 真机交互回归：37 项断言（模拟鼠标键盘，截图存 docs/）
+# 真机交互回归：38 项断言（模拟鼠标键盘，截图存 docs/）
 powershell -NoProfile -ExecutionPolicy Bypass -File D:\TaskPin\repo\TaskPinQt\scripts\test-snip.ps1
 ```
 
@@ -306,7 +306,7 @@ D:\TaskPin\repo\TaskPinQt\
 ├─ CMakeLists.txt          # Qt6 Core/Gui/Widgets/Sql/Network/PrintSupport + windeployqt
 ├─ build.cmd               # 一键构建（固定 Qt/MinGW/CMake/Ninja 路径）
 ├─ scripts\
-│  ├─ test-snip.ps1        # 真机交互回归（37 项断言，截图到 docs/）
+│  ├─ test-snip.ps1        # 真机交互回归（38 项断言，截图到 docs/）
 │  └─ show-image.ps1       # 回归用的固定测试窗口（已知位置 / 已知文字）
 └─ src\
    ├─ main.cpp             # 单实例、CLI 转发、日志、区域设置、--dump/--selftest
@@ -469,7 +469,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File D:\TaskPin\repo\TaskPinQt\sc
 
 1. 读本文 §0 / §2 / §6。
 2. 跑一次 `build.cmd`，确认 `build\TaskPinQt.exe` 存在且 0 warning。
-3. 跑 `--selftest`（应 53/53）与 `scripts\test-snip.ps1`（应 37/37）。
+3. 跑 `--selftest`（应 53/53）与 `scripts\test-snip.ps1`（应 38/38）。
 4. 启动应用，确认右上角出现卡片；`--dump` 生成 JSON。
 5. 读 `docs/ARCHITECTURE.md`，确认模块边界。
 6. 从 §4.2 的 ⏳（目前只有扫码）或 §9 的技术债里挑一项开工，按 §8 交付。
@@ -505,6 +505,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File D:\TaskPin\repo\TaskPinQt\sc
 | OCR 依赖 Windows 语言包 | 无中文包时识别失败 | 日志已给出原因；可在设置页提示安装语言包 |
 | 打印未做真机验收 | 可能有边距/缩放差异 | 有打印机时补一次 `O7` 验收 |
 | 桌面层模式下卡片会被最大化/全屏窗口盖住 | 属设计取舍（不置顶的代价） | 需要时切回全局置顶：托盘勾选项 / 卡片右键 / `--card-top` |
+| 别的应用从"最小化恢复"后出现黑块 / 残影（`Widgets`、`RadeonSoftware`、Chromium 都中过） | 屏幕看着像"重影"，容易被当成 TaskPin 的 bug | **不是 TaskPin 的窗口**：这是 GPU 合成器丢了绘制表面。做法：强制全桌面重绘（`RedrawWindow`）即可恢复，严重时按 `Win+Ctrl+Shift+B` 重置显示驱动。回归脚本已改成不再最小化其它应用的窗口 |
 
 ### 验证记录（2026-11-09，Qt 0.2 + 卡片层级切换）
 
@@ -522,11 +523,12 @@ PASS  OCR text reaches TimeParser (due 15:00 parsed)      -> log: ocr task creat
 PASS  pin window opened                                   -> pins=1 group=默认
 PASS  colour picker copies a hex value                    -> #FFFFFF
 PASS  card starts topmost                                 -> zOrder=topmost
+PASS  card context menu opens                             -> new app windows: 2
+PASS  card reacts to a real click while topmost           -> open 3 -> 2
 PASS  card switches to the desktop layer                  -> zOrder=desktop
-PASS  card window is findable by title                    -> hwnd=394904
-PASS  card reacts to a real click on the desktop layer    -> open 4 -> 3
-PASS  card context menu opens on the desktop layer        -> new app windows: 2
-PASS  date double-click opens the calendar from the desktop layer -> hwnd=1770850
+PASS  card window is findable by title                    -> hwnd=263632
+PASS  card still takes clicks on the desktop layer (+ opens the input) -> new app windows: 1
+PASS  date double-click opens the calendar from the desktop layer -> hwnd=1573034
 PASS  calendar board click selects a day                  -> log: calendar select
 PASS  calendar month arrow switches month                 -> log: calendar month
 PASS  card returns to topmost                             -> zOrder=topmost
@@ -538,7 +540,7 @@ PASS  settings reload resizes the card (300 x 159)        -> card 300x159
 PASS  autostart writes the logon entry                    -> autostart=True
 PASS  saved z-order mode is restored on start             -> zOrder=desktop
 PASS  delayed snip honours the configured delay           -> log: startSnip: delayed 1.0s
-== summary: 37 passed, 0 failed ==        (exit code 0)
+== summary: 38 passed, 0 failed ==        (exit code 0)
 
 > TaskPinQt.exe --dump D:\TaskPin\repo\docs\dump.json
 dump via running instance: ok -> D:\TaskPin\repo\docs\dump.json   (v0.2.1)
@@ -546,7 +548,7 @@ dump via running instance: ok -> D:\TaskPin\repo\docs\dump.json   (v0.2.1)
 
 > 注意：`TaskPinQt.exe` 是 GUI 子系统程序，PowerShell 里直接用 `&` 不会等它结束，
 > 要拿退出码请用 `Start-Process -Wait -PassThru`。
-> 回归脚本会临时最小化挡住卡片的窗口（截图后立即恢复），因为桌面层模式本来就会被普通窗口盖住。
+> 回归脚本**不会去动其它应用的窗口**：桌面层的点击/双击用 `PostMessage` 直接发给卡片 HWND，真实鼠标点击与右键菜单在置顶模式验证。
 
 ### 证据截图（`D:\TaskPin\repo\docs\screenshots\`）
 
@@ -573,7 +575,7 @@ dump via running instance: ok -> D:\TaskPin\repo\docs\dump.json   (v0.2.1)
 | 文件 | 内容 |
 |---|---|
 | `selftest.txt` | `--selftest` 原始输出（53 项） |
-| `test-snip-report.txt` | 交互回归原始输出（37 项） |
+| `test-snip-report.txt` | 交互回归原始输出（38 项） |
 
 ---
 

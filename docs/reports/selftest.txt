@@ -1,4 +1,4 @@
-TaskPinQt self test  2026-11-09T09:56:46
+TaskPinQt self test  2026-11-09T10:17:20
 
 == store ==
 PASS  open db  -> D:\TaskPin\repo\docs\artifacts\selftest/selftest.db
@@ -66,8 +66,8 @@ PASS  broken settings backed up  -> D:\TaskPin\repo\docs\artifacts\selftest/sett
 PASS  defaults survive a broken file  -> 6
 
 == history ==
-PASS  history save writes a png  -> D:/TaskPin/repo/docs/artifacts/selftest/history/snip/snip-20261109-095646-193.png
-PASS  history lists it back  -> n=3
+PASS  history save writes a png  -> D:/TaskPin/repo/docs/artifacts/selftest/history/snip/snip-20261109-101720-957.png
+PASS  history lists it back  -> n=4
 PASS  history dir under dataDir  -> D:\TaskPin\repo\docs\artifacts\selftest/history/snip
 
 == environment ==

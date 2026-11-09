@@ -47,9 +47,34 @@ public static class U {
     public const uint RIGHTUP = 0x10;
     public const int GWL_EXSTYLE = -20;
     public const long WS_EX_TOPMOST = 0x8;
-    public const int SW_MINIMIZE = 6;
-    public const int SW_RESTORE = 9;
+    public const uint WM_LBUTTONDOWN = 0x0201;
+    public const uint WM_LBUTTONUP = 0x0202;
+    public const uint WM_LBUTTONDBLCLK = 0x0203;
+    public const uint WM_CONTEXTMENU = 0x007B;
+    [DllImport("user32.dll")] public static extern bool PostMessage(IntPtr h, uint msg, IntPtr w, IntPtr l);
     public static void Aware() { try { SetProcessDpiAwarenessContext(new IntPtr(-4)); } catch { } }
+
+    private static IntPtr Lp(int x, int y) { return (IntPtr)((y << 16) | (x & 0xFFFF)); }
+
+    // Post a click straight to the window (no cursor movement, no other window touched).
+    public static void PostClick(IntPtr h, int x, int y) {
+        PostMessage(h, WM_LBUTTONDOWN, (IntPtr)1, Lp(x, y));
+        System.Threading.Thread.Sleep(40);
+        PostMessage(h, WM_LBUTTONUP, IntPtr.Zero, Lp(x, y));
+    }
+    public static void PostDoubleClick(IntPtr h, int x, int y) {
+        PostMessage(h, WM_LBUTTONDOWN, (IntPtr)1, Lp(x, y));
+        System.Threading.Thread.Sleep(30);
+        PostMessage(h, WM_LBUTTONUP, IntPtr.Zero, Lp(x, y));
+        System.Threading.Thread.Sleep(30);
+        PostMessage(h, WM_LBUTTONDBLCLK, (IntPtr)1, Lp(x, y));
+        System.Threading.Thread.Sleep(30);
+        PostMessage(h, WM_LBUTTONUP, IntPtr.Zero, Lp(x, y));
+    }
+    // lParam of WM_CONTEXTMENU is in screen coordinates.
+    public static void PostContextMenu(IntPtr h, int screenX, int screenY) {
+        PostMessage(h, WM_CONTEXTMENU, h, Lp(screenX, screenY));
+    }
 
     // one line per top-level window, in z-order (first = topmost):
     // pid|class|title|hwnd|iconic|topmost|x,y,w,h
@@ -113,6 +138,15 @@ function SendKeys([string]$keys) {
     Start-Sleep -Milliseconds 300
 }
 
+function RightClick([int]$x, [int]$y) {
+    [U]::SetCursorPos($x, $y) | Out-Null
+    Start-Sleep -Milliseconds 160
+    [U]::mouse_event([U]::RIGHTDOWN, 0, 0, 0, [IntPtr]::Zero)
+    Start-Sleep -Milliseconds 70
+    [U]::mouse_event([U]::RIGHTUP, 0, 0, 0, [IntPtr]::Zero)
+    Start-Sleep -Milliseconds 350
+}
+
 # ---------------------------------------------------------------- window helpers
 $script:dpr = 1.25   # replaced with the real value from the first dump
 # calendar window title built from code points: this script stays ASCII-only on purpose
@@ -146,45 +180,6 @@ function Find-WindowByTitle([string]$title) {
         if ($row.Title -eq $title) { return $row.Handle }
     }
     return [IntPtr]::Zero
-}
-
-# Top-level windows that sit above `cardHnd` and overlap its (logical) rectangle.
-function Get-CoveringWindows([IntPtr]$cardHnd, [int]$lx, [int]$ly, [int]$lw, [int]$lh) {
-    $x = [int]($lx * $script:dpr); $y = [int]($ly * $script:dpr)
-    $w = [int]($lw * $script:dpr); $h = [int]($lh * $script:dpr)
-    $out = @()
-    foreach ($row in (Get-WindowRows)) {
-        if ($row.Handle -eq $cardHnd) { break }   # this and everything below cannot cover the card
-        if ($row.Iconic -or $row.W -le 0 -or $row.H -le 0) { continue }
-        $overlap = -not ($row.X + $row.W -le $x -or $row.X -ge $x + $w -or
-                         $row.Y + $row.H -le $y -or $row.Y -ge $y + $h)
-        if ($overlap) { $out += $row }
-    }
-    return $out
-}
-
-function Minimize-Window([IntPtr]$h) { [U]::ShowWindow($h, [U]::SW_MINIMIZE) | Out-Null }
-function Restore-Window([IntPtr]$h) { [U]::ShowWindow($h, [U]::SW_RESTORE) | Out-Null }
-
-function RightClick([int]$x, [int]$y) {
-    [U]::SetCursorPos($x, $y) | Out-Null
-    Start-Sleep -Milliseconds 160
-    [U]::mouse_event([U]::RIGHTDOWN, 0, 0, 0, [IntPtr]::Zero)
-    Start-Sleep -Milliseconds 70
-    [U]::mouse_event([U]::RIGHTUP, 0, 0, 0, [IntPtr]::Zero)
-    Start-Sleep -Milliseconds 350
-}
-
-function DoubleClick([int]$x, [int]$y) {
-    [U]::SetCursorPos($x, $y) | Out-Null
-    Start-Sleep -Milliseconds 160
-    for ($i = 0; $i -lt 2; $i++) {
-        [U]::mouse_event([U]::LEFTDOWN, 0, 0, 0, [IntPtr]::Zero)
-        Start-Sleep -Milliseconds 45
-        [U]::mouse_event([U]::LEFTUP, 0, 0, 0, [IntPtr]::Zero)
-        if ($i -eq 0) { Start-Sleep -Milliseconds 60 }
-    }
-    Start-Sleep -Milliseconds 400
 }
 
 # Logical client point -> physical screen point (Qt geometry is logical, the desktop is not).
@@ -393,49 +388,54 @@ SendKeys '{ESC}'
 Start-Sleep -Milliseconds 500
 
 # ---------------------------------------------------------------- 6d. card z-order: topmost <-> desktop layer
+# NOTE: this section never minimizes other applications' windows. Restoring GPU apps from a
+# minimized state can leave stale/black frames on some drivers, which is what a previous version
+# of this script triggered. Clicks on the desktop-layer card are posted straight to its HWND;
+# real hit-testing is covered by the topmost-mode click below.
 $dt = Dump (Join-Path $Docs 'dump-card-top.json')
 Check 'card starts topmost' ($dt.card.topMost -eq $true -and $dt.card.desktopLayer -eq $false) ('zOrder=' + $dt.card.zOrder)
 $cardW = [int]$dt.card.w
 $cardH = [int]$dt.card.h
+$tpPid = (Get-Process TaskPinQt | Select-Object -First 1).Id
+
+# real right-click on the card header: the menu is a popup, so this works the same on either layer
+$beforeHandles = @(Get-WindowRows | Where-Object { $_.Pid -eq $tpPid } | ForEach-Object { $_.Handle })
+RightClick ([int](($dt.card.x + 40) * $script:dpr)) ([int](($dt.card.y + 22) * $script:dpr))
+Start-Sleep -Milliseconds 800
+$newWindows = @(Get-WindowRows | Where-Object { $_.Pid -eq $tpPid -and $beforeHandles -notcontains $_.Handle })
+Check 'card context menu opens' ($newWindows.Count -ge 1) ("new app windows: $($newWindows.Count)")
+Shot (Join-Path $Docs 'test-card-menu.png')
+SendKeys '{ESC}'
+Start-Sleep -Milliseconds 600
+
+# real click on a task row while the card is topmost (nothing can cover it)
+$openBefore = [int]$dt.tasks.open
+Click ([int](($dt.card.x + 60) * $script:dpr)) ([int](($dt.card.y + 57) * $script:dpr))
+Start-Sleep -Milliseconds 900
+$dc0 = Dump (Join-Path $Docs 'dump-card-top-click.json')
+Check 'card reacts to a real click while topmost' ($dc0.tasks.open -eq ($openBefore - 1)) ("open $openBefore -> $($dc0.tasks.open)")
+# note: this completes one task; the OCR step above creates one per run, so the list stays balanced
 
 Command 'card-desktop'
 Start-Sleep -Milliseconds 1000
 $dd = Dump (Join-Path $Docs 'dump-card-desktop.json')
 Check 'card switches to the desktop layer' ($dd.card.desktopLayer -eq $true -and $dd.card.topMost -eq $false) ('zOrder=' + $dd.card.zOrder)
+Shot (Join-Path $Docs 'test-card-desktop.png')
 
 $cardHnd = Find-WindowByTitle 'TaskPinCard'
 Check 'card window is findable by title' ($cardHnd -ne [IntPtr]::Zero) ('hwnd=' + $cardHnd.ToInt64())
 
-# expose the desktop layer: temporarily minimize whatever covers the card, then test for real
-$cover = @(Get-CoveringWindows $cardHnd ([int]$dd.card.x) ([int]$dd.card.y) $cardW $cardH)
-$minimized = @()
-foreach ($row in $cover) { Minimize-Window $row.Handle; $minimized += $row.Handle }
-Start-Sleep -Milliseconds 1400
-Shot (Join-Path $Docs 'test-card-desktop.png')
-Write-Host ("      minimized {0} covering window(s) to expose the card" -f $minimized.Count)
-
-$rowX = [int](($dd.card.x + 60) * $script:dpr)
-$rowY = [int](($dd.card.y + 57) * $script:dpr)
-$openBefore = [int]$dd.tasks.open
-Click $rowX $rowY
-Start-Sleep -Milliseconds 900
-$dc = Dump (Join-Path $Docs 'dump-card-desktop-click.json')
-Check 'card reacts to a real click on the desktop layer' ($dc.tasks.open -eq ($openBefore - 1)) ("open $openBefore -> $($dc.tasks.open)")
-# note: this completes one task; the OCR step above creates one per run, so the list stays balanced
-
-# the right-click menu must still open while the card sits at the bottom of the z-order
-$tpPid = (Get-Process TaskPinQt | Select-Object -First 1).Id
+# posted click on the "+" button: the card must still take input at the bottom of the z-order
 $beforeHandles = @(Get-WindowRows | Where-Object { $_.Pid -eq $tpPid } | ForEach-Object { $_.Handle })
-RightClick ([int](($dd.card.x + 40) * $script:dpr)) ([int](($dd.card.y + 22) * $script:dpr))
-Start-Sleep -Milliseconds 700
+[U]::PostClick($cardHnd, [int](($cardW - 33) * $script:dpr), [int](32 * $script:dpr))
+Start-Sleep -Milliseconds 900
 $newWindows = @(Get-WindowRows | Where-Object { $_.Pid -eq $tpPid -and $beforeHandles -notcontains $_.Handle })
-Check 'card context menu opens on the desktop layer' ($newWindows.Count -ge 1) ("new app windows: $($newWindows.Count)")
-Shot (Join-Path $Docs 'test-card-menu.png')
+Check 'card still takes clicks on the desktop layer (+ opens the input)' ($newWindows.Count -ge 1) ("new app windows: $($newWindows.Count)")
 SendKeys '{ESC}'
-Start-Sleep -Milliseconds 600
+Start-Sleep -Milliseconds 500
 
-# double-clicking the date must still open the calendar from the desktop layer
-DoubleClick ([int](($dd.card.x + $cardW - 80) * $script:dpr)) ([int](($dd.card.y + 32) * $script:dpr))
+# posted double-click on the date must open the calendar from the desktop layer
+[U]::PostDoubleClick($cardHnd, [int](($cardW - 80) * $script:dpr), [int](32 * $script:dpr))
 Start-Sleep -Milliseconds 1700
 $calHnd = Find-WindowByTitle $script:calendarTitle
 Check 'date double-click opens the calendar from the desktop layer' ($calHnd -ne [IntPtr]::Zero) ('hwnd=' + $calHnd.ToInt64())
@@ -459,9 +459,6 @@ $calLog = (@(Get-Content $logPath -Encoding UTF8 | Select-Object -Skip $logStart
 Check 'calendar board click selects a day' ($calLog -match 'calendar select \d{4}-\d{2}-\d{2}') 'log: calendar select'
 Check 'calendar month arrow switches month' ($calLog -match 'calendar month \d{4}-\d{2}') 'log: calendar month'
 
-# put the desktop back and return to topmost
-foreach ($h in $minimized) { Restore-Window $h }
-Start-Sleep -Milliseconds 1000
 Command 'card-top'
 Start-Sleep -Milliseconds 900
 $dt2 = Dump (Join-Path $Docs 'dump-card-top2.json')

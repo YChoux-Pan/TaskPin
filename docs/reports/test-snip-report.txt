@@ -7,17 +7,18 @@ PASS  logical selection x dpr == physical output  -> logical 297x105 -> physical
 PASS  click snaps the whole window (720x220)  -> 720x220
 PASS  last region re-uses the snapped rectangle (720x220)  -> 720x220
 PASS  tools round leaves no overlay  -> card restored
-PASS  OCR hotkey creates exactly one task  -> open 3 -> 4
+PASS  OCR hotkey creates exactly one task  -> open 2 -> 3
 PASS  OCR text reaches TimeParser (due 15:00 parsed)  -> log: ocr task created
 PASS  OCR engine returned text  -> log: ocr ok
 PASS  pin window opened  -> pins=1 group=默认
 PASS  pins can be hidden and shown again  -> toggle ok
 PASS  card starts topmost  -> zOrder=topmost
+PASS  card context menu opens  -> new app windows: 2
+PASS  card reacts to a real click while topmost  -> open 3 -> 2
 PASS  card switches to the desktop layer  -> zOrder=desktop
-PASS  card window is findable by title  -> hwnd=919706
-PASS  card reacts to a real click on the desktop layer  -> open 4 -> 3
-PASS  card context menu opens on the desktop layer  -> new app windows: 2
-PASS  date double-click opens the calendar from the desktop layer  -> hwnd=1771724
+PASS  card window is findable by title  -> hwnd=263632
+PASS  card still takes clicks on the desktop layer (+ opens the input)  -> new app windows: 1
+PASS  date double-click opens the calendar from the desktop layer  -> hwnd=1573034
 PASS  calendar board click selects a day  -> log: calendar select
 PASS  calendar month arrow switches month  -> log: calendar month
 PASS  card returns to topmost  -> zOrder=topmost
