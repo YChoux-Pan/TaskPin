@@ -5,6 +5,10 @@
 #   powershell -NoProfile -ExecutionPolicy Bypass -File TaskPinQt\scripts\test-snip.ps1
 #
 # Requires: the app built at TaskPinQt\build\TaskPinQt.exe, a 125% (1.25) primary screen like the dev box.
+#
+# Side effects: one OCR task (source=ocr, title = the two CJK chars in the fixture image) is
+# created per run; nothing else is touched. Clean the residue with any sqlite tool (docs/HANDOVER 9):
+#   python -c "import sqlite3,os;p=os.path.expandvars(r'%LOCALAPPDATA%\TaskPin\TaskPinQt\taskpin.db');c=sqlite3.connect(p);t='\u6d4b\u8bd5';c.execute('delete from task_day where task_id in (select id from task where source=? and title=?)',('ocr',t));c.execute('delete from task where source=? and title=?',('ocr',t));c.commit()"
 param(
     [string]$Exe = '',
     [string]$Docs = ''
@@ -408,13 +412,15 @@ Shot (Join-Path $Docs 'test-card-menu.png')
 SendKeys '{ESC}'
 Start-Sleep -Milliseconds 600
 
-# real click on a task row while the card is topmost (nothing can cover it)
-$openBefore = [int]$dt.tasks.open
-Click ([int](($dt.card.x + 60) * $script:dpr)) ([int](($dt.card.y + 57) * $script:dpr))
+# real click on the "+" button while the card is topmost (nothing can cover it).
+# NOTE: never click a task row here - that would complete one of the user's real tasks.
+$beforeHandles = @(Get-WindowRows | Where-Object { $_.Pid -eq $tpPid } | ForEach-Object { $_.Handle })
+Click ([int](($dt.card.x + $cardW - 33) * $script:dpr)) ([int](($dt.card.y + 32) * $script:dpr))
 Start-Sleep -Milliseconds 900
-$dc0 = Dump (Join-Path $Docs 'dump-card-top-click.json')
-Check 'card reacts to a real click while topmost' ($dc0.tasks.open -eq ($openBefore - 1)) ("open $openBefore -> $($dc0.tasks.open)")
-# note: this completes one task; the OCR step above creates one per run, so the list stays balanced
+$newWindows = @(Get-WindowRows | Where-Object { $_.Pid -eq $tpPid -and $beforeHandles -notcontains $_.Handle })
+Check 'card takes a real click while topmost (+ opens the input)' ($newWindows.Count -ge 1) ("new app windows: $($newWindows.Count)")
+SendKeys '{ESC}'
+Start-Sleep -Milliseconds 500
 
 Command 'card-desktop'
 Start-Sleep -Milliseconds 1000

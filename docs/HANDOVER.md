@@ -459,6 +459,13 @@ powershell -NoProfile -ExecutionPolicy Bypass -File D:\TaskPin\repo\TaskPinQt\sc
 # 结果写 docs\test-snip-report.txt；截图写 docs\test-*.png
 ```
 
+**注意（回归的副作用）**：`test-snip.ps1` 每跑一次会产生一条 OCR 任务（`source=ocr`，标题是夹具图里的两个字）。
+它**不会**再点任务行（旧版会误把用户的任务标成完成）。清理残留：
+
+```powershell
+python -c "import sqlite3,os;p=os.path.expandvars(r'%LOCALAPPDATA%\TaskPin\TaskPinQt\taskpin.db');c=sqlite3.connect(p);t='\u6d4b\u8bd5';c.execute('delete from task_day where task_id in (select id from task where source=? and title=?)',('ocr',t));c.execute('delete from task where source=? and title=?',('ocr',t));c.commit()"
+```
+
 **手工**：`--snip` → 拖拽 → 按键切工具（`R/O/A/L/P/H/T/N/M/B/E`）→ `Enter` 复制 → 校验剪贴板尺寸。
 
 坐标换算：物理坐标 = 逻辑坐标 × DPR（本机 1.25）。工具栏位置随选区变化，**不要手算**。
@@ -524,7 +531,7 @@ PASS  pin window opened                                   -> pins=1 group=默认
 PASS  colour picker copies a hex value                    -> #FFFFFF
 PASS  card starts topmost                                 -> zOrder=topmost
 PASS  card context menu opens                             -> new app windows: 2
-PASS  card reacts to a real click while topmost           -> open 3 -> 2
+PASS  card takes a real click while topmost (+ opens the input) -> new app windows: 1
 PASS  card switches to the desktop layer                  -> zOrder=desktop
 PASS  card window is findable by title                    -> hwnd=263632
 PASS  card still takes clicks on the desktop layer (+ opens the input) -> new app windows: 1
