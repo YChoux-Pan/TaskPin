@@ -137,7 +137,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File D:\TaskPin\repo\TaskPinQt\sc
 | A10 | 撤销 / 重做 `[Qt]` | `Ctrl+Z` / `Ctrl+Y`，步数不限 |
 | A11 | 选中再编辑 `[Qt]` | 选择工具下点选已画标注 → 拖动移动、点色板改色、`Delete` 删除 |
 | A12 | 调色板 `[Qt]` | 7 色 + 线宽 ±（滚轮也可调） |
-| A13 | 工具栏 `[Qt]` | 两行图标（12 工具 + 色板 + 8 动作），当前工具高亮；图标为 Iconify `lucide` 线性图标（`IconSet`，SVG 内嵌），浅灰底 `#ECEEF3`、深灰图标、淡蓝高亮 |
+| A13 | 工具栏 `[Qt]` | 两行图标（12 工具 + 色板 + 8 动作），当前工具高亮；图标为 Iconify `lucide` 线性图标（`IconSet`，SVG 内嵌），浅灰底 `#ECEEF3`、深灰图标、淡蓝高亮；**鼠标悬停高亮 + 「名称 + 快捷键」气泡**（`hoverHint()`，`--dump` 的 `snip.hoverHint` 可断言） |
 
 **编码约定（Qt 版）**：`Annotation` 结构体 + `paint(QPainter&, const QImage *base, qreal dpr)`；坐标一律逻辑坐标；`compose()` 里先 `scale(dpr)` 再画；马赛克/模糊从 `base`（冻结图，设备像素）按 `rect*dpr` 取样。
 
@@ -223,7 +223,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File D:\TaskPin\repo\TaskPinQt\sc
 | 编号 | 功能 | 行为与验收 |
 |---|---|---|
 | S1 | 全局热键 `[Qt]` | 8 个动作都可配置；被占用时降级到备用键并记日志；设置页可直接录制 |
-| S2 | 托盘 `[Qt]` | 截图 / 全屏 / 上次区域 / 新建 / 贴图 / 显示贴图 / 取色 / 白板 / 历史 / 日历 / 回收站 / 设置 / 卡片 / **卡片全局置顶（勾选）** / 退出 |
+| S2 | 托盘 `[Qt]` | 截图 / 全屏 / 上次区域 / 新建 / 贴图 / 显示贴图 / 取色 / 白板 / 历史 / 日历 / 回收站 / 设置 / 卡片 / **卡片全局置顶（勾选）** / 退出；**有全局热键的项右侧显示对应快捷键**（`syncTrayHints()`，菜单弹出时刷新） |
 | S3 | 单实例 `[Qt]` | 二次启动只唤出已有实例 |
 | S4 | 命令行 `[Qt]` | 15 个动词，见 §6.1 |
 | S5 | 开机自启 `[Qt]` | 当前用户 `HKCU\...\Run` 运行项（见 §9 与 C# 计划的差异） |
@@ -420,7 +420,7 @@ task_day(task_id, day, state, seen_at, PRIMARY KEY(task_id, day))
 ```json
 {
   "app": "TaskPinQt",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "time": "2026-11-08T17:20:00",
   "dataDir": "...", "dbPath": "...", "logPath": "...", "historyDir": "...",
   "settings": { "...全部配置..." },
@@ -550,7 +550,7 @@ PASS  delayed snip honours the configured delay           -> log: startSnip: del
 == summary: 38 passed, 0 failed ==        (exit code 0)
 
 > TaskPinQt.exe --dump D:\TaskPin\repo\docs\dump.json
-dump via running instance: ok -> D:\TaskPin\repo\docs\dump.json   (v0.2.2)
+dump via running instance: ok -> D:\TaskPin\repo\docs\dump.json   (v0.2.3)
 ```
 
 > 注意：`TaskPinQt.exe` 是 GUI 子系统程序，PowerShell 里直接用 `&` 不会等它结束，

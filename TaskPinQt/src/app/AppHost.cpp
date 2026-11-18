@@ -253,13 +253,21 @@ void AppHost::buildTray()
     m_tray->setToolTip(QStringLiteral("TaskPin %1").arg(QStringLiteral(TASKPIN_VERSION)));
 
     auto *menu = new QMenu();
-    menu->addAction(QStringLiteral("区域截图"), this, &AppHost::startSnip);
-    menu->addAction(QStringLiteral("全屏截图并复制"), this, &AppHost::captureFull);
-    menu->addAction(QStringLiteral("上一次区域"), this, &AppHost::startLastRegion);
+    // Every item that has a global hotkey is tracked so the menu can show the chord right-aligned
+    // (a tab in the action text: QMenu renders the part after it as the shortcut hint, without
+    // registering a second QAction shortcut that could double-fire with RegisterHotKey).
+    const auto addItem = [this, menu](const QString &text, const QString &hotkey, void (AppHost::*slot)()) {
+        QAction *a = menu->addAction(text, this, slot);
+        m_trayItems.append({a, text, hotkey});
+        return a;
+    };
+    addItem(QStringLiteral("区域截图"), QStringLiteral("snip"), &AppHost::startSnip);
+    addItem(QStringLiteral("全屏截图并复制"), QStringLiteral("full"), &AppHost::captureFull);
+    addItem(QStringLiteral("上一次区域"), QStringLiteral("last"), &AppHost::startLastRegion);
     menu->addSeparator();
-    menu->addAction(QStringLiteral("新建任务"), this, &AppHost::quickAdd);
-    menu->addAction(QStringLiteral("贴住剪贴板内容"), this, &AppHost::pinFromClipboard);
-    menu->addAction(QStringLiteral("显示 / 隐藏全部贴图"), this, &AppHost::togglePins);
+    addItem(QStringLiteral("新建任务"), QStringLiteral("quick"), &AppHost::quickAdd);
+    addItem(QStringLiteral("贴住剪贴板内容"), QStringLiteral("pin"), &AppHost::pinFromClipboard);
+    addItem(QStringLiteral("显示 / 隐藏全部贴图"), QStringLiteral("pins"), &AppHost::togglePins);
     menu->addAction(QStringLiteral("取消全部贴图点击穿透"), [] {
         PinWindow::clearClickThrough();
         PinWindow::flashAll();
@@ -269,12 +277,12 @@ void AppHost::buildTray()
     menu->addAction(QStringLiteral("白板"), this, &AppHost::showWhiteboard);
     menu->addAction(QStringLiteral("透明白板"), this, &AppHost::showTransparentBoard);
     menu->addSeparator();
-    menu->addAction(QStringLiteral("截屏历史…"), this, &AppHost::showHistory);
+    addItem(QStringLiteral("截屏历史…"), QStringLiteral("history"), &AppHost::showHistory);
     menu->addAction(QStringLiteral("日历…"), this, &AppHost::showCalendar);
     menu->addAction(QStringLiteral("回收站…"), this, &AppHost::showRecycleBin);
     menu->addAction(QStringLiteral("设置…"), this, &AppHost::showSettings);
     menu->addSeparator();
-    menu->addAction(QStringLiteral("显示 / 隐藏卡片"), this, &AppHost::toggleCard);
+    addItem(QStringLiteral("显示 / 隐藏卡片"), QStringLiteral("toggle"), &AppHost::toggleCard);
     m_cardTopAction = menu->addAction(QStringLiteral("卡片全局置顶"));
     m_cardTopAction->setCheckable(true);
     m_cardTopAction->setChecked(Settings::instance().alwaysOnTop);
@@ -282,11 +290,31 @@ void AppHost::buildTray()
     connect(m_cardTopAction, &QAction::triggered, this, [this](bool checked) { setCardOnTop(checked); });
     menu->addAction(QStringLiteral("退出"), this, &AppHost::quitApp);
 
+    connect(menu, &QMenu::aboutToShow, this, &AppHost::syncTrayHints);
+    syncTrayHints();
     m_tray->setContextMenu(menu);
     connect(m_tray, &QSystemTrayIcon::activated, this, [this](QSystemTrayIcon::ActivationReason reason) {
         if (reason == QSystemTrayIcon::DoubleClick) toggleCard();
     });
     m_tray->show();
+}
+
+int AppHost::hotkeyIdFor(const QString &name) const
+{
+    for (const auto &pair : hotkeyActions()) {
+        if (pair.first == name) return pair.second;
+    }
+    return 0;
+}
+
+void AppHost::syncTrayHints() const
+{
+    for (const auto &item : m_trayItems) {
+        if (!item.action) continue;
+        const int id = hotkeyIdFor(item.hotkey);
+        const QString chord = (m_hotkeys && id != 0) ? m_hotkeys->label(id) : QString();
+        item.action->setText(chord.isEmpty() ? item.label : item.label + QLatin1Char('\t') + chord);
+    }
 }
 
 void AppHost::registerHotkeys()
@@ -879,6 +907,30 @@ QJsonObject AppHost::dumpState() const
     ocr["available"] = Ocr::available();
     ocr["engine"] = QStringLiteral("Windows.Media.Ocr");
     o["ocr"] = ocr;
+
+    syncTrayHints();   // the dump reflects the chords the tray menu would show
+    QJsonArray tray;
+    for (const auto &item : m_trayItems) {
+        QJsonObject entry;
+        entry["label"] = item.label;
+        entry["hint"] = item.action ? item.action->text().section(QLatin1Char('\t'), 1) : QString();
+        tray.append(entry);
+    }
+    o["tray"] = tray;
+
+    QJsonObject snip;
+    snip["active"] = m_snip != nullptr;
+    if (m_snip) {
+        snip["hoverHint"] = m_snip->hoverHint();
+        const QRect tb = m_snip->toolbarRect();
+        const QPoint origin = m_snip->mapToGlobal(tb.topLeft());
+        snip["toolbar"] = QStringLiteral("%1,%2,%3x%4")
+                              .arg(origin.x())
+                              .arg(origin.y())
+                              .arg(tb.width())
+                              .arg(tb.height());
+    }
+    o["snip"] = snip;
 
     QJsonArray screens;
     for (auto *screen : QGuiApplication::screens()) {

@@ -159,6 +159,30 @@ $script:deskH = 0
 # (PowerShell 5.1 reads .ps1 files as ANSI, which would mangle a literal CJK title)
 $script:calendarTitle = 'TaskPin ' + [char]0x65E5 + [char]0x5386
 
+# Synthetic input needs an unlocked workstation: a locked session has no input desktop and every
+# SendKeys call fails with "Access is denied", leaving a half-run suite. Fail fast instead.
+if (-not ('InputDesktop' -as [type])) {
+    Add-Type -TypeDefinition @"
+using System;
+using System.Runtime.InteropServices;
+public static class InputDesktop {
+    [DllImport("user32.dll", SetLastError = true)] static extern IntPtr OpenInputDesktop(uint flags, bool inherit, uint access);
+    [DllImport("user32.dll")] static extern bool CloseDesktop(IntPtr h);
+    public static bool Available() {
+        IntPtr h = OpenInputDesktop(0, false, 0x0100);
+        if (h == IntPtr.Zero) return false;
+        CloseDesktop(h);
+        return true;
+    }
+}
+"@
+}
+if (-not [InputDesktop]::Available()) {
+    Write-Host ''
+    Write-Host '== desktop is locked: unlock the session, then run this script again ==' -ForegroundColor Yellow
+    exit 2
+}
+
 # All top-level windows as objects, in z-order (first = topmost).
 function Get-WindowRows() {
     $rows = @()
@@ -289,6 +313,7 @@ if ($before -and $before.screens) {
     }
 }
 $script:deskW = [int](($maxX - $minX) * $script:dpr)
+$script:deskH = [int](($maxY - $minY) * $script:dpr)
 
 # Captures now take the screen under the cursor; this returns its size in physical pixels.
 function Screen-At([int]$x, [int]$y) {
@@ -304,8 +329,14 @@ function Screen-At([int]$x, [int]$y) {
     }
     return @{ W = $script:deskW; H = $script:deskH }
 }
-$script:deskH = [int](($maxY - $minY) * $script:dpr)
 Write-Host ("      dpr = {0}" -f $script:dpr)
+
+# ---------------------------------------------------------------- 0b. tray menu hotkey hints
+$snipChord = (@($before.hotkeys) | Where-Object { $_.action -eq 'snip' } | Select-Object -First 1).chord
+$trayHints = @($before.tray | Where-Object { $_.hint -ne '' })
+$firstHint = if ($trayHints.Count -gt 0) { $trayHints[0].hint } else { '' }
+Check 'tray menu shows hotkey hints' ($trayHints.Count -ge 8 -and $firstHint -eq $snipChord) (
+    "{0} hinted items, first='{1}' (snip {2})" -f $trayHints.Count, $firstHint, $snipChord)
 
 # ---------------------------------------------------------------- 1. region snip -> clipboard
 Command 'snip'
@@ -376,6 +407,25 @@ if ($afterTools.card.visible -ne $true) {
     $afterTools = Dump (Join-Path $Docs 'dump-tools.json')
 }
 Check 'tools round leaves no overlay' ($afterTools.card.visible -eq $true) 'card restored'
+
+# ---------------------------------------------------------------- 3b. toolbar hover hints
+Command 'snip'
+Start-Sleep -Milliseconds 1100
+Drag 300 250 700 480
+Start-Sleep -Milliseconds 500
+$hoverDump = Dump (Join-Path $Docs 'dump-hover0.json')
+$toolbar = @($hoverDump.snip.toolbar -split ',')
+$tbx = [int]$toolbar[0]; $tby = [int]$toolbar[1]
+[U]::SetCursorPos($tbx + 94, $tby + 24) | Out-Null          # third button = ellipse
+Start-Sleep -Milliseconds 450
+$hover1 = Dump (Join-Path $Docs 'dump-hover1.json')
+Check 'toolbar hover shows a name and shortcut' ($hover1.snip.hoverHint -match 'O$') $hover1.snip.hoverHint
+[U]::SetCursorPos($tbx + 8 + 8 * 35 + 16, $tby + 24) | Out-Null   # ninth button = mosaic
+Start-Sleep -Milliseconds 450
+$hover2 = Dump (Join-Path $Docs 'dump-hover2.json')
+Check 'toolbar hover follows the cursor' ($hover2.snip.hoverHint -match 'M$') $hover2.snip.hoverHint
+SendKeys '{ESC}'
+Start-Sleep -Milliseconds 700
 
 # ---------------------------------------------------------------- 4. OCR -> task
 $beforeOcr = (Dump (Join-Path $Docs 'dump-ocr-before.json')).tasks.open

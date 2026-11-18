@@ -38,6 +38,44 @@ const QColor kToolAccent(0x2F, 0x6F, 0xEB);
 const QColor kFg(0x2E, 0x33, 0x3B);
 const QColor kDanger(0xC0, 0x3B, 0x2E);
 
+// Label + shortcut shown when the cursor rests on a toolbar button.
+struct HotInfo {
+    QString label;
+    QString chord;
+};
+
+HotInfo hotInfoFor(const QString &id)
+{
+    if (id.startsWith(QLatin1String("tool:"))) {
+        const QString t = id.mid(5);
+        if (t == QLatin1String("select")) return {QStringLiteral("选择"), QStringLiteral("V")};
+        if (t == QLatin1String("rect")) return {QStringLiteral("矩形"), QStringLiteral("R")};
+        if (t == QLatin1String("ellipse")) return {QStringLiteral("圆"), QStringLiteral("O")};
+        if (t == QLatin1String("arrow")) return {QStringLiteral("箭头"), QStringLiteral("A")};
+        if (t == QLatin1String("line")) return {QStringLiteral("直线"), QStringLiteral("L")};
+        if (t == QLatin1String("pen")) return {QStringLiteral("画笔"), QStringLiteral("P")};
+        if (t == QLatin1String("marker")) return {QStringLiteral("荧光笔"), QStringLiteral("H")};
+        if (t == QLatin1String("text")) return {QStringLiteral("文字"), QStringLiteral("T")};
+        if (t == QLatin1String("mosaic")) return {QStringLiteral("马赛克"), QStringLiteral("M")};
+        if (t == QLatin1String("blur")) return {QStringLiteral("模糊"), QStringLiteral("B")};
+        if (t == QLatin1String("number")) return {QStringLiteral("序号"), QStringLiteral("N")};
+        if (t == QLatin1String("eraser")) return {QStringLiteral("橡皮"), QStringLiteral("E")};
+        return {};
+    }
+    if (id.startsWith(QLatin1String("swatch:"))) return {QStringLiteral("颜色"), QString()};
+    if (id == QLatin1String("width-")) return {QStringLiteral("线条细一点"), QStringLiteral("滚轮 ↓")};
+    if (id == QLatin1String("width+")) return {QStringLiteral("线条粗一点"), QStringLiteral("滚轮 ↑")};
+    if (id == QLatin1String("undo")) return {QStringLiteral("撤销"), QStringLiteral("Ctrl+Z")};
+    if (id == QLatin1String("redo")) return {QStringLiteral("重做"), QStringLiteral("Ctrl+Y")};
+    if (id == QLatin1String("copy")) return {QStringLiteral("复制"), QStringLiteral("Enter")};
+    if (id == QLatin1String("save")) return {QStringLiteral("保存"), QStringLiteral("Ctrl+S")};
+    if (id == QLatin1String("pin")) return {QStringLiteral("贴到桌面"), QStringLiteral("Ctrl+P")};
+    if (id == QLatin1String("ocr")) return {QStringLiteral("文字识别"), QStringLiteral("Ctrl+R")};
+    if (id == QLatin1String("print")) return {QStringLiteral("打印"), QString()};
+    if (id == QLatin1String("close")) return {QStringLiteral("取消截图"), QStringLiteral("Esc")};
+    return {};
+}
+
 QColor swatches[kSwatchCount] = {
     QColor(0xE5, 0x3B, 0x3B), QColor(0xFF, 0xB0, 0x20), QColor(0x3E, 0xC4, 0x6B),
     QColor(0x3B, 0x9C, 0xFF), QColor(0xB0, 0x6B, 0xFF), QColor(0xFF, 0xFF, 0xFF),
@@ -131,9 +169,80 @@ void SnipOverlay::paintEvent(QPaintEvent *)
 
     if (m_hasSel) drawSelection(p);
     drawToolbar(p);
+    drawHoverTip(p);
     if (m_tool == Tool::Select) drawMagnifier(p);
 }
 
+QString SnipOverlay::hoverHint() const
+{
+    const HotInfo info = hotInfoFor(m_hoverHot);
+    if (info.label.isEmpty()) return {};
+    if (info.chord.isEmpty()) return info.label;
+    return info.label + QStringLiteral("  ") + info.chord;
+}
+
+void SnipOverlay::refreshHover(const QPoint &pos)
+{
+    QString id;
+    QRect r;
+    for (const auto &h : m_hot) {
+        if (h.rect.contains(pos)) {
+            id = h.id;
+            r = h.rect;
+            break;
+        }
+    }
+    if (id == m_hoverHot) return;
+    m_hoverHot = id;
+    m_hoverHotRect = r;
+    update();   // repaint so the highlight + tooltip follow the cursor
+}
+
+void SnipOverlay::drawHoverTip(QPainter &p)
+{
+    if (m_hoverHot.isEmpty()) return;
+    const HotInfo info = hotInfoFor(m_hoverHot);
+    if (info.label.isEmpty()) return;
+
+    QFont f = font();
+    f.setPixelSize(13);
+    const QFontMetrics fm(f);
+    const int gap = info.chord.isEmpty() ? 0 : 12;
+    const int textW = fm.horizontalAdvance(info.label) + (info.chord.isEmpty() ? 0 : gap + fm.horizontalAdvance(info.chord));
+    const int w = textW + 24;
+    const int h = fm.height() + 14;
+
+    int x = m_hoverHotRect.center().x() - w / 2;
+    int y = m_hoverHotRect.top() - h - 8;
+    if (y < 4) y = m_hoverHotRect.bottom() + 8;          // no room above: flip below the button
+    x = qBound(4, x, qMax(4, width() - w - 4));
+    y = qBound(4, y, qMax(4, height() - h - 4));
+
+    // Paint the chip into an ARGB image: the raster engine uses grayscale antialiasing, so the
+    // text stays clean instead of picking up ClearType colour fringes on the dark rounded chip.
+    const qreal dpr = devicePixelRatioF();
+    QImage img(QSize(w, h) * dpr, QImage::Format_ARGB32_Premultiplied);
+    img.setDevicePixelRatio(dpr);
+    img.fill(Qt::transparent);
+    {
+        QPainter ip(&img);
+        ip.setRenderHint(QPainter::Antialiasing, true);
+        ip.setRenderHint(QPainter::TextAntialiasing, true);
+        ip.setFont(f);
+        ip.setPen(QPen(QColor(255, 255, 255, 30), 1));
+        ip.setBrush(QColor(0x23, 0x27, 0x2E, 242));
+        ip.drawRoundedRect(QRectF(0.5, 0.5, w - 1.0, h - 1.0), 7, 7);
+        const QRect inner(12, 0, w - 24, h);
+        ip.setPen(QColor(0xF2, 0xF4, 0xF7));
+        ip.drawText(inner, Qt::AlignLeft | Qt::AlignVCenter, info.label);
+        if (!info.chord.isEmpty()) {
+            ip.setPen(QColor(0xA9, 0xB3, 0xC1));
+            ip.drawText(inner.adjusted(fm.horizontalAdvance(info.label) + gap, 0, 0, 0),
+                        Qt::AlignLeft | Qt::AlignVCenter, info.chord);
+        }
+    }
+    p.drawImage(QPoint(x, y), img);
+}
 void SnipOverlay::drawSelection(QPainter &p)
 {
     const QRect sel = selection();
@@ -300,10 +409,12 @@ void SnipOverlay::drawToolbar(QPainter &p)
     for (int i = 0; i < toolIds.size(); ++i) {
         const QRect r(x + i * (kBtn + kGap), y, kBtn, kBtn);
         m_hot.append({r, QStringLiteral("tool:") + toolIds.at(i)});
-        const bool active = toolIds.at(i) == activeId;
-        if (active) {
+        const QString toolId = toolIds.at(i);
+        const bool active = toolId == activeId;
+        const bool hovered = (QStringLiteral("tool:") + toolId) == m_hoverHot;
+        if (active || hovered) {
             p.setPen(Qt::NoPen);
-            p.setBrush(QColor(0x2F, 0x6F, 0xEB, 24));
+            p.setBrush(active ? QColor(0x2F, 0x6F, 0xEB, 26) : QColor(0x2F, 0x6F, 0xEB, 14));
             p.drawRoundedRect(r.adjusted(1, 1, -1, -1), 8, 8);
         }
         IconSet::draw(p, toolIds.at(i), QRectF(r.adjusted(7, 7, -7, -7)), active ? kToolAccent : kFg);
@@ -333,6 +444,11 @@ void SnipOverlay::drawToolbar(QPainter &p)
         const QRect r(cx + i * (kBtn + kGap), y2, kBtn, kBtn);
         const QString id = actionIds.at(i);
         m_hot.append({r, id});
+        if (id == m_hoverHot) {
+            p.setPen(Qt::NoPen);
+            p.setBrush(QColor(0x2F, 0x6F, 0xEB, 14));
+            p.drawRoundedRect(r.adjusted(1, 1, -1, -1), 8, 8);
+        }
         const QColor tint = id == QStringLiteral("close") ? kDanger : kFg;
         IconSet::draw(p, id, QRectF(r.adjusted(7, 7, -7, -7)), tint);
     }
@@ -450,6 +566,7 @@ void SnipOverlay::mousePressEvent(QMouseEvent *e)
 void SnipOverlay::mouseMoveEvent(QMouseEvent *e)
 {
     m_cursor = e->pos();
+    if (m_mode == Mode::Idle) refreshHover(e->pos());
 
     switch (m_mode) {
     case Mode::SelectRect:

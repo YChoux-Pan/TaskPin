@@ -23,6 +23,11 @@ public:
 
     QRect selection() const;
 
+    /// Current toolbar geometry (widget coordinates); empty until the toolbar is painted.
+    QRect toolbarRect() const { return m_toolbarRect; }
+    /// "label  shortcut" for the toolbar button under the cursor, empty when none.
+    QString hoverHint() const;
+
 signals:
     void copied(const QImage &image);
     void saved(const QString &path);
@@ -48,6 +53,8 @@ private:
     enum class Mode { Idle, SelectRect, Draw, MoveAnnotation, ResizeSelection, Erase };
 
     void drawToolbar(QPainter &p);
+    void drawHoverTip(QPainter &p);
+    void refreshHover(const QPoint &pos);
     void drawSelection(QPainter &p);
     void drawMagnifier(QPainter &p);
     void drawHints(QPainter &p);
@@ -85,6 +92,9 @@ private:
     int m_resizeHandle = -1;
     QRect m_selAtPress;
     bool m_dragMoved = false;
+
+    QString m_hoverHot;    // toolbar button under the cursor ("tool:rect", "copy", ...)
+    QRect m_hoverHotRect;
 
     QRect m_hoverWindow;
     QString m_hoverTitle;

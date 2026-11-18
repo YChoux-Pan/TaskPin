@@ -93,6 +93,17 @@ private:
     AiClient *m_ai = nullptr;
     QAction *m_cardTopAction = nullptr;
 
+    // tray items + the hotkey name each one mirrors (shown as a right-aligned hint in the menu)
+    struct TrayItem {
+        QAction *action = nullptr;
+        QString label;
+        QString hotkey;
+    };
+    QVector<TrayItem> m_trayItems;
+
+    void syncTrayHints() const;
+    int hotkeyIdFor(const QString &name) const;
+
     QPointer<HistoryDialog> m_history;
     QPointer<CalendarWindow> m_calendar;
     QPointer<SettingsDialog> m_settings;
