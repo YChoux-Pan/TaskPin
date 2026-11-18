@@ -277,8 +277,10 @@ $minX = 0; $minY = 0; $maxX = 0; $maxY = 0; $first = $true
 if ($before -and $before.screens) {
     foreach ($s in $before.screens) {
         $g = @($s.geometry -split ',')
-        if ($g.Count -lt 4) { continue }
-        $x = [int]$g[0]; $y = [int]$g[1]; $w = [int]$g[2]; $h = [int]$g[3]
+        if ($g.Count -lt 3) { continue }
+        $wh = @($g[2] -split 'x')
+        if ($wh.Count -lt 2) { continue }
+        $x = [int]$g[0]; $y = [int]$g[1]; $w = [int]$wh[0]; $h = [int]$wh[1]
         if ($first) { $minX = $x; $minY = $y; $maxX = $x + $w; $maxY = $y + $h; $first = $false }
         else {
             $minX = [math]::Min($minX, $x); $minY = [math]::Min($minY, $y)
