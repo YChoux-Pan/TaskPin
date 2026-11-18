@@ -388,7 +388,7 @@ void AppHost::captureAndEdit(bool preselectLast)
     if (m_snip) return;
 
     hideOverlaysForCapture();
-    const ScreenCapture shot = captureVirtualDesktop();
+    const ScreenCapture shot = captureScreenForCursor();
     if (!shot.isValid()) {
         restoreAfterCapture();
         qWarning("screen capture failed");
@@ -429,21 +429,15 @@ void AppHost::captureFull()
 {
     if (m_snip) return;
     hideOverlaysForCapture();
-    const ScreenCapture shot = captureVirtualDesktop();
+    const ScreenCapture shot = captureScreenForCursor();
     if (!shot.isValid()) {
         restoreAfterCapture();
         qWarning("full capture failed");
         return;
     }
     const QRect sel = shot.logicalRect;
-    const qreal dpr = shot.dpr;
-    const QRect src(qRound(sel.x() * dpr), qRound(sel.y() * dpr), qRound(sel.width() * dpr),
-                    qRound(sel.height() * dpr));
-    QImage image(src.size(), QImage::Format_ARGB32_Premultiplied);
-    {
-        QPainter p(&image);
-        p.drawPixmap(image.rect(), shot.pixmap, src);
-    }
+    QImage image = shot.pixmap.toImage();   // already just this screen, in device pixels
+    image.setDevicePixelRatio(1.0);
     QString path;
     if (Settings::instance().autoSave) {
         const auto &s = Settings::instance();
@@ -516,7 +510,7 @@ void AppHost::pickColor()
 {
     if (m_snip) return;
     hideOverlaysForCapture();
-    const ScreenCapture shot = captureVirtualDesktop();
+    const ScreenCapture shot = captureScreenForCursor();
     if (!shot.isValid()) {
         restoreAfterCapture();
         qWarning("color picker capture failed");
@@ -545,7 +539,7 @@ void AppHost::captureWhiteboard(bool transparent)
 {
     if (m_snip) return;
     hideOverlaysForCapture();
-    const ScreenCapture shot = captureVirtualDesktop();
+    const ScreenCapture shot = captureScreenForCursor();
     if (!shot.isValid()) {
         restoreAfterCapture();
         qWarning("whiteboard capture failed");

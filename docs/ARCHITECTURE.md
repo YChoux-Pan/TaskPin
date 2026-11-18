@@ -220,7 +220,7 @@ Ctrl+R / 贴图右键「识别为任务」
 | 窗口 | 技术要点 |
 |---|---|
 | **卡片** | `Qt::Tool︱Frameless`（**不设** `WindowStaysOnTopHint`，z-order 由 Win32 断言）+ `WA_TranslucentBackground` + `WA_ShowWithoutActivating`；`paintEvent` 自绘圆角、渐变、行、计数；拖动后把坐标写回 `settings.cardX/Y`；两种层级见 6.1 |
-| **截图浮层** | 全屏 `Frameless︱StaysOnTop`，`paintEvent` 先 `drawPixmap` 冻结图，再画遮罩/标注/工具栏；工具栏图标由 `ui/IconSet` 用内嵌 SVG（Iconify `lucide`）渲染，浅灰底 + 深灰线性图标 |
+| **截图浮层** | 只覆盖**光标所在的那块屏**：`Frameless︱StaysOnTop`，`paintEvent` 先 `drawPixmap` 冻结图，再画遮罩/标注/工具栏；工具栏图标由 `ui/IconSet` 用内嵌 SVG（Iconify `lucide`）渲染，浅灰底 + 深灰线性图标。**不能**按主屏 DPR 合成整个虚拟桌面：Qt 会按窗口所在屏给 DPR，混合缩放时选区和点击吸附会整体缩放 0.8×/1.25× |
 | **贴图** | `Qt::Tool` + `WA_TranslucentBackground`；`windowOpacity` 做不透明度；穿透用 `WS_EX_TRANSPARENT` |
 | **透明白板** | 同上，但**背景必须铺 alpha=1**，否则整块区域点不到 |
 | **日历 / 历史 / 设置** | 原生标题栏窗口 + `WindowStaysOnTopHint`；卡片是不可激活的，打开它们后要 `WindowFx::forceForeground()` 抢一次前台 |

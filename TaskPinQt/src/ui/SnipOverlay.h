@@ -73,6 +73,7 @@ private:
     void emitOutput(const QImage &img, const QString &action);
 
     ScreenCapture m_shot;
+    QRect m_monitor;        // physical rect of the captured monitor
     QImage m_base;          // frozen desktop in device pixels (cached for mosaic/blur)
 
     QRect m_sel;

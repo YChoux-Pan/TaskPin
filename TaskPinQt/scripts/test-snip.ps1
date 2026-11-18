@@ -289,6 +289,21 @@ if ($before -and $before.screens) {
     }
 }
 $script:deskW = [int](($maxX - $minX) * $script:dpr)
+
+# Captures now take the screen under the cursor; this returns its size in physical pixels.
+function Screen-At([int]$x, [int]$y) {
+    foreach ($s in $before.screens) {
+        $g = @($s.geometry -split ',')
+        if ($g.Count -lt 3) { continue }
+        $wh = @($g[2] -split 'x')
+        if ($wh.Count -lt 2) { continue }
+        $sx = [int]$g[0]; $sy = [int]$g[1]; $sw = [int]$wh[0]; $sh = [int]$wh[1]
+        if ($x -ge $sx -and $x -lt ($sx + $sw) -and $y -ge $sy -and $y -lt ($sy + $sh)) {
+            return @{ W = [int]($sw * [double]$s.dpr); H = [int]($sh * [double]$s.dpr) }
+        }
+    }
+    return @{ W = $script:deskW; H = $script:deskH }
+}
 $script:deskH = [int](($maxY - $minY) * $script:dpr)
 Write-Host ("      dpr = {0}" -f $script:dpr)
 
@@ -512,6 +527,8 @@ $picked = [System.Windows.Forms.Clipboard]::GetText()
 Check 'colour picker copies a hex value' ($picked -match '^#[0-9A-F]{6}$') $picked
 
 # ---------------------------------------------------------------- 6c. whiteboards
+[U]::SetCursorPos(300, 300) | Out-Null
+$capScreen = Screen-At 300 300
 Command 'board'
 Start-Sleep -Milliseconds 1400
 Drag 400 500 900 650
@@ -520,8 +537,9 @@ Shot (Join-Path $Docs 'test-board.png')
 SendKeys '{ENTER}'
 Start-Sleep -Milliseconds 900
 $board = ClipboardSize
-Check 'whiteboard copies the full frozen frame' (Near $board $script:deskW $script:deskH 8) $board
+Check 'whiteboard copies the full frozen frame' (Near $board $capScreen.W $capScreen.H 8) $board
 
+[U]::SetCursorPos(300, 300) | Out-Null
 Command 'board-transparent'
 Start-Sleep -Milliseconds 1400
 Drag 500 700 1000 820
@@ -530,13 +548,14 @@ Shot (Join-Path $Docs 'test-board-transparent.png')
 SendKeys '{ENTER}'
 Start-Sleep -Milliseconds 900
 $board2 = ClipboardSize
-Check 'transparent whiteboard copies a full-size image' (Near $board2 $script:deskW $script:deskH 8) $board2
+Check 'transparent whiteboard copies a full-size image' (Near $board2 $capScreen.W $capScreen.H 8) $board2
 
 # ---------------------------------------------------------------- 7. full screen capture
+[U]::SetCursorPos(300, 300) | Out-Null
 Command 'full'
 Start-Sleep -Milliseconds 1600
 $full = ClipboardSize
-Check 'full screen capture copies the whole desktop' (Near $full $script:deskW $script:deskH 8) $full
+Check 'full screen capture copies the screen under the cursor' (Near $full $capScreen.W $capScreen.H 8) $full
 
 # ---------------------------------------------------------------- 8. settings round trip
 $settingsPath = Join-Path $env:LOCALAPPDATA 'TaskPin\TaskPinQt\settings.json'

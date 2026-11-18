@@ -66,6 +66,34 @@ BOOL CALLBACK enumProc(HWND hwnd, LPARAM lp)
 
 }   // namespace
 
+namespace {
+struct MonitorCtx {
+    QString name;
+    QRect rect;
+};
+
+BOOL CALLBACK monitorProc(HMONITOR mon, HDC, LPRECT, LPARAM lp)
+{
+    auto *ctx = reinterpret_cast<MonitorCtx *>(lp);
+    MONITORINFOEXW info{};
+    info.cbSize = sizeof(info);
+    if (!GetMonitorInfoW(mon, &info)) return TRUE;
+    if (QString::fromWCharArray(info.szDevice) != ctx->name) return TRUE;
+    const RECT &r = info.rcMonitor;
+    ctx->rect = QRect(int(r.left), int(r.top), int(r.right - r.left), int(r.bottom - r.top));
+    return FALSE;
+}
+}   // namespace
+
+QRect monitorRectForDevice(const QString &deviceName)
+{
+    if (deviceName.isEmpty()) return {};
+    MonitorCtx ctx;
+    ctx.name = deviceName;
+    EnumDisplayMonitors(nullptr, nullptr, monitorProc, reinterpret_cast<LPARAM>(&ctx));
+    return ctx.rect;
+}
+
 Hit atPhysicalPoint(int x, int y)
 {
     Context ctx;
@@ -78,6 +106,12 @@ Hit atPhysicalPoint(int x, int y)
 }
 
 #else
+
+QRect monitorRectForDevice(const QString &deviceName)
+{
+    Q_UNUSED(deviceName)
+    return {};
+}
 
 Hit atPhysicalPoint(int x, int y)
 {

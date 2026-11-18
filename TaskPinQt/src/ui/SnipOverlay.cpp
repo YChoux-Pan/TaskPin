@@ -56,6 +56,14 @@ SnipOverlay::SnipOverlay(const ScreenCapture &shot, QWidget *parent)
     setFocusPolicy(Qt::StrongFocus);
     setWindowTitle(QStringLiteral("TaskPin 截图"));
 
+    // The overlay covers exactly one screen, so its logical origin is that screen's. The physical
+    // origin comes from the same monitor, which is what keeps click-to-snap exact on mixed DPI.
+    m_monitor = WindowPicker::monitorRectForDevice(shot.screenName);
+    if (!m_monitor.isValid()) {
+        m_monitor = QRect(QPoint(qRound(shot.logicalRect.x() * shot.dpr), qRound(shot.logicalRect.y() * shot.dpr)),
+                          QSize(qRound(shot.logicalRect.width() * shot.dpr), qRound(shot.logicalRect.height() * shot.dpr)));
+    }
+
     // one device-pixel copy of the frozen frame: mosaic/blur and the magnifier read from here
     m_base = shot.pixmap.toImage();
     m_base.setDevicePixelRatio(1.0);
@@ -70,7 +78,7 @@ SnipOverlay::~SnipOverlay() = default;
 
 void SnipOverlay::setPreselect(const QRect &r)
 {
-    m_sel = r.intersected(m_shot.logicalRect);
+    m_sel = r.translated(-m_shot.logicalRect.topLeft()).intersected(rect());
     m_hasSel = m_sel.width() > 4 && m_sel.height() > 4;
     update();
 }
@@ -581,7 +589,7 @@ void SnipOverlay::keyPressEvent(QKeyEvent *e)
     case Qt::Key_B: setTool(Tool::Blur); return;
     case Qt::Key_E: setTool(Tool::Eraser); return;
     case Qt::Key_Space:
-        m_sel = m_shot.logicalRect;
+        m_sel = rect();
         m_hasSel = true;
         update();
         return;
@@ -666,8 +674,8 @@ void SnipOverlay::updateHoverWindow(const QPoint &pos)
     m_pickClock.restart();
     m_lastPickPos = pos;
 
-    const int physX = qRound((m_shot.logicalRect.x() + pos.x()) * m_shot.dpr);
-    const int physY = qRound((m_shot.logicalRect.y() + pos.y()) * m_shot.dpr);
+    const int physX = m_monitor.x() + qRound(pos.x() * m_shot.dpr);
+    const int physY = m_monitor.y() + qRound(pos.y() * m_shot.dpr);
     const WindowPicker::Hit hit = WindowPicker::atPhysicalPoint(physX, physY);
     if (!hit.valid) {
         if (m_hoverWindow.isValid()) {
@@ -677,8 +685,8 @@ void SnipOverlay::updateHoverWindow(const QPoint &pos)
         return;
     }
 
-    QRect logical(qRound(hit.physicalRect.x() / m_shot.dpr) - m_shot.logicalRect.x(),
-                  qRound(hit.physicalRect.y() / m_shot.dpr) - m_shot.logicalRect.y(),
+    QRect logical(qRound((hit.physicalRect.x() - m_monitor.x()) / m_shot.dpr),
+                  qRound((hit.physicalRect.y() - m_monitor.y()) / m_shot.dpr),
                   qRound(hit.physicalRect.width() / m_shot.dpr), qRound(hit.physicalRect.height() / m_shot.dpr));
     logical = logical.intersected(rect());
     if (logical.width() < 12 || logical.height() < 12) {
@@ -756,7 +764,7 @@ void SnipOverlay::handleAction(const QString &id)
         const QImage img = compose();
         if (img.isNull()) return;
         QApplication::clipboard()->setImage(img);
-        emit captured(img, selection());
+        emit captured(img, selection().translated(m_shot.logicalRect.topLeft()));
         emit copied(img);
         close();
         return;
@@ -773,7 +781,7 @@ void SnipOverlay::handleAction(const QString &id)
             qWarning() << "save failed:" << path;
             return;
         }
-        emit captured(img, selection());
+        emit captured(img, selection().translated(m_shot.logicalRect.topLeft()));
         emit saved(path);
         close();
         return;
@@ -781,7 +789,7 @@ void SnipOverlay::handleAction(const QString &id)
     if (id == QStringLiteral("pin")) {
         const QImage img = compose();
         if (img.isNull()) return;
-        emit captured(img, selection());
+        emit captured(img, selection().translated(m_shot.logicalRect.topLeft()));
         emit pinned(img);
         close();
         return;
@@ -789,7 +797,7 @@ void SnipOverlay::handleAction(const QString &id)
     if (id == QStringLiteral("ocr")) {
         const QImage img = compose();
         if (img.isNull()) return;
-        emit captured(img, selection());
+        emit captured(img, selection().translated(m_shot.logicalRect.topLeft()));
         emit recognizeRequested(img);
         close();
         return;
@@ -797,7 +805,7 @@ void SnipOverlay::handleAction(const QString &id)
     if (id == QStringLiteral("print")) {
         const QImage img = compose();
         if (img.isNull()) return;
-        emit captured(img, selection());
+        emit captured(img, selection().translated(m_shot.logicalRect.topLeft()));
         emit printed(img);
         close();
         return;
@@ -816,7 +824,7 @@ void SnipOverlay::saveQuick()
         return;
     }
     qInfo("quick save: %s", qUtf8Printable(path));
-    emit captured(img, selection());
+    emit captured(img, selection().translated(m_shot.logicalRect.topLeft()));
     emit saved(path);
     close();
 }
