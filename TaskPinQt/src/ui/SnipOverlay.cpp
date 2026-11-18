@@ -3,6 +3,7 @@
 #include "core/FileNaming.h"
 #include "core/Settings.h"
 #include "platform/WindowPicker.h"
+#include "ui/IconSet.h"
 
 #include <QApplication>
 #include <QClipboard>
@@ -29,9 +30,13 @@ constexpr int kToolbarPad = 8;
 constexpr int kSwatchSize = 20;
 constexpr int kSwatchCount = 7;
 
-const QColor kBar(20, 25, 32, 240);
+// Light toolbar (Iconify-lucide line icons), selection accents stay bright for the dimmed backdrop.
+const QColor kBar(0xEC, 0xEE, 0xF3, 250);
+const QColor kBarEdge(0x1A, 0x1D, 0x22, 30);
 const QColor kAccent(0x4C, 0x9A, 0xFF);
-const QColor kFg(0xE6, 0xEC, 0xF3);
+const QColor kToolAccent(0x2F, 0x6F, 0xEB);
+const QColor kFg(0x2E, 0x33, 0x3B);
+const QColor kDanger(0xC0, 0x3B, 0x2E);
 
 QColor swatches[kSwatchCount] = {
     QColor(0xE5, 0x3B, 0x3B), QColor(0xFF, 0xB0, 0x20), QColor(0x3E, 0xC4, 0x6B),
@@ -260,9 +265,10 @@ void SnipOverlay::drawToolbar(QPainter &p)
     if (y < 8) y = qMax(8, sel.bottom() - 92);
 
     m_toolbarRect = QRect(x - kToolbarPad, y - kToolbarPad, w + kToolbarPad, 2 * kBtn + 6 + kToolbarPad * 2);
-    p.setPen(Qt::NoPen);
+    p.setPen(QPen(kBarEdge, 1));
     p.setBrush(kBar);
-    p.drawRoundedRect(m_toolbarRect, 9, 9);
+    p.drawRoundedRect(QRectF(m_toolbarRect).adjusted(0.5, 0.5, -0.5, -0.5), 10, 10);
+    p.setPen(Qt::NoPen);
 
     const auto activeToolId = [this]() -> QString {
         switch (m_tool) {
@@ -289,69 +295,10 @@ void SnipOverlay::drawToolbar(QPainter &p)
         const bool active = toolIds.at(i) == activeId;
         if (active) {
             p.setPen(Qt::NoPen);
-            p.setBrush(QColor(0x4C, 0x9A, 0xFF, 70));
-            p.drawRoundedRect(r, 6, 6);
+            p.setBrush(QColor(0x2F, 0x6F, 0xEB, 24));
+            p.drawRoundedRect(r.adjusted(1, 1, -1, -1), 8, 8);
         }
-        p.setPen(QPen(active ? kAccent : kFg, 1.6, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
-        p.setBrush(Qt::NoBrush);
-        const QPoint c = r.center();
-        const QString id = toolIds.at(i);
-        if (id == QStringLiteral("select")) {
-            QPolygon poly;
-            poly << c + QPoint(-5, -7) << c + QPoint(6, 0) << c + QPoint(0, 1) << c + QPoint(3, 7);
-            p.setBrush(active ? kAccent : kFg);
-            p.setPen(Qt::NoPen);
-            p.drawPolygon(poly);
-        } else if (id == QStringLiteral("rect")) {
-            p.drawRect(QRect(c.x() - 7, c.y() - 5, 14, 10));
-        } else if (id == QStringLiteral("ellipse")) {
-            p.drawEllipse(QRect(c.x() - 7, c.y() - 5, 14, 10));
-        } else if (id == QStringLiteral("arrow")) {
-            p.drawLine(c + QPoint(-7, 6), c + QPoint(5, -5));
-            p.drawLine(c + QPoint(5, -5), c + QPoint(1, -5));
-            p.drawLine(c + QPoint(5, -5), c + QPoint(5, -1));
-        } else if (id == QStringLiteral("line")) {
-            p.drawLine(c + QPoint(-7, 6), c + QPoint(7, -6));
-        } else if (id == QStringLiteral("pen")) {
-            QPainterPath path;
-            path.moveTo(c + QPoint(-7, 5));
-            path.cubicTo(c + QPoint(-2, -7), c + QPoint(2, 7), c + QPoint(7, -5));
-            p.drawPath(path);
-        } else if (id == QStringLiteral("marker")) {
-            p.setPen(QPen(active ? kAccent : kFg, 5, Qt::SolidLine, Qt::RoundCap));
-            p.drawLine(c + QPoint(-6, 5), c + QPoint(6, -5));
-        } else if (id == QStringLiteral("text")) {
-            QFont f = p.font();
-            f.setPixelSize(15);
-            f.setBold(true);
-            p.setFont(f);
-            p.setPen(active ? kAccent : kFg);
-            p.drawText(r, Qt::AlignCenter, QStringLiteral("T"));
-        } else if (id == QStringLiteral("mosaic")) {
-            for (int gx = 0; gx < 2; ++gx)
-                for (int gy = 0; gy < 2; ++gy) {
-                    const QRect cell(c.x() - 7 + gx * 7, c.y() - 7 + gy * 7, 7, 7);
-                    if ((gx + gy) % 2 == 0) p.fillRect(cell, active ? kAccent : kFg);
-                    else p.drawRect(cell);
-                }
-        } else if (id == QStringLiteral("blur")) {
-            QPen dash(active ? kAccent : kFg, 1.5, Qt::DashLine);
-            p.setPen(dash);
-            p.drawEllipse(QRect(c.x() - 8, c.y() - 6, 16, 12));
-            p.drawEllipse(QRect(c.x() - 4, c.y() - 3, 8, 6));
-        } else if (id == QStringLiteral("number")) {
-            p.drawEllipse(QRect(c.x() - 8, c.y() - 8, 16, 16));
-            QFont f = p.font();
-            f.setPixelSize(11);
-            f.setBold(true);
-            p.setFont(f);
-            p.setPen(active ? kAccent : kFg);
-            p.drawText(QRect(c.x() - 8, c.y() - 8, 16, 16), Qt::AlignCenter, QStringLiteral("1"));
-        } else if (id == QStringLiteral("eraser")) {
-            QPolygon poly;
-            poly << c + QPoint(-7, 3) << c + QPoint(-1, -6) << c + QPoint(7, -1) << c + QPoint(1, 7);
-            p.drawPolygon(poly);
-        }
+        IconSet::draw(p, toolIds.at(i), QRectF(r.adjusted(7, 7, -7, -7)), active ? kToolAccent : kFg);
     }
 
     // ---- second row: colours, width, actions
@@ -360,18 +307,17 @@ void SnipOverlay::drawToolbar(QPainter &p)
     for (int i = 0; i < kSwatchCount; ++i) {
         const QRect r(cx, y2 + (kBtn - kSwatchSize) / 2, kSwatchSize, kSwatchSize);
         m_hot.append({r, QStringLiteral("swatch:%1").arg(i)});
-        p.setPen(QPen(m_color == swatches[i] ? Qt::white : QColor(255, 255, 255, 60), 2));
+        p.setPen(QPen(m_color == swatches[i] ? kToolAccent : QColor(0, 0, 0, 55), 2));
         p.setBrush(swatches[i]);
-        p.drawEllipse(r);
+        p.drawEllipse(r.adjusted(1, 1, -1, -1));
         cx += kSwatchSize + kGap;
     }
     cx += 6;
     for (const QString &id : {QStringLiteral("width-"), QStringLiteral("width+")}) {
         const QRect r(cx, y2, 26, kBtn);
         m_hot.append({r, id});
-        p.setPen(QPen(kFg, 1.6, Qt::SolidLine, Qt::RoundCap));
-        p.drawLine(r.center() + QPoint(-6, 0), r.center() + QPoint(6, 0));
-        if (id == QStringLiteral("width+")) p.drawLine(r.center() + QPoint(0, -6), r.center() + QPoint(0, 6));
+        IconSet::draw(p, id == QStringLiteral("width+") ? QStringLiteral("plus") : QStringLiteral("minus"),
+                      QRectF(r.adjusted(4, 7, -4, -7)), kFg);
         cx += 26 + kGap;
     }
     cx += 8;
@@ -379,45 +325,8 @@ void SnipOverlay::drawToolbar(QPainter &p)
         const QRect r(cx + i * (kBtn + kGap), y2, kBtn, kBtn);
         const QString id = actionIds.at(i);
         m_hot.append({r, id});
-        p.setPen(QPen(id == QStringLiteral("close") ? QColor(0xFF, 0x8A, 0x7A) : kFg, 1.6, Qt::SolidLine, Qt::RoundCap));
-        p.setBrush(Qt::NoBrush);
-        const QPoint c = r.center();
-        if (id == QStringLiteral("undo") || id == QStringLiteral("redo")) {
-            const int dir = id == QStringLiteral("undo") ? -1 : 1;
-            QPainterPath path;
-            path.arcMoveTo(QRectF(c.x() - 7, c.y() - 6, 14, 12), dir < 0 ? 20 : 160);
-            path.arcTo(QRectF(c.x() - 7, c.y() - 6, 14, 12), dir < 0 ? 20 : 160, dir < 0 ? 140 : -140);
-            p.drawPath(path);
-            p.drawLine(c + QPoint(dir * 7, -6), c + QPoint(dir * 3, -1));
-        } else if (id == QStringLiteral("copy")) {
-            p.drawRect(QRect(c.x() - 6, c.y() - 6, 9, 9));
-            p.drawRect(QRect(c.x() - 2, c.y() - 2, 9, 9));
-        } else if (id == QStringLiteral("save")) {
-            p.drawRect(QRect(c.x() - 6, c.y() - 6, 12, 12));
-            p.setBrush(kFg);
-            p.drawRect(QRect(c.x() - 3, c.y() - 6, 6, 4));
-            p.setBrush(Qt::NoBrush);
-        } else if (id == QStringLiteral("pin")) {
-            p.drawEllipse(QRect(c.x() - 4, c.y() - 7, 8, 6));
-            p.drawLine(c, c + QPoint(0, 7));
-        } else if (id == QStringLiteral("ocr")) {
-            p.drawLine(c + QPoint(-6, -6), c + QPoint(-2, -6));
-            p.drawLine(c + QPoint(-6, -6), c + QPoint(-6, -2));
-            p.drawLine(c + QPoint(6, 6), c + QPoint(2, 6));
-            p.drawLine(c + QPoint(6, 6), c + QPoint(6, 2));
-            QFont f = p.font();
-            f.setPixelSize(11);
-            f.setBold(true);
-            p.setFont(f);
-            p.drawText(QRect(c.x() - 6, c.y() - 6, 12, 12), Qt::AlignCenter, QStringLiteral("A"));
-        } else if (id == QStringLiteral("print")) {
-            p.drawRect(QRect(c.x() - 6, c.y() - 6, 12, 6));
-            p.drawRect(QRect(c.x() - 6, c.y(), 12, 6));
-            p.drawRect(QRect(c.x() - 3, c.y() + 4, 6, 4));
-        } else {
-            p.drawLine(c + QPoint(-6, -6), c + QPoint(6, 6));
-            p.drawLine(c + QPoint(6, -6), c + QPoint(-6, 6));
-        }
+        const QColor tint = id == QStringLiteral("close") ? kDanger : kFg;
+        IconSet::draw(p, id, QRectF(r.adjusted(7, 7, -7, -7)), tint);
     }
 }
 

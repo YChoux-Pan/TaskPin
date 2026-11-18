@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(TaskPinQt VERSION 0.2.1 LANGUAGES CXX)
+project(TaskPinQt VERSION 0.2.2 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -10,7 +10,7 @@ if(WIN32)
     add_compile_definitions(NOMINMAX WIN32_LEAN_AND_MEAN UNICODE _UNICODE)
 endif()
 
-find_package(Qt6 6.4 REQUIRED COMPONENTS Core Gui Widgets Sql Network PrintSupport)
+find_package(Qt6 6.4 REQUIRED COMPONENTS Core Gui Widgets Sql Network PrintSupport Svg)
 
 qt_add_executable(TaskPinQt WIN32
     src/main.cpp
@@ -34,6 +34,7 @@ qt_add_executable(TaskPinQt WIN32
     src/platform/Autostart.h      src/platform/Autostart.cpp
 
     src/ui/Annotation.h           src/ui/Annotation.cpp
+    src/ui/IconSet.h              src/ui/IconSet.cpp
     src/ui/SnipOverlay.h          src/ui/SnipOverlay.cpp
     src/ui/CardWindow.h           src/ui/CardWindow.cpp
     src/ui/QuickAddDialog.h       src/ui/QuickAddDialog.cpp
@@ -51,7 +52,7 @@ target_include_directories(TaskPinQt PRIVATE src)
 target_compile_definitions(TaskPinQt PRIVATE TASKPIN_VERSION="${PROJECT_VERSION}")
 
 target_link_libraries(TaskPinQt PRIVATE
-    Qt6::Core Qt6::Gui Qt6::Widgets Qt6::Sql Qt6::Network Qt6::PrintSupport
+    Qt6::Core Qt6::Gui Qt6::Widgets Qt6::Sql Qt6::Network Qt6::PrintSupport Qt6::Svg
     user32 gdi32 shell32 dwmapi
 )
 

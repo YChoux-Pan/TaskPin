@@ -137,7 +137,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File D:\TaskPin\repo\TaskPinQt\sc
 | A10 | 撤销 / 重做 `[Qt]` | `Ctrl+Z` / `Ctrl+Y`，步数不限 |
 | A11 | 选中再编辑 `[Qt]` | 选择工具下点选已画标注 → 拖动移动、点色板改色、`Delete` 删除 |
 | A12 | 调色板 `[Qt]` | 7 色 + 线宽 ±（滚轮也可调） |
-| A13 | 工具栏 `[Qt]` | 两行图标（12 工具 + 色板 + 8 动作），当前工具高亮 |
+| A13 | 工具栏 `[Qt]` | 两行图标（12 工具 + 色板 + 8 动作），当前工具高亮；图标为 Iconify `lucide` 线性图标（`IconSet`，SVG 内嵌），浅灰底 `#ECEEF3`、深灰图标、淡蓝高亮 |
 
 **编码约定（Qt 版）**：`Annotation` 结构体 + `paint(QPainter&, const QImage *base, qreal dpr)`；坐标一律逻辑坐标；`compose()` 里先 `scale(dpr)` 再画；马赛克/模糊从 `base`（冻结图，设备像素）按 `rect*dpr` 取样。
 
@@ -420,7 +420,7 @@ task_day(task_id, day, state, seen_at, PRIMARY KEY(task_id, day))
 ```json
 {
   "app": "TaskPinQt",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "time": "2026-11-08T17:20:00",
   "dataDir": "...", "dbPath": "...", "logPath": "...", "historyDir": "...",
   "settings": { "...全部配置..." },
@@ -550,7 +550,7 @@ PASS  delayed snip honours the configured delay           -> log: startSnip: del
 == summary: 38 passed, 0 failed ==        (exit code 0)
 
 > TaskPinQt.exe --dump D:\TaskPin\repo\docs\dump.json
-dump via running instance: ok -> D:\TaskPin\repo\docs\dump.json   (v0.2.1)
+dump via running instance: ok -> D:\TaskPin\repo\docs\dump.json   (v0.2.2)
 ```
 
 > 注意：`TaskPinQt.exe` 是 GUI 子系统程序，PowerShell 里直接用 `&` 不会等它结束，
@@ -565,6 +565,7 @@ dump via running instance: ok -> D:\TaskPin\repo\docs\dump.json   (v0.2.1)
 | 文件 | 内容 |
 |---|---|
 | `test-snip-tools.png` | 截图编辑器：矩形 / 椭圆 / 箭头 / 马赛克 / 模糊 / 中文文字 / 序号 + 工具栏 |
+| `toolbar-icons.png` | 新工具栏特写（Iconify lucide 线性图标 + 浅灰底，2×） |
 | `test-ocr-task.png` | 卡片里出现 OCR 建出的任务（「测试」，截止明天 15:00） |
 | `test-pin.png` | 贴图窗口浮在桌面上 |
 | `test-history.png` | 截屏历史缩略图列表 |

@@ -4,7 +4,7 @@
 #
 #   powershell -NoProfile -ExecutionPolicy Bypass -File TaskPinQt\scripts\test-snip.ps1
 #
-# Requires: the app built at TaskPinQt\build\TaskPinQt.exe, a 125% (1.25) primary screen like the dev box.
+# Requires: the app built at TaskPinQt\build\TaskPinQt.exe. Screen size and DPI are read from the app, so
 #
 # Side effects: one OCR task (source=ocr, title = the two CJK chars in the fixture image) is
 # created per run; nothing else is touched. Clean the residue with any sqlite tool (docs/HANDOVER 9):
@@ -153,6 +153,8 @@ function RightClick([int]$x, [int]$y) {
 
 # ---------------------------------------------------------------- window helpers
 $script:dpr = 1.25   # replaced with the real value from the first dump
+$script:deskW = 0    # virtual desktop size in physical pixels, also taken from the first dump
+$script:deskH = 0
 # calendar window title built from code points: this script stays ASCII-only on purpose
 # (PowerShell 5.1 reads .ps1 files as ANSI, which would mangle a literal CJK title)
 $script:calendarTitle = 'TaskPin ' + [char]0x65E5 + [char]0x5386
@@ -270,6 +272,22 @@ Check 'fixture window shown' ($null -ne $fw -and $fw.MainWindowTitle -eq 'TaskPi
 $before = Dump (Join-Path $Docs 'dump-before.json')
 Check 'dump works' ($null -ne $before) 'settings/tasks/hotkeys parsed'
 if ($before -and $before.screens.Count -gt 0) { $script:dpr = [double]$before.screens[0].dpr }
+# virtual desktop = union of every screen geometry (multi-monitor safe), in physical pixels
+$minX = 0; $minY = 0; $maxX = 0; $maxY = 0; $first = $true
+if ($before -and $before.screens) {
+    foreach ($s in $before.screens) {
+        $g = @($s.geometry -split ',')
+        if ($g.Count -lt 4) { continue }
+        $x = [int]$g[0]; $y = [int]$g[1]; $w = [int]$g[2]; $h = [int]$g[3]
+        if ($first) { $minX = $x; $minY = $y; $maxX = $x + $w; $maxY = $y + $h; $first = $false }
+        else {
+            $minX = [math]::Min($minX, $x); $minY = [math]::Min($minY, $y)
+            $maxX = [math]::Max($maxX, $x + $w); $maxY = [math]::Max($maxY, $y + $h)
+        }
+    }
+}
+$script:deskW = [int](($maxX - $minX) * $script:dpr)
+$script:deskH = [int](($maxY - $minY) * $script:dpr)
 Write-Host ("      dpr = {0}" -f $script:dpr)
 
 # ---------------------------------------------------------------- 1. region snip -> clipboard
@@ -282,9 +300,9 @@ $size = ClipboardSize
 $regionDump = Dump (Join-Path $Docs 'dump-region.json')
 $lr = @($regionDump.settings.lastRegion -split ',')
 Check 'region snip copies a bitmap' ($size -ne 'none') $size
-Check 'region snip output is physical pixels (371x131)' (Near $size 371 131 4) $size
+Check 'region snip output is physical pixels' (Near $size ([int](370 * $script:dpr)) ([int](130 * $script:dpr)) 4) $size
 $physW = [int]($size -split 'x')[0]
-Check 'logical selection x dpr == physical output' ([math]::Abs([int]$lr[2] * 1.25 - $physW) -le 2) (
+Check 'logical selection x dpr == physical output' ([math]::Abs([int]$lr[2] * $script:dpr - $physW) -le 2) (
     'logical {0}x{1} -> physical {2}' -f $lr[2], $lr[3], $size)
 
 # ---------------------------------------------------------------- 2. click-to-snap a window
@@ -396,8 +414,10 @@ Start-Sleep -Milliseconds 500
 # minimized state can leave stale/black frames on some drivers, which is what a previous version
 # of this script triggered. Clicks on the desktop-layer card are posted straight to its HWND;
 # real hit-testing is covered by the topmost-mode click below.
+Command 'card-top'
+Start-Sleep -Milliseconds 900
 $dt = Dump (Join-Path $Docs 'dump-card-top.json')
-Check 'card starts topmost' ($dt.card.topMost -eq $true -and $dt.card.desktopLayer -eq $false) ('zOrder=' + $dt.card.zOrder)
+Check 'card sits topmost after --card-top' ($dt.card.topMost -eq $true -and $dt.card.desktopLayer -eq $false) ('zOrder=' + $dt.card.zOrder)
 $cardW = [int]$dt.card.w
 $cardH = [int]$dt.card.h
 $tpPid = (Get-Process TaskPinQt | Select-Object -First 1).Id
@@ -498,7 +518,7 @@ Shot (Join-Path $Docs 'test-board.png')
 SendKeys '{ENTER}'
 Start-Sleep -Milliseconds 900
 $board = ClipboardSize
-Check 'whiteboard copies the full frozen frame' (Near $board 2560 1600 8) $board
+Check 'whiteboard copies the full frozen frame' (Near $board $script:deskW $script:deskH 8) $board
 
 Command 'board-transparent'
 Start-Sleep -Milliseconds 1400
@@ -508,13 +528,13 @@ Shot (Join-Path $Docs 'test-board-transparent.png')
 SendKeys '{ENTER}'
 Start-Sleep -Milliseconds 900
 $board2 = ClipboardSize
-Check 'transparent whiteboard copies a full-size image' (Near $board2 2560 1600 8) $board2
+Check 'transparent whiteboard copies a full-size image' (Near $board2 $script:deskW $script:deskH 8) $board2
 
 # ---------------------------------------------------------------- 7. full screen capture
 Command 'full'
 Start-Sleep -Milliseconds 1600
 $full = ClipboardSize
-Check 'full screen capture copies the whole desktop' (Near $full 2560 1600 8) $full
+Check 'full screen capture copies the whole desktop' (Near $full $script:deskW $script:deskH 8) $full
 
 # ---------------------------------------------------------------- 8. settings round trip
 $settingsPath = Join-Path $env:LOCALAPPDATA 'TaskPin\TaskPinQt\settings.json'

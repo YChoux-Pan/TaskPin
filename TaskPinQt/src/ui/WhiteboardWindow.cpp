@@ -2,6 +2,7 @@
 
 #include "core/FileNaming.h"
 #include "core/Settings.h"
+#include "ui/IconSet.h"
 
 #include <QApplication>
 #include <QClipboard>
@@ -22,8 +23,11 @@ constexpr int kSwatch = 22;
 constexpr int kPad = 8;
 constexpr int kSwatchCount = 7;
 
-const QColor kBar(20, 25, 32, 240);
-const QColor kFg(0xE6, 0xEC, 0xF3);
+const QColor kBar(0xEC, 0xEE, 0xF3, 250);
+const QColor kBarEdge(0x1A, 0x1D, 0x22, 30);
+const QColor kFg(0x2E, 0x33, 0x3B);
+const QColor kToolAccent(0x2F, 0x6F, 0xEB);
+const QColor kDanger(0xC0, 0x3B, 0x2E);
 const QColor kAccent(0x4C, 0x9A, 0xFF);
 
 QColor swatches[kSwatchCount] = {
@@ -80,18 +84,19 @@ void WhiteboardWindow::drawToolbar(QPainter &p)
                          actionIds.size() * (kBtn + kGap) - kGap + kPad * 2;
     const QRect bar((QWidget::width() - barWidth) / 2, height() - 48 - 44, barWidth, kBtn + kPad * 2);
 
-    p.setPen(Qt::NoPen);
+    p.setPen(QPen(kBarEdge, 1));
     p.setBrush(kBar);
-    p.drawRoundedRect(bar, 10, 10);
+    p.drawRoundedRect(QRectF(bar).adjusted(0.5, 0.5, -0.5, -0.5), 10, 10);
+    p.setPen(Qt::NoPen);
 
     int cx = bar.left() + kPad;
     const int cy = bar.top() + kPad;
     for (int i = 0; i < kSwatchCount; ++i) {
         const QRect r(cx, cy + (kBtn - kSwatch) / 2, kSwatch, kSwatch);
         m_hot.append({r, QStringLiteral("swatch:%1").arg(i)});
-        p.setPen(QPen(m_color == swatches[i] ? Qt::white : QColor(255, 255, 255, 60), 2));
+        p.setPen(QPen(m_color == swatches[i] ? kToolAccent : QColor(0, 0, 0, 55), 2));
         p.setBrush(swatches[i]);
-        p.drawEllipse(r);
+        p.drawEllipse(r.adjusted(1, 1, -1, -1));
         cx += kSwatch + kGap;
     }
     cx += 10;
@@ -99,9 +104,8 @@ void WhiteboardWindow::drawToolbar(QPainter &p)
     for (const QString &id : {QStringLiteral("width-"), QStringLiteral("width+")}) {
         const QRect r(cx, cy, 28, kBtn);
         m_hot.append({r, id});
-        p.setPen(QPen(kFg, 1.8, Qt::SolidLine, Qt::RoundCap));
-        p.drawLine(r.center() + QPoint(-6, 0), r.center() + QPoint(6, 0));
-        if (id == QStringLiteral("width+")) p.drawLine(r.center() + QPoint(0, -6), r.center() + QPoint(0, 6));
+        IconSet::draw(p, id == QStringLiteral("width+") ? QStringLiteral("plus") : QStringLiteral("minus"),
+                      QRectF(r.adjusted(4, 7, -4, -7)), kFg);
         cx += 28 + kGap;
     }
     cx += 10;
@@ -109,36 +113,8 @@ void WhiteboardWindow::drawToolbar(QPainter &p)
     for (const QString &id : actionIds) {
         const QRect r(cx, cy, kBtn, kBtn);
         m_hot.append({r, id});
-        p.setPen(QPen(id == QStringLiteral("close") ? QColor(0xFF, 0x8A, 0x7A) : kFg, 1.6, Qt::SolidLine,
-                      Qt::RoundCap));
-        p.setBrush(Qt::NoBrush);
-        const QPoint c = r.center();
-        if (id == QStringLiteral("undo")) {
-            QPainterPath path;
-            path.arcMoveTo(QRectF(c.x() - 7, c.y() - 6, 14, 12), 20);
-            path.arcTo(QRectF(c.x() - 7, c.y() - 6, 14, 12), 20, 140);
-            p.drawPath(path);
-            p.drawLine(c + QPoint(-7, -6), c + QPoint(-3, -1));
-        } else if (id == QStringLiteral("clear")) {
-            p.drawLine(c + QPoint(-6, -6), c + QPoint(6, 6));
-            p.drawLine(c + QPoint(6, -6), c + QPoint(-6, 6));
-            p.drawRect(QRect(c.x() - 7, c.y() + 4, 14, 4));
-        } else if (id == QStringLiteral("copy")) {
-            p.drawRect(QRect(c.x() - 6, c.y() - 6, 9, 9));
-            p.drawRect(QRect(c.x() - 2, c.y() - 2, 9, 9));
-        } else if (id == QStringLiteral("save")) {
-            p.drawRect(QRect(c.x() - 6, c.y() - 6, 12, 12));
-            p.setBrush(kFg);
-            p.drawRect(QRect(c.x() - 3, c.y() - 6, 6, 4));
-            p.setBrush(Qt::NoBrush);
-        } else if (id == QStringLiteral("print")) {
-            p.drawRect(QRect(c.x() - 6, c.y() - 6, 12, 6));
-            p.drawRect(QRect(c.x() - 6, c.y(), 12, 6));
-            p.drawRect(QRect(c.x() - 3, c.y() + 4, 6, 4));
-        } else {
-            p.drawLine(c + QPoint(-6, -6), c + QPoint(6, 6));
-            p.drawLine(c + QPoint(6, -6), c + QPoint(-6, 6));
-        }
+        const QColor tint = id == QStringLiteral("close") ? kDanger : kFg;
+        IconSet::draw(p, id, QRectF(r.adjusted(7, 7, -7, -7)), tint);
         cx += kBtn + kGap;
     }
 

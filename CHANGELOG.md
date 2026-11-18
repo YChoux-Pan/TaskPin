@@ -5,6 +5,19 @@
 > 从 0.2 起 **Qt 主线**有独立版本号（`qt-0.x.y`）。C# 旧版（0.3.x）已归档删除，
 > 其历史保存在 `D:\TaskPin\backup\repo-csharp-history.bundle`（机器外无需保留）。
 
+## [qt-0.2.2] - 2026-11-18
+
+### 变更
+- **截图 / 白板工具栏改用 Iconify 线性图标**：图标取自 Iconify 的 `lucide` 图标集（ISC 许可），
+  编号笔用 `mdi:numeric-1-circle-outline`。底色从近黑改为浅灰 `#ECEEF3`（1px 描边），
+  图标为深灰 `#2E333B`，当前工具用淡蓝底 + 蓝图标；白板工具栏同步。
+- 图标以 SVG 片段内嵌在 `src/ui/IconSet.cpp`，`QSvgRenderer` 渲染并缓存，完全离线，不访问网络。
+- 构建新增 `Qt6::Svg` 依赖（`windeployqt` 会带上 `Qt6Svg.dll` / `imageformats\qsvg.dll`）。
+
+### 工程
+- 回归脚本改为从 `--dump` 的屏幕列表计算虚拟桌面尺寸和 DPI（不再假设 2560×1600@125%），
+  卡片段先用 `--card-top` 对齐初始状态。
+
 ## [qt-0.2.1] - 2026-11-09
 
 ### 新增
