@@ -565,7 +565,8 @@ dump via running instance: ok -> D:\TaskPin\repo\docs\dump.json   (v0.2.3)
 | 文件 | 内容 |
 |---|---|
 | `test-snip-tools.png` | 截图编辑器：矩形 / 椭圆 / 箭头 / 马赛克 / 模糊 / 中文文字 / 序号 + 工具栏 |
-| `toolbar-icons.png` | 新工具栏特写（Iconify lucide 线性图标 + 浅灰底，2×） |
+| 	oolbar-icons.png | 新工具栏特写（Iconify lucide 线性图标 + 浅灰底，2×） |
+| `toolbar-hover.png` | 鼠标悬停「圆」按钮：按钮高亮 + 浮出「圆  O」气泡（2×） |
 | `test-ocr-task.png` | 卡片里出现 OCR 建出的任务（「测试」，截止明天 15:00） |
 | `test-pin.png` | 贴图窗口浮在桌面上 |
 | `test-history.png` | 截屏历史缩略图列表 |
