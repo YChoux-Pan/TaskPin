@@ -140,16 +140,31 @@ void SnipOverlay::paintEvent(QPaintEvent *)
     if (m_drawing) m_current.paint(p, &m_base, m_shot.dpr);
 
     if (m_hasSel) drawSelection(p);
-    if (!m_error.isEmpty()) {
-        p.setPen(Qt::white);
-        p.setBrush(QColor(150, 35, 35, 235));
-        const QRect box(8, 8, qMax(20, width() - 16), 40);
-        p.drawRoundedRect(box, 5, 5);
-        p.drawText(box.adjusted(8, 0, -8, 0), Qt::AlignVCenter | Qt::TextWordWrap, m_error);
-    }
     drawToolbar(p);
     drawHoverTip(p);
     if (m_tool == Tool::Select) drawMagnifier(p);
+    if (!m_error.isEmpty()) {
+        QFont errorFont = font();
+        errorFont.setPixelSize(12);
+        p.setFont(errorFont);
+        const int textFlags = Qt::AlignVCenter | Qt::TextWordWrap;
+        const int errorHeight = qBound(40,
+            QFontMetrics(errorFont).boundingRect(QRect(0, 0, width() - 32, height()), textFlags, m_error).height() + 16,
+            height() - 16);
+        QRect box(8, 8, qMax(20, width() - 16), errorHeight);
+        if (box.intersects(m_toolbarRect)) {
+            if (m_toolbarRect.bottom() + 8 + errorHeight < height() - 8)
+                box.moveTop(m_toolbarRect.bottom() + 8);
+            else if (m_toolbarRect.top() - 8 - errorHeight >= 8)
+                box.moveTop(m_toolbarRect.top() - 8 - errorHeight);
+        }
+        // Paint last so a failed output always leaves a readable reason, even
+        // when an unusually small viewport cannot fit both floating surfaces.
+        p.setPen(Qt::white);
+        p.setBrush(QColor(150, 35, 35, 235));
+        p.drawRoundedRect(box, 5, 5);
+        p.drawText(box.adjusted(8, 0, -8, 0), textFlags, m_error);
+    }
 }
 
 QString SnipOverlay::hoverHint() const

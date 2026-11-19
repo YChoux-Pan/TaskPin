@@ -279,6 +279,29 @@ private slots:
         QVERIFY(!w.saveToPath(data.path() + "/duplicate.png"));
         QCOMPARE(captured.count(), 1);
     }
+    void failedSaveReasonVisibleOnSmallFullScreenSelection()
+    {
+        SnipOverlay w(fixture(1, {}, { 360, 240 }));
+        ready(w, { 0, 0, 360, 240 });
+        const QImage before = w.grab().toImage();
+        QVERIFY(!w.saveToPath(data.path() + "/missing/screenshot.png"));
+        const QImage after = w.grab().toImage();
+        const QString artifactDir = qEnvironmentVariable("TASKPIN_TEST_ARTIFACT_DIR");
+        if (!artifactDir.isEmpty()) QVERIFY(after.save(artifactDir + "/save-failure-small-screen.png"));
+        int visibleTextPixels = 0;
+        int visibleBannerPixels = 0;
+        for (int y = 0; y < 240; ++y) {
+            for (int x = 0; x < 360; ++x) {
+                if (w.toolbarRect().contains(x, y) || before.pixel(x,y) == after.pixel(x,y)) continue;
+                const QColor pixel = after.pixelColor(x,y);
+                visibleTextPixels += pixel.red() > 230 && pixel.green() > 230 && pixel.blue() > 230;
+                visibleBannerPixels += pixel.red() > 100 && pixel.green() < 90 && pixel.blue() < 90;
+            }
+        }
+        QVERIFY(visibleBannerPixels > 500);
+        QVERIFY2(visibleTextPixels > 30, "Save failure needs readable glyphs clear of the toolbar");
+        QVERIFY(w.isVisible());
+    }
     void ocrCapturesExactlyOnce()
     {
         SnipOverlay w(fixture());
