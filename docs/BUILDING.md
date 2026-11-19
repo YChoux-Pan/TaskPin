@@ -45,7 +45,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File TaskPinQt/scripts/test.ps1
 powershell -NoProfile -ExecutionPolicy Bypass -File TaskPinQt/scripts/package.ps1 -QtKit 'C:/Qt/6.4.3/mingw_64'
 ```
 
-`test.ps1` also accepts `BuildDir`, `ReportDir` and `CMake`. `package.ps1` accepts the build toolchain parameters and `BuildDir` / `OutputDir` (default `dist`). It creates a unique fresh staging directory, copies only the application executable, runs Release `windeployqt --compiler-runtime`, and adds the end-user README and license notices. Staging remains for inspection; only final named assets are published. It never copies the developer build tree, database, logs, QtTest executables, CMake caches or import libraries.
+`test.ps1` also accepts `BuildDir`, `ReportDir` and `CMake`. `package.ps1` accepts the build toolchain parameters and `BuildDir` / `OutputDir` (default `dist`). It requires a CMake Release build, creates a unique fresh staging directory, copies only the application executable, and runs `windeployqt --compiler-runtime` using that kit's explicit `qtpaths.exe`. Deployment detects the Release executable rather than forcing a plugin build-type filter (Qt 6.4 MinGW kits can share plugin filenames). It adds the end-user README and license notices. Staging remains for inspection; only final named assets are published. It never copies the developer build tree, database, logs, QtTest executables, CMake caches or import libraries.
 
 Outputs:
 
