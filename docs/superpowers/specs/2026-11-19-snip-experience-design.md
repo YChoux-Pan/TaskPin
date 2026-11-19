@@ -71,3 +71,7 @@
 验证完成后，提交并上传改动源码、完整变更日志、测试报告和界面存证，创建 GitHub 0.3.0 发行版，上传 Windows x64 便携包和 SHA-256 文件。GitHub 自动附带版本对应的源码包。当前用户已授权最终上传和发行，设计确认后按该目标连续执行。
 
 最终本地交付统一放在 `outputs/TaskPin/`，包含软件发行包、对应源码包、变更日志、测试报告和校验文件。源码、GitHub 说明快照、旧版参考与中间测试材料统一整理在 `work/TaskPin/`。
+
+## 2026-11-19 pin placement correction
+
+User confirmed a screenshot-to-pin placement bug: it starts at the selection's bottom-right/cursor location. Direct screenshot pins must align their image content with the original global logical selection top-left and logical size at 100%, including shadow padding and high-DPI physical pixel conversion. Clipboard/history pins without source geometry retain cursor placement. Task 2 tests cover origin and display-size fixtures across DPR 1/1.25/1.5/2 and negative origins; desktop acceptance confirms actual overlap.
