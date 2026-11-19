@@ -11,7 +11,12 @@ including after settings are applied. Capture commands, notes, settings and pins
 remain available. Screenshot, card and pin windows use the ordinary window type
 in this mode so native automation tools can enumerate them; their real input
 handlers and all other window flags are retained. Normal sessions continue using
-tool windows. This is a testing setting, not a separate product mode.
+tool windows. Automation windows can therefore appear in the Windows taskbar and
+Alt+Tab list and participate in ordinary window activation/focus; normal tool
+windows omit that taskbar/Alt+Tab presence. Frameless styling remains in both
+modes. This diagnostic difference enables native desktop automation and must not
+be treated as normal-session taskbar/focus behavior. This is a testing setting,
+not a separate product mode.
 
 Build with `BUILD_TESTING=ON`, then run `ctest --output-on-failure`. Both Qt test
 targets deploy their Qt Test and offscreen runtime dependencies on Windows.

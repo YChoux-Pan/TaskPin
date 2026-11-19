@@ -19,6 +19,7 @@
 #include <QContextMenuEvent>
 #include <QMenu>
 #include <QScreen>
+#include <QScopeGuard>
 #include <QTemporaryDir>
 #include <QTimer>
 #include <QtTest>
@@ -77,6 +78,72 @@ private slots:
         QVERIFY(instanceNamesFor(a).command != instanceNamesFor(b).command);
         QVERIFY(instanceNamesFor(a).singleInstance != instanceNamesFor(b).singleInstance);
         QVERIFY(instanceNamesFor(a).command != instanceNamesFor(QString()).command);
+    }
+    void aliasedDataDirectoryNamespaceIsStable()
+    {
+#ifdef Q_OS_WIN
+        QTemporaryDir root;
+        QVERIFY(root.isValid());
+        const QString target = root.path() + "/target";
+        const QString alias = root.path() + "/alias";
+        QVERIFY(QDir().mkpath(target));
+        QProcess junction;
+        junction.start(QStringLiteral("cmd.exe"), {"/c", "mklink", "/J",
+            QDir::toNativeSeparators(alias), QDir::toNativeSeparators(target)});
+        QVERIFY(junction.waitForFinished(10000));
+        if (junction.exitCode() != 0) QSKIP("Temporary junction creation is not supported in this environment");
+        const auto removeAlias = qScopeGuard([alias] { QDir().rmdir(alias); });
+        QVERIFY(QFileInfo(alias).isJunction());
+        const QString throughAlias = alias + "/new/nested/data";
+        const QString throughTarget = target + "/new/nested/data";
+        const auto aliasBefore = instanceNamesFor(throughAlias);
+        const auto targetBefore = instanceNamesFor(throughTarget);
+        QCOMPARE(aliasBefore.command, targetBefore.command);
+        QCOMPARE(aliasBefore.singleInstance, targetBefore.singleInstance);
+        QVERIFY(QDir().mkpath(throughAlias));
+        const auto aliasAfter = instanceNamesFor(throughAlias);
+        const auto targetAfter = instanceNamesFor(throughTarget);
+        QCOMPARE(aliasBefore.command, aliasAfter.command);
+        QCOMPARE(aliasBefore.singleInstance, aliasAfter.singleInstance);
+        QCOMPARE(aliasAfter.command, targetAfter.command);
+        QCOMPARE(aliasAfter.singleInstance, targetAfter.singleInstance);
+
+        // First startup computes names before Settings creates this new directory.
+        const QString processAlias = alias + "/process/new-data";
+        const QString processTarget = target + "/process/new-data";
+        const QString executable = QCoreApplication::applicationDirPath() + "/TaskPinQt.exe";
+        auto env = QProcessEnvironment::systemEnvironment();
+        env.insert("TASKPIN_DATA", processAlias);
+        env.insert("TASKPIN_AUTOMATION", "1");
+        QProcess owner;
+        owner.setProcessEnvironment(env);
+        owner.start(executable, QStringList{});
+        QVERIFY(owner.waitForStarted(10000));
+        const auto ready = [&] {
+            QLocalSocket socket;
+            socket.connectToServer(instanceNamesFor(processTarget).command);
+            return socket.waitForConnected(50);
+        };
+        QTRY_VERIFY_WITH_TIMEOUT(ready(), 15000);
+        env.insert("TASKPIN_DATA", processTarget);
+        const auto cli = [&](const QStringList &arguments) {
+            QProcess process;
+            process.setProcessEnvironment(env);
+            process.start(executable, arguments);
+            return process.waitForFinished(10000) && process.exitCode() == 0;
+        };
+        QVERIFY(cli({})); // Resolved-path launch must find the same single-instance pipe.
+        const QString dumpPath = root.path() + "/alias-process-dump.json";
+        QVERIFY(cli({"--dump", dumpPath}));
+        QFile dumpFile(dumpPath);
+        QVERIFY(dumpFile.open(QIODevice::ReadOnly));
+        const auto dump = QJsonDocument::fromJson(dumpFile.readAll()).object();
+        QCOMPARE(dump["instance"].toObject()["pid"].toInteger(), owner.processId());
+        QVERIFY(cli({"--quit"}));
+        QVERIFY(owner.waitForFinished(10000));
+#else
+        QSKIP("Windows junction regression");
+#endif
     }
     void pinPresetsAndReset()
     {
