@@ -2,6 +2,8 @@
 
 #include "platform/ScreenCapture.h"
 #include "ui/Annotation.h"
+#include "ui/EditorHistory.h"
+#include "ui/SnipToolbar.h"
 
 #include <QColor>
 #include <QElapsedTimer>
@@ -27,6 +29,10 @@ public:
     QRect toolbarRect() const { return m_toolbarRect; }
     /// "label  shortcut" for the toolbar button under the cursor, empty when none.
     QString hoverHint() const;
+    QVector<SnipAction> toolbarActions() const { return m_actions; }
+    QString errorMessage() const { return m_error; }
+    /// Save the current composition; failures preserve this editing session.
+    bool saveToPath(const QString &path);
 
 signals:
     void copied(const QImage &image);
@@ -42,6 +48,7 @@ protected:
     void mousePressEvent(QMouseEvent *e) override;
     void mouseMoveEvent(QMouseEvent *e) override;
     void mouseReleaseEvent(QMouseEvent *e) override;
+    void mouseDoubleClickEvent(QMouseEvent *e) override;
     void keyPressEvent(QKeyEvent *e) override;
     void wheelEvent(QWheelEvent *e) override;
     bool eventFilter(QObject *obj, QEvent *e) override;
@@ -50,7 +57,7 @@ private:
     enum class Tool {
         Select, Rect, Ellipse, Arrow, Line, Pen, Highlighter, Text, Number, Mosaic, Blur, Eraser
     };
-    enum class Mode { Idle, SelectRect, Draw, MoveAnnotation, ResizeSelection, Erase };
+    enum class Mode { Idle, SelectRect, Draw, MoveAnnotation, MoveSelection, ResizeSelection, Erase };
 
     void drawToolbar(QPainter &p);
     void drawHoverTip(QPainter &p);
@@ -65,7 +72,6 @@ private:
     void setTool(Tool t);
 
     int selectionHandleAt(const QPoint &pos) const;
-    void drawHandle(QPainter &p, const QRect &sel) const;
 
     QImage compose() const;
     void beginText(const QPoint &at);
@@ -77,7 +83,8 @@ private:
     void updateHoverWindow(const QPoint &pos);
     void nudgeSelection(Qt::KeyboardModifiers mods, const QPoint &delta);
     void saveQuick();
-    void emitOutput(const QImage &img, const QString &action);
+    void recordMutation();
+    QPoint boundedPoint(const QPoint &point) const;
 
     ScreenCapture m_shot;
     QRect m_monitor;        // physical rect of the captured monitor
@@ -109,7 +116,8 @@ private:
     int m_nextNumber = 1;
 
     QVector<Annotation> m_items;
-    QVector<Annotation> m_redoStack;
+    EditorHistory m_history;
+    bool m_gestureRecorded = false;
     Annotation m_current;
     bool m_drawing = false;
     int m_selected = -1;
@@ -123,4 +131,7 @@ private:
     };
     QVector<Hot> m_hot;
     QRect m_toolbarRect;
+    QVector<SnipAction> m_actions;
+    QString m_error;
+    bool m_completed = false;
 };

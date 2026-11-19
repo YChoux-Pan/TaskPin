@@ -59,11 +59,11 @@ void Annotation::paint(QPainter &p, const QImage *base, qreal dpr) const
         break;
     }
     case Text: {
-        QFont f = p.font();
+        QFont f;
         f.setPixelSize(fontSize);
         p.setFont(f);
         const QFontMetrics fm(f);
-        const QRect box(pos.x() - 5, pos.y() - 3, fm.horizontalAdvance(text) + 10, fm.height() + 6);
+        const QRect box(pos.x() - 5, pos.y() - fm.ascent() - 3, fm.horizontalAdvance(text) + 10, fm.height() + 6);
         p.setPen(Qt::NoPen);
         p.setBrush(QColor(16, 20, 26, 200));
         p.drawRoundedRect(box, 5, 5);
@@ -78,7 +78,7 @@ void Annotation::paint(QPainter &p, const QImage *base, qreal dpr) const
         p.setBrush(color);
         p.drawEllipse(box);
         p.setPen(Qt::white);
-        QFont f = p.font();
+        QFont f;
         f.setPixelSize(r + 4);
         f.setBold(true);
         p.setFont(f);
@@ -139,7 +139,7 @@ QRect Annotation::bounds() const
         QFont f;
         f.setPixelSize(fontSize);
         const QFontMetrics fm(f);
-        r = QRect(pos, QSize(fm.horizontalAdvance(text), fm.height()));
+        return QRect(pos.x()-5,pos.y()-fm.ascent()-3,fm.horizontalAdvance(text)+10,fm.height()+6);
         break;
     }
     case Number: {

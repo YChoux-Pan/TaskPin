@@ -10,7 +10,24 @@ if(WIN32)
     add_compile_definitions(NOMINMAX WIN32_LEAN_AND_MEAN UNICODE _UNICODE)
 endif()
 
+include(CTest)
 find_package(Qt6 6.4 REQUIRED COMPONENTS Core Gui Widgets Sql Network PrintSupport Svg)
+if(BUILD_TESTING)
+    find_package(Qt6 6.4 REQUIRED COMPONENTS Test)
+    qt_add_executable(TaskPinScreenshotTests
+        tests/tst_screenshot.cpp
+        src/ui/SnipOverlay.h src/ui/SnipOverlay.cpp
+        src/ui/SnipToolbar.h src/ui/SnipToolbar.cpp src/ui/EditorHistory.h
+        src/ui/Annotation.h src/ui/Annotation.cpp
+        src/ui/IconSet.h src/ui/IconSet.cpp
+        src/core/Settings.h src/core/Settings.cpp
+        src/core/FileNaming.h src/core/FileNaming.cpp
+        src/platform/WindowPicker.h src/platform/WindowPicker.cpp)
+    target_include_directories(TaskPinScreenshotTests PRIVATE src)
+    target_link_libraries(TaskPinScreenshotTests PRIVATE Qt6::Test Qt6::Widgets Qt6::Svg user32 dwmapi)
+    add_test(NAME TaskPinScreenshotTests COMMAND TaskPinScreenshotTests -o -,txt)
+    set_tests_properties(TaskPinScreenshotTests PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+endif()
 
 qt_add_executable(TaskPinQt WIN32
     src/main.cpp
@@ -36,6 +53,7 @@ qt_add_executable(TaskPinQt WIN32
     src/ui/Annotation.h           src/ui/Annotation.cpp
     src/ui/IconSet.h              src/ui/IconSet.cpp
     src/ui/SnipOverlay.h          src/ui/SnipOverlay.cpp
+    src/ui/SnipToolbar.h src/ui/SnipToolbar.cpp src/ui/EditorHistory.h
     src/ui/CardWindow.h           src/ui/CardWindow.cpp
     src/ui/QuickAddDialog.h       src/ui/QuickAddDialog.cpp
     src/ui/PinWindow.h            src/ui/PinWindow.cpp
@@ -64,5 +82,23 @@ if(WIN32)
             COMMAND "${WINDEPLOYQT}" --no-translations --no-system-d3d-compiler
                     --no-opengl-sw "$<TARGET_FILE:TaskPinQt>"
             COMMENT "windeployqt")
+        if(BUILD_TESTING)
+            add_custom_command(TARGET TaskPinScreenshotTests POST_BUILD
+                COMMAND "${WINDEPLOYQT}" --no-translations --no-system-d3d-compiler
+                        --no-opengl-sw "$<TARGET_FILE:TaskPinScreenshotTests>"
+                COMMENT "Deploy screenshot test Qt runtime")
+        endif()
+    endif()
+    if(BUILD_TESTING)
+        add_custom_command(TARGET TaskPinScreenshotTests POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different "$<TARGET_FILE:Qt6::Test>"
+                    "$<TARGET_FILE_DIR:TaskPinScreenshotTests>")
+        find_file(QT_OFFSCREEN_PLUGIN qoffscreen.dll HINTS "${Qt6_DIR}/../../../plugins/platforms" NO_DEFAULT_PATH)
+        if(QT_OFFSCREEN_PLUGIN)
+            add_custom_command(TARGET TaskPinScreenshotTests POST_BUILD
+                COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:TaskPinScreenshotTests>/platforms"
+                COMMAND ${CMAKE_COMMAND} -E copy_if_different "${QT_OFFSCREEN_PLUGIN}"
+                        "$<TARGET_FILE_DIR:TaskPinScreenshotTests>/platforms")
+        endif()
     endif()
 endif()

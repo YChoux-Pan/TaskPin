@@ -1,0 +1,429 @@
+#include "ui/SnipOverlay.h"
+#include <QFontDatabase>
+#include <QInputMethodEvent>
+#include <QLineEdit>
+#include <QPainter>
+#include <QSignalSpy>
+#include <QTemporaryDir>
+#include <QtTest>
+
+namespace
+{
+ScreenCapture fixture(qreal dpr = 1, QPoint origin = {}, QSize size = { 800, 600 })
+{
+    QImage pixels(QSize(qRound(size.width() * dpr), qRound(size.height() * dpr)), QImage::Format_RGB32);
+    pixels.fill(Qt::white);
+    QPainter p(&pixels);
+    p.fillRect(QRect(0, 0, pixels.width() / 2, pixels.height() / 2), Qt::red);
+    p.end();
+    // ScreenCapture stores raw device pixels (pixmap DPR=1), separately from shot.dpr.
+    QPixmap frame = QPixmap::fromImage(pixels);
+    return { frame, QRect(origin, size), dpr, QStringLiteral("synthetic") };
+}
+void ready(SnipOverlay &w, QRect region = { 40, 40, 300, 200 })
+{
+    w.setAttribute(Qt::WA_DeleteOnClose, false);
+    w.setPreselect(region);
+    QTest::ignoreMessage(QtWarningMsg, "This plugin does not support raise()");
+    w.show();
+    QCoreApplication::processEvents();
+    w.repaint();
+}
+void drag(QWidget &w, QPoint from, QPoint to)
+{
+    QTest::mousePress(&w, Qt::LeftButton, Qt::NoModifier, from);
+    QMouseEvent move(QEvent::MouseMove, to, w.mapToGlobal(to), Qt::NoButton, Qt::LeftButton, Qt::NoModifier);
+    QApplication::sendEvent(&w, &move);
+    QTest::mouseRelease(&w, Qt::LeftButton, Qt::NoModifier, to);
+    w.repaint();
+}
+void rectangle(SnipOverlay &w)
+{
+    QTest::keyClick(&w, Qt::Key_R);
+    drag(w, { 80, 80 }, { 160, 140 });
+    QTest::keyClick(&w, Qt::Key_V);
+}
+QImage output(SnipOverlay &w)
+{
+    QSignalSpy spy(&w, &SnipOverlay::pinned);
+    QTest::keyClick(&w, Qt::Key_P, Qt::ControlModifier);
+    return spy.isEmpty() ? QImage() : qvariant_cast<QImage>(spy.first().first());
+}
+SnipAction action(SnipOverlay &w, const QString &id)
+{
+    w.repaint();
+    for (const auto &a : w.toolbarActions())
+        if (a.id == id) return a;
+    return {};
+}
+void clickAction(SnipOverlay &w, const QString &id)
+{
+    const auto a = action(w, id);
+    QVERIFY2(!a.rect.isEmpty(), qPrintable(id));
+    QTest::mouseClick(&w, Qt::LeftButton, Qt::NoModifier, a.rect.center());
+    w.repaint();
+}
+void inputChinese(QLineEdit *edit, const QString &text)
+{
+    QInputMethodEvent commit;
+    commit.setCommitString(text);
+    QApplication::sendEvent(edit, &commit);
+}
+}
+class ScreenshotTests : public QObject
+{
+    Q_OBJECT
+    QTemporaryDir data;
+private slots:
+    void initTestCase()
+    {
+        QVERIFY(data.isValid());
+        qputenv("TASKPIN_DATA", data.path().toUtf8());
+        qputenv("QT_QPA_FONTDIR", "C:/Windows/Fonts");
+        const int id = QFontDatabase::addApplicationFont("C:/Windows/Fonts/msyh.ttc");
+        QVERIFY(id >= 0);
+        QApplication::setFont(QFont(QFontDatabase::applicationFontFamilies(id).first()));
+    }
+    void interiorMovesSelection()
+    {
+        SnipOverlay w(fixture());
+        ready(w);
+        drag(w, { 200, 180 }, { 230, 200 });
+        QCOMPARE(w.selection(), QRect(70, 60, 300, 200));
+    }
+    void doubleClickCompletesOnce()
+    {
+        SnipOverlay w(fixture());
+        ready(w);
+        QSignalSpy copied(&w, &SnipOverlay::copied), captured(&w, &SnipOverlay::captured);
+        QTest::mouseDClick(&w, Qt::LeftButton, Qt::NoModifier, { 200, 180 });
+        QCOMPARE(copied.count(), 1);
+        QCOMPARE(captured.count(), 1);
+    }
+    void deleteUndoRestoresPixels()
+    {
+        SnipOverlay w(fixture());
+        ready(w);
+        rectangle(w);
+        QTest::mouseClick(&w, Qt::LeftButton, Qt::NoModifier, { 100, 80 });
+        QTest::keyClick(&w, Qt::Key_Delete);
+        QTest::keyClick(&w, Qt::Key_Z, Qt::ControlModifier);
+        const QImage image = output(w);
+        QVERIFY(!image.isNull());
+        QVERIFY(image.pixelColor(60, 40) != QColor(Qt::red));
+    }
+    void moveUndoRestoresPixels()
+    {
+        SnipOverlay w(fixture());
+        ready(w);
+        rectangle(w);
+        drag(w, { 100, 80 }, { 120, 100 });
+        QTest::keyClick(&w, Qt::Key_Z, Qt::ControlModifier);
+        const QImage image = output(w);
+        QVERIFY(image.pixelColor(60, 40) != QColor(Qt::red));
+        QCOMPARE(image.pixelColor(140, 120), QColor(Qt::red));
+    }
+    void narrowToolbarFits()
+    {
+        SnipOverlay w(fixture(1, {}, { 360, 240 }));
+        ready(w, { 30, 20, 200, 80 });
+        QVERIFY(w.rect().contains(w.toolbarRect()));
+    }
+    void toolbarAbsentWhileSelecting()
+    {
+        SnipOverlay w(fixture());
+        w.setAttribute(Qt::WA_DeleteOnClose, false);
+        QTest::ignoreMessage(QtWarningMsg, "This plugin does not support raise()");
+        w.show();
+        QTest::mousePress(&w, Qt::LeftButton, Qt::NoModifier, { 40, 40 });
+        QMouseEvent move(QEvent::MouseMove, QPointF(200, 180), QPointF(200, 180), Qt::NoButton,
+            Qt::LeftButton, Qt::NoModifier);
+        QApplication::sendEvent(&w, &move);
+        w.repaint();
+        QVERIFY(w.toolbarRect().isEmpty());
+    }
+    void outputCommitsChineseText()
+    {
+        SnipOverlay w(fixture());
+        ready(w);
+        QTest::keyClick(&w, Qt::Key_T);
+        QTest::mouseClick(&w, Qt::LeftButton, Qt::NoModifier, { 100, 110 });
+        auto *edit = w.findChild<QLineEdit *>();
+        QVERIFY(edit);
+        inputChinese(edit, QStringLiteral("中文任务"));
+        const QImage image = output(w);
+        int glyphPixels = 0;
+        for (int y = 65; y < 100; ++y)
+            for (int x = 60; x < 180; ++x)
+                glyphPixels += image.pixelColor(x, y) == QColor(229, 59, 59);
+        QVERIFY(glyphPixels > 10);
+    }
+    void undoInitiallyDisabled()
+    {
+        SnipOverlay w(fixture());
+        ready(w);
+        QVERIFY(!action(w, "undo").enabled);
+        QVERIFY(!action(w, "redo").enabled);
+        rectangle(w);
+        QVERIFY(action(w, "undo").enabled);
+    }
+    void recolorUndoRestoresPixels()
+    {
+        SnipOverlay w(fixture());
+        ready(w);
+        rectangle(w);
+        QTest::mouseClick(&w, Qt::LeftButton, Qt::NoModifier, { 100, 80 });
+        clickAction(w, "swatch:3");
+        QTest::keyClick(&w, Qt::Key_Z, Qt::ControlModifier);
+        QCOMPARE(output(w).pixelColor(60, 40), QColor(229, 59, 59));
+    }
+    void recolorRedoRestoresPixels()
+    {
+        SnipOverlay w(fixture());
+        ready(w);
+        rectangle(w);
+        QTest::mouseClick(&w, Qt::LeftButton, Qt::NoModifier, { 100, 80 });
+        clickAction(w, "swatch:3");
+        QTest::keyClick(&w, Qt::Key_Z, Qt::ControlModifier);
+        QTest::keyClick(&w, Qt::Key_Y, Qt::ControlModifier);
+        QCOMPARE(output(w).pixelColor(60, 40), QColor(59, 156, 255));
+    }
+    void redoInvalidatedByDelete()
+    {
+        SnipOverlay w(fixture());
+        ready(w);
+        rectangle(w);
+        QTest::keyClick(&w, Qt::Key_N);
+        QTest::mouseClick(&w, Qt::LeftButton, Qt::NoModifier, { 220, 100 });
+        QTest::keyClick(&w, Qt::Key_Z, Qt::ControlModifier);
+        QTest::keyClick(&w, Qt::Key_V);
+        QTest::mouseClick(&w, Qt::LeftButton, Qt::NoModifier, { 100, 80 });
+        QTest::keyClick(&w, Qt::Key_Delete);
+        QVERIFY(!action(w, "redo").enabled);
+        QTest::keyClick(&w, Qt::Key_Y, Qt::ControlModifier);
+        QCOMPARE(output(w).pixelColor(60, 40), QColor(Qt::red));
+    }
+    void eraseGestureIsOneUndo()
+    {
+        SnipOverlay w(fixture());
+        ready(w);
+        rectangle(w);
+        QTest::keyClick(&w, Qt::Key_R);
+        drag(w, { 220, 80 }, { 280, 140 });
+        QTest::keyClick(&w, Qt::Key_E);
+        drag(w, { 100, 80 }, { 240, 80 });
+        QTest::keyClick(&w, Qt::Key_Z, Qt::ControlModifier);
+        const auto image = output(w);
+        QCOMPARE(image.pixelColor(60, 40), QColor(229, 59, 59));
+        QCOMPARE(image.pixelColor(200, 40), QColor(229, 59, 59));
+    }
+    void moveRedoIsOneGesture()
+    {
+        SnipOverlay w(fixture());
+        ready(w);
+        rectangle(w);
+        drag(w, { 100, 80 }, { 120, 100 });
+        QTest::keyClick(&w, Qt::Key_Z, Qt::ControlModifier);
+        QTest::keyClick(&w, Qt::Key_Y, Qt::ControlModifier);
+        const auto image = output(w);
+        QCOMPARE(image.pixelColor(60, 40), QColor(Qt::red));
+        QCOMPARE(image.pixelColor(80, 60), QColor(229, 59, 59));
+    }
+    void newSelectionCannotActivateTool()
+    {
+        SnipOverlay w(fixture());
+        ready(w, {});
+        QTest::keyClick(&w, Qt::Key_R);
+        drag(w, { 40, 40 }, { 200, 180 });
+        drag(w, { 100, 100 }, { 120, 120 });
+        QCOMPARE(w.selection(), QRect(60, 60, 161, 141));
+    }
+    void textEscapeCancelsOnlyInput()
+    {
+        SnipOverlay w(fixture());
+        ready(w);
+        QTest::keyClick(&w, Qt::Key_T);
+        QTest::mouseClick(&w, Qt::LeftButton, Qt::NoModifier, { 100, 100 });
+        auto *edit = w.findChild<QLineEdit *>();
+        QVERIFY(edit);
+        edit->setText(QStringLiteral("取消"));
+        QTest::keyClick(edit, Qt::Key_Escape);
+        QVERIFY(w.isVisible());
+        QCOMPARE(output(w).pixelColor(65, 65), QColor(Qt::red));
+    }
+    void textEnterCommitsWithoutOutput()
+    {
+        SnipOverlay w(fixture());
+        ready(w);
+        QSignalSpy captured(&w, &SnipOverlay::captured);
+        QTest::keyClick(&w, Qt::Key_T);
+        QTest::mouseClick(&w, Qt::LeftButton, Qt::NoModifier, { 100, 100 });
+        auto *edit = w.findChild<QLineEdit *>();
+        QVERIFY(edit);
+        edit->setText(QStringLiteral("中文"));
+        QTest::keyClick(edit, Qt::Key_Return);
+        QCOMPARE(captured.count(), 0);
+        QVERIFY(action(w, "undo").enabled);
+    }
+    void failedSaveKeepsEditorAndReportsReason()
+    {
+        SnipOverlay w(fixture());
+        ready(w);
+        QSignalSpy captured(&w, &SnipOverlay::captured);
+        QVERIFY(!w.saveToPath(data.path() + "/missing/screenshot.png"));
+        QVERIFY(w.isVisible());
+        QVERIFY(!w.errorMessage().isEmpty());
+        QCOMPARE(captured.count(), 0);
+        QVERIFY(w.saveToPath(data.path() + "/screenshot.png"));
+        QCOMPARE(captured.count(), 1);
+        QVERIFY(!w.saveToPath(data.path() + "/duplicate.png"));
+        QCOMPARE(captured.count(), 1);
+    }
+    void ocrCapturesExactlyOnce()
+    {
+        SnipOverlay w(fixture());
+        ready(w);
+        QSignalSpy output(&w, &SnipOverlay::recognizeRequested), captured(&w, &SnipOverlay::captured);
+        QTest::keyClick(&w, Qt::Key_R, Qt::ControlModifier);
+        QTest::keyClick(&w, Qt::Key_R, Qt::ControlModifier);
+        QCOMPARE(output.count(), 1);
+        QCOMPARE(captured.count(), 1);
+    }
+    void toolbarAbsentDuringResize()
+    {
+        SnipOverlay w(fixture());
+        ready(w);
+        QTest::mousePress(&w, Qt::LeftButton, Qt::NoModifier, { 339, 239 });
+        w.repaint();
+        QVERIFY(w.toolbarRect().isEmpty());
+        QTest::mouseRelease(&w, Qt::LeftButton, Qt::NoModifier, { 359, 259 });
+        QCOMPARE(w.selection(), QRect(40, 40, 320, 220));
+    }
+    void toolOutsideSelectionDoesNothing()
+    {
+        SnipOverlay w(fixture());
+        ready(w);
+        QTest::keyClick(&w, Qt::Key_R);
+        drag(w, { 500, 400 }, { 600, 500 });
+        QVERIFY(!action(w, "undo").enabled);
+    }
+    void everyNarrowActionAccessible()
+    {
+        SnipOverlay w(fixture(1, {}, { 360, 240 }));
+        ready(w, { 30, 20, 200, 80 });
+        QTest::keyClick(&w, Qt::Key_T);
+        w.repaint();
+        for (const auto &a : w.toolbarActions()) {
+            QVERIFY2(w.rect().contains(a.rect), qPrintable(a.id));
+            QVERIFY(!a.label.isEmpty());
+        }
+        QVERIFY(!action(w, "font+").rect.isEmpty());
+        QVERIFY(!action(w, "more").rect.isEmpty());
+        const QString dir = qEnvironmentVariable("TASKPIN_TEST_ARTIFACT_DIR");
+        if (!dir.isEmpty()) QVERIFY(w.grab().save(dir + "/narrow-toolbar.png"));
+    }
+    void textBoundsFollowRenderedBaseline()
+    {
+        Annotation a;
+        a.kind = Annotation::Text;
+        a.pos = { 30, 100 };
+        a.fontSize = 24;
+        a.text = QStringLiteral("中文");
+        QVERIFY(a.bounds().top() < 90);
+        QVERIFY(a.bounds().bottom() < 115);
+        QImage image(180, 140, QImage::Format_RGB32);
+        image.fill(Qt::white);
+        QPainter p(&image);
+        a.paint(p);
+        p.end();
+        for (int y = 0; y < 140; ++y)
+            for (int x = 0; x < 180; ++x)
+                if (image.pixelColor(x, y) != QColor(Qt::white)) QVERIFY(a.bounds().contains(x, y));
+    }
+    void focusedTextOutputShortcut()
+    {
+        SnipOverlay w(fixture());
+        ready(w);
+        QTest::keyClick(&w, Qt::Key_T);
+        QTest::mouseClick(&w, Qt::LeftButton, Qt::NoModifier, { 100, 100 });
+        auto *edit = w.findChild<QLineEdit *>();
+        QVERIFY(edit);
+        edit->setText(QStringLiteral("中文任务"));
+        QSignalSpy captured(&w, &SnipOverlay::captured);
+        QTest::keyClick(edit, Qt::Key_P, Qt::ControlModifier);
+        QCOMPARE(captured.count(), 1);
+    }
+    void invalidSelectionClearsToolbar()
+    {
+        SnipOverlay w(fixture());
+        ready(w);
+        QVERIFY(!w.toolbarRect().isEmpty());
+        w.setPreselect({});
+        w.repaint();
+        QVERIFY(w.toolbarRect().isEmpty());
+        QVERIFY(w.toolbarActions().isEmpty());
+    }
+    void toolbarUsesFreeSideStrip()
+    {
+        SnipOverlay w(fixture());
+        ready(w, { 40, 20, 300, 550 });
+        QVERIFY(!w.toolbarRect().intersects(w.selection()));
+        QVERIFY(w.rect().contains(w.toolbarRect()));
+    }
+    void disabledToolbarButtonDoesNotDragSelection()
+    {
+        SnipOverlay w(fixture(1, {}, { 360, 240 }));
+        ready(w, { 30, 20, 200, 180 });
+        const auto undo = action(w, "undo");
+        QVERIFY(!undo.enabled);
+        drag(w, undo.rect.center(), undo.rect.center() + QPoint(12, 12));
+        QCOMPARE(w.selection(), QRect(30, 20, 200, 180));
+    }
+    void frozenDisplay_data() { dpiOutput_data(); }
+    void frozenDisplay()
+    {
+        QFETCH(qreal, dpr);
+        SnipOverlay w(fixture(dpr));
+        ready(w, { 0, 0, 800, 600 });
+        const auto display = w.grab().toImage();
+        QCOMPARE(display.pixelColor(200, 100), QColor(Qt::red));
+        QCOMPARE(display.pixelColor(450, 100), QColor(Qt::white));
+    }
+    void edgeSelection_data() { dpiOutput_data(); }
+    void edgeSelection()
+    {
+        QFETCH(qreal, dpr);
+        QFETCH(QSize, expectedSize);
+        SnipOverlay w(fixture(dpr, { 1200, -600 }));
+        ready(w, { 1800, -100, 200, 100 });
+        const auto image = output(w);
+        QCOMPARE(image.size(), expectedSize);
+        QCOMPARE(image.pixelColor(image.width() - 1, image.height() - 1), QColor(Qt::white));
+    }
+    void dpiOutput_data()
+    {
+        QTest::addColumn<qreal>("dpr");
+        QTest::addColumn<QSize>("expectedSize");
+        QTest::addColumn<QPoint>("redPixel");
+        QTest::newRow("100") << qreal(1) << QSize(200,100) << QPoint(120,60);
+        QTest::newRow("125") << qreal(1.25) << QSize(250,125) << QPoint(150,75);
+        QTest::newRow("150") << qreal(1.5) << QSize(300,150) << QPoint(180,90);
+        QTest::newRow("200") << qreal(2) << QSize(400,200) << QPoint(240,120);
+    }
+    void dpiOutput()
+    {
+        QFETCH(qreal, dpr);
+        QFETCH(QSize, expectedSize);
+        QFETCH(QPoint, redPixel);
+        SnipOverlay w(fixture(dpr, { -800, 120 }));
+        ready(w, { -720, 160, 200, 100 });
+        QSignalSpy captured(&w, &SnipOverlay::captured);
+        const QImage image = output(w);
+        QCOMPARE(image.size(), expectedSize);
+        QCOMPARE(image.pixelColor(redPixel), QColor(Qt::red));
+        QCOMPARE(captured.count(), 1);
+        QCOMPARE(captured.first().at(1).toRect(), QRect(-720, 160, 200, 100));
+    }
+};
+QTEST_MAIN(ScreenshotTests)
+#include "tst_screenshot.moc"
