@@ -32,11 +32,13 @@ jobs:
           host: windows
           target: desktop
           arch: win64_mingw
-          tools: 'tools_mingw,qt.tools.win64_mingw1120'
+          tools: 'tools_mingw90,qt.tools.win64_mingw900'
           cache: true
       - name: Build Release
         run: |
           $compiler = Join-Path $env:IQTA_TOOLS 'mingw1120_64/bin/g++.exe'
+          $version = & $compiler -dumpfullversion -dumpversion
+          if ($LASTEXITCODE -ne 0 -or $version -ne '11.2.0') { throw 'Expected MinGW GCC 11.2.0.' }
           ./TaskPinQt/scripts/build.ps1 -QtKit $env:QT_ROOT_DIR -Compiler $compiler
       - name: QtTest and isolated selftest
         run: |
