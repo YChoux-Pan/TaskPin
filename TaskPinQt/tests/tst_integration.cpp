@@ -5,13 +5,17 @@
 #include "core/Store.h"
 #include "ui/CardWindow.h"
 #include "ui/SnipOverlay.h"
+#include "ui/SettingsDialog.h"
+#include <QCheckBox>
 #include <QClipboard>
+#include <QDialogButtonBox>
 #include <QDir>
 #include <QFile>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QLocalSocket>
 #include <QProcess>
+#include <QPushButton>
 #include <QSettings>
 #include <QSignalSpy>
 #include <QSqlDatabase>
@@ -20,12 +24,41 @@
 #include <QMenu>
 #include <QScreen>
 #include <QScopeGuard>
+#include <QSpinBox>
 #include <QTemporaryDir>
 #include <QTimer>
+#include <QWheelEvent>
 #include <QtTest>
 #include <functional>
+#ifdef Q_OS_WIN
+#include <qt_windows.h>
+#endif
 
 namespace {
+#ifdef Q_OS_WIN
+struct RunValue {
+    LONG status = ERROR_SUCCESS;
+    DWORD type = 0;
+    QByteArray bytes;
+};
+RunValue readRunValue()
+{
+    RunValue result;
+    HKEY key = nullptr;
+    result.status = RegOpenKeyExW(HKEY_CURRENT_USER,
+        L"Software\\Microsoft\\Windows\\CurrentVersion\\Run", 0, KEY_QUERY_VALUE, &key);
+    if (result.status != ERROR_SUCCESS) return result;
+    const auto closeKey = qScopeGuard([key] { RegCloseKey(key); });
+    DWORD size = 0;
+    result.status = RegQueryValueExW(key, L"TaskPinQt", nullptr, &result.type, nullptr, &size);
+    if (result.status != ERROR_SUCCESS) return result;
+    result.bytes.resize(size);
+    result.status = RegQueryValueExW(key, L"TaskPinQt", nullptr, &result.type,
+        reinterpret_cast<LPBYTE>(result.bytes.data()), &size);
+    result.bytes.resize(size);
+    return result;
+}
+#endif
 void inspectMenu(PinWindow &pin, const std::function<void(QMenu *)> &inspect)
 {
     QTest::ignoreMessage(QtWarningMsg, "This plugin does not support raise()");
@@ -207,6 +240,32 @@ private slots:
             QCOMPARE(overlayType, expected);
         }
     }
+    void pinWheelValuesVisible()
+    {
+        Settings::instance().pinOpacity = 1.0;
+        PinWindow pin(QImage(200, 100, QImage::Format_RGB32));
+        QWheelEvent zoom(QPointF(10, 10), pin.mapToGlobal(QPoint(10, 10)), {}, {0, 120},
+                         Qt::NoButton, Qt::NoModifier, Qt::NoScrollPhase, false);
+        QApplication::sendEvent(&pin, &zoom);
+        QCOMPARE(pin.zoom(), 1.1);
+        QWheelEvent opacity(QPointF(10, 10), pin.mapToGlobal(QPoint(10, 10)), {}, {0, -120},
+                            Qt::NoButton, Qt::ControlModifier, Qt::NoScrollPhase, false);
+        QApplication::sendEvent(&pin, &opacity);
+        QCOMPARE(pin.pinOpacity(), 0.95);
+        inspectMenu(pin, [](QMenu *menu) {
+            auto *zoom = named(menu, QStringLiteral("缩放"));
+            auto *opacity = named(menu, QStringLiteral("不透明度"));
+            QVERIFY(zoom && zoom->menu());
+            QVERIFY(opacity && opacity->menu());
+            QVERIFY(named(zoom->menu(), QStringLiteral("当前：110%")));
+            QVERIFY(named(opacity->menu(), QStringLiteral("当前：95%")));
+            for (auto *submenu : {zoom->menu(), opacity->menu()})
+                for (auto *action : submenu->actions())
+                    QVERIFY(!action->isChecked());
+            QVERIFY(named(menu, QStringLiteral("原始大小"))->text().contains(QStringLiteral("Ctrl+0")));
+            QVERIFY(named(menu, QStringLiteral("重置显示"))->text().contains(QStringLiteral("Ctrl+Shift+0")));
+        });
+    }
     void pinActionsPreserved()
     {
         PinWindow pin(QImage(200, 100, QImage::Format_RGB32));
@@ -294,6 +353,74 @@ private slots:
         PinWindow::closeAll();
         QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
         for (auto *window : QApplication::topLevelWidgets()) window->hide();
+    }
+    void automationDialogSavePreservesAutostart_data()
+    {
+        QTest::addColumn<bool>("enabled");
+        QTest::newRow("disabled") << false;
+        QTest::newRow("enabled") << true;
+    }
+    void automationDialogSavePreservesAutostart()
+    {
+#ifdef Q_OS_WIN
+        QFETCH(bool, enabled);
+        // Read only: retain exact presence, registry type, and raw bytes, without logging contents.
+        const RunValue before = readRunValue();
+        QVERIFY(before.status == ERROR_SUCCESS || before.status == ERROR_FILE_NOT_FOUND);
+        const Settings previous = Settings::instance();
+        const auto restoreSettings = qScopeGuard([previous] {
+            Settings::instance() = previous;
+            Settings::instance().save();
+        });
+        AppHost host;
+        host.start();
+        host.showSettings();
+        SettingsDialog *dialog = nullptr;
+        for (auto *window : QApplication::topLevelWidgets())
+            if (auto *settings = qobject_cast<SettingsDialog *>(window)) dialog = settings;
+        QVERIFY(dialog);
+        const auto closeDialog = qScopeGuard([dialog] {
+            dialog->close();
+            QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+        });
+        QCheckBox *autostart = nullptr;
+        for (auto *box : dialog->findChildren<QCheckBox *>())
+            if (box->text() == QStringLiteral("开机自动启动（当前用户运行项）")) autostart = box;
+        QVERIFY(autostart);
+        autostart->setChecked(enabled);
+        QSpinBox *width = nullptr;
+        for (auto *spin : dialog->findChildren<QSpinBox *>())
+            if (spin->minimum() == 280 && spin->maximum() == 640) width = spin;
+        QVERIFY(width);
+        width->setValue(420);
+        auto *buttons = dialog->findChild<QDialogButtonBox *>();
+        QVERIFY(buttons);
+        QPushButton *save = nullptr;
+        for (auto *button : buttons->buttons())
+            if (buttons->buttonRole(button) == QDialogButtonBox::AcceptRole)
+                save = qobject_cast<QPushButton *>(button);
+        QVERIFY(save);
+        QSignalSpy saved(dialog, &SettingsDialog::saved);
+        QSignalSpy accepted(dialog, &QDialog::accepted);
+        save->click(); // Exercise the real Save connection, apply(), saved(), and host handler.
+        QCOMPARE(saved.count(), 1);
+        QCOMPARE(accepted.count(), 1);
+        const RunValue after = readRunValue();
+        QVERIFY(after.status == before.status);
+        QVERIFY(after.type == before.type);
+        QVERIFY(after.bytes == before.bytes);
+        QCOMPARE(Settings::instance().autostart, enabled);
+        QCOMPARE(Settings::instance().cardWidth, 420);
+        QFile settingsFile(Settings::settingsPath());
+        QVERIFY(settingsFile.open(QIODevice::ReadOnly));
+        const auto persisted = QJsonDocument::fromJson(settingsFile.readAll()).object();
+        QCOMPARE(persisted["autostart"].toBool(), enabled);
+        QCOMPARE(persisted["cardWidth"].toInt(), 420);
+        for (const auto &item : host.dumpState()["hotkeys"].toArray())
+            QVERIFY(!item.toObject()["registered"].toBool());
+#else
+        QSKIP("Windows Run registry regression");
+#endif
     }
     void separateProcesses()
     {

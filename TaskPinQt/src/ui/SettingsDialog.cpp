@@ -7,7 +7,6 @@
 #include <QCheckBox>
 #include <QColorDialog>
 #include <QComboBox>
-#include <QCoreApplication>
 #include <QDesktopServices>
 #include <QDialogButtonBox>
 #include <QDir>
@@ -354,8 +353,8 @@ void SettingsDialog::apply()
     s.aiModel = m_ui->aiModel->text().trimmed();
 
     s.autostart = m_ui->autostart->isChecked();
-    Autostart::setEnabled(s.autostart, QCoreApplication::applicationFilePath());
 
     s.save();
+    // AppHost applies OS integration after saved(), including automation isolation.
     emit saved();
 }

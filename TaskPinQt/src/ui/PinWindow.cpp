@@ -278,6 +278,8 @@ void PinWindow::buildMenu(QMenu *menu)
 
     QMenu *opacity = menu->addMenu(QStringLiteral("不透明度"));
     opacity->menuAction()->setToolTip(QStringLiteral("Ctrl+滚轮微调不透明度"));
+    opacity->addAction(QStringLiteral("当前：%1%").arg(qRound(m_opacity * 100)))->setEnabled(false);
+    opacity->addSeparator();
     auto *opacityGroup = new QActionGroup(opacity);
     for (int pct : {100, 90, 80, 70, 60, 50, 40, 30, 20, 10}) {
         QAction *a = opacity->addAction(QStringLiteral("%1%").arg(pct));
@@ -289,6 +291,8 @@ void PinWindow::buildMenu(QMenu *menu)
 
     QMenu *zoom = menu->addMenu(QStringLiteral("缩放"));
     zoom->menuAction()->setToolTip(QStringLiteral("滚轮或 + / - 微调缩放"));
+    zoom->addAction(QStringLiteral("当前：%1%").arg(qRound(m_zoom * 100)))->setEnabled(false);
+    zoom->addSeparator();
     auto *zoomGroup = new QActionGroup(zoom);
     for (int pct : {25, 50, 75, 100, 150, 200, 300, 400}) {
         QAction *a = zoom->addAction(QStringLiteral("%1%").arg(pct));
