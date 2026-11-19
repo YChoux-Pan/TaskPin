@@ -16,3 +16,9 @@ docs/artifacts/
 *.db-shm
 *.db-wal
 *.log
+
+# Portable release staging and developer reports
+dist/
+TaskPinQt/build*/
+*.zip
+SHA256SUMS.txt

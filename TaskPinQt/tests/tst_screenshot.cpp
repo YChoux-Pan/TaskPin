@@ -81,9 +81,9 @@ private slots:
     {
         QVERIFY(data.isValid());
         qputenv("TASKPIN_DATA", data.path().toUtf8());
-        qputenv("QT_QPA_FONTDIR", "C:/Windows/Fonts");
-        const int id = QFontDatabase::addApplicationFont("C:/Windows/Fonts/msyh.ttc");
-        QVERIFY(id >= 0);
+        const QString fontPath = qEnvironmentVariable("TASKPIN_TEST_FONT", "C:/Windows/Fonts/msyh.ttc");
+        const int id = QFontDatabase::addApplicationFont(fontPath);
+        QVERIFY2(id >= 0, qPrintable(QStringLiteral("Cannot load Chinese test font: %1").arg(fontPath)));
         QApplication::setFont(QFont(QFontDatabase::applicationFontFamilies(id).first()));
     }
     void interiorMovesSelection()

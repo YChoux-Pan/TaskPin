@@ -1,0 +1,21 @@
+name: Feature request / 功能建议
+description: Describe a use case and the behavior that would help.
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: User problem / 使用场景
+      description: What are you trying to accomplish, and what is difficult today?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior / 希望的行为
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives and constraints / 替代方案与约束
+      description: Include keyboard, monitor/DPI, accessibility, privacy or compatibility requirements where relevant.

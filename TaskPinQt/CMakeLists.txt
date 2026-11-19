@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(TaskPinQt VERSION 0.2.3 LANGUAGES CXX)
+project(TaskPinQt VERSION 0.3.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -26,13 +26,17 @@ if(BUILD_TESTING)
         src/platform/WindowPicker.h src/platform/WindowPicker.cpp)
     target_include_directories(TaskPinScreenshotTests PRIVATE src)
     target_link_libraries(TaskPinScreenshotTests PRIVATE Qt6::Test Qt6::Widgets Qt6::Svg user32 dwmapi)
-    add_test(NAME TaskPinScreenshotTests COMMAND TaskPinScreenshotTests -o -,txt)
+    add_test(NAME TaskPinScreenshotTests COMMAND TaskPinScreenshotTests -o -,txt
+        -o "${CMAKE_BINARY_DIR}/TaskPinScreenshotTests.txt,txt"
+        -o "${CMAKE_BINARY_DIR}/TaskPinScreenshotTests.xml,junitxml")
     set_tests_properties(TaskPinScreenshotTests PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
     qt_add_executable(TaskPinIntegrationTests
         tests/tst_integration.cpp)
     target_include_directories(TaskPinIntegrationTests PRIVATE src)
     target_link_libraries(TaskPinIntegrationTests PRIVATE Qt6::Test Qt6::Widgets user32 dwmapi)
-    add_test(NAME TaskPinIntegrationTests COMMAND TaskPinIntegrationTests -o -,txt)
+    add_test(NAME TaskPinIntegrationTests COMMAND TaskPinIntegrationTests -o -,txt
+        -o "${CMAKE_BINARY_DIR}/TaskPinIntegrationTests.txt,txt"
+        -o "${CMAKE_BINARY_DIR}/TaskPinIntegrationTests.xml,junitxml")
     set_tests_properties(TaskPinIntegrationTests PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
 endif()
 

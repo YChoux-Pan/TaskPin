@@ -1,0 +1,48 @@
+name: Windows build and test
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  windows:
+    runs-on: windows-2022
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install Qt 6.4.3 and matching MinGW
+        uses: jurplel/install-qt-action@v4.5.0
+        with:
+          version: '6.4.3'
+          host: windows
+          target: desktop
+          arch: win64_mingw
+          modules: qtsvg
+          tools: 'tools_mingw,qt.tools.win64_mingw1120'
+          cache: true
+      - name: Build Release
+        run: |
+          $compiler = Join-Path $env:IQTA_TOOLS 'mingw1120_64/bin/g++.exe'
+          ./TaskPinQt/scripts/build.ps1 -QtKit $env:QT_ROOT_DIR -Compiler $compiler
+      - name: QtTest and isolated selftest
+        run: |
+          ./TaskPinQt/scripts/prepare-test-font.ps1
+          $env:TASKPIN_TEST_FONT = Join-Path $env:GITHUB_WORKSPACE 'docs/artifacts/fonts/NotoSansCJKsc-Regular.otf'
+          ./TaskPinQt/scripts/test.ps1
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: windows-test-reports
+          if-no-files-found: warn
+          path: |
+            docs/artifacts/automated/*.txt
+            docs/artifacts/automated/*.xml
+            docs/artifacts/automated/*.log
