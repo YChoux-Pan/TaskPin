@@ -1,6 +1,7 @@
 #include "ui/CardWindow.h"
 
 #include "core/Settings.h"
+#include "core/InstanceNames.h"
 #include "core/Store.h"
 #include "platform/WindowFx.h"
 
@@ -31,7 +32,8 @@ CardWindow::CardWindow(Store *store, QWidget *parent)
 {
     // No Qt::WindowStaysOnTopHint here: the z-order is asserted through Win32 in applyZOrder()
     // so the two modes can be switched at runtime without Qt recreating the window handle.
-    setWindowFlags(Qt::Tool | Qt::FramelessWindowHint | Qt::NoDropShadowWindowHint);
+    setWindowFlags((taskPinAutomation() ? Qt::Window : Qt::Tool) |
+                   Qt::FramelessWindowHint | Qt::NoDropShadowWindowHint);
     setAttribute(Qt::WA_TranslucentBackground, true);
     setAttribute(Qt::WA_ShowWithoutActivating, true);
     setMouseTracking(true);

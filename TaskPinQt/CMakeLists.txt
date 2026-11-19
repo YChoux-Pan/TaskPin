@@ -21,12 +21,19 @@ if(BUILD_TESTING)
         src/ui/Annotation.h src/ui/Annotation.cpp
         src/ui/IconSet.h src/ui/IconSet.cpp
         src/core/Settings.h src/core/Settings.cpp
+        src/core/InstanceNames.h src/core/InstanceNames.cpp
         src/core/FileNaming.h src/core/FileNaming.cpp
         src/platform/WindowPicker.h src/platform/WindowPicker.cpp)
     target_include_directories(TaskPinScreenshotTests PRIVATE src)
     target_link_libraries(TaskPinScreenshotTests PRIVATE Qt6::Test Qt6::Widgets Qt6::Svg user32 dwmapi)
     add_test(NAME TaskPinScreenshotTests COMMAND TaskPinScreenshotTests -o -,txt)
     set_tests_properties(TaskPinScreenshotTests PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+    qt_add_executable(TaskPinIntegrationTests
+        tests/tst_integration.cpp)
+    target_include_directories(TaskPinIntegrationTests PRIVATE src)
+    target_link_libraries(TaskPinIntegrationTests PRIVATE Qt6::Test Qt6::Widgets user32 dwmapi)
+    add_test(NAME TaskPinIntegrationTests COMMAND TaskPinIntegrationTests -o -,txt)
+    set_tests_properties(TaskPinIntegrationTests PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
 endif()
 
 qt_add_executable(TaskPinQt WIN32
@@ -35,6 +42,7 @@ qt_add_executable(TaskPinQt WIN32
     src/core/Task.h
     src/core/Store.h              src/core/Store.cpp
     src/core/Settings.h           src/core/Settings.cpp
+    src/core/InstanceNames.h      src/core/InstanceNames.cpp
     src/core/SelfTest.h           src/core/SelfTest.cpp
     src/core/FileNaming.h         src/core/FileNaming.cpp
     src/core/TimeParser.h         src/core/TimeParser.cpp
@@ -74,6 +82,17 @@ target_link_libraries(TaskPinQt PRIVATE
     user32 gdi32 shell32 dwmapi
 )
 
+if(BUILD_TESTING)
+    # Exercise the real host and widgets without the application's main entry point.
+    get_target_property(TASKPIN_APP_SOURCES TaskPinQt SOURCES)
+    list(FILTER TASKPIN_APP_SOURCES EXCLUDE REGEX "(^|/)main\\.cpp$")
+    target_sources(TaskPinIntegrationTests PRIVATE ${TASKPIN_APP_SOURCES})
+    target_compile_definitions(TaskPinIntegrationTests PRIVATE TASKPIN_VERSION="${PROJECT_VERSION}")
+    target_link_libraries(TaskPinIntegrationTests PRIVATE
+        Qt6::Sql Qt6::Network Qt6::PrintSupport Qt6::Svg gdi32 shell32)
+    add_dependencies(TaskPinIntegrationTests TaskPinQt)
+endif()
+
 # copy the Qt runtime next to the exe (windeployqt) after build
 if(WIN32)
     find_program(WINDEPLOYQT windeployqt HINTS "${QT6_INSTALL_PREFIX}/bin" "${Qt6_DIR}/../../../bin")
@@ -83,22 +102,26 @@ if(WIN32)
                     --no-opengl-sw "$<TARGET_FILE:TaskPinQt>"
             COMMENT "windeployqt")
         if(BUILD_TESTING)
-            add_custom_command(TARGET TaskPinScreenshotTests POST_BUILD
-                COMMAND "${WINDEPLOYQT}" --no-translations --no-system-d3d-compiler
-                        --no-opengl-sw "$<TARGET_FILE:TaskPinScreenshotTests>"
-                COMMENT "Deploy screenshot test Qt runtime")
+            foreach(test_target TaskPinScreenshotTests TaskPinIntegrationTests)
+                add_custom_command(TARGET ${test_target} POST_BUILD
+                    COMMAND "${WINDEPLOYQT}" --no-translations --no-system-d3d-compiler
+                            --no-opengl-sw "$<TARGET_FILE:${test_target}>"
+                    COMMENT "Deploy test Qt runtime")
+            endforeach()
         endif()
     endif()
     if(BUILD_TESTING)
-        add_custom_command(TARGET TaskPinScreenshotTests POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy_if_different "$<TARGET_FILE:Qt6::Test>"
-                    "$<TARGET_FILE_DIR:TaskPinScreenshotTests>")
         find_file(QT_OFFSCREEN_PLUGIN qoffscreen.dll HINTS "${Qt6_DIR}/../../../plugins/platforms" NO_DEFAULT_PATH)
-        if(QT_OFFSCREEN_PLUGIN)
-            add_custom_command(TARGET TaskPinScreenshotTests POST_BUILD
-                COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:TaskPinScreenshotTests>/platforms"
-                COMMAND ${CMAKE_COMMAND} -E copy_if_different "${QT_OFFSCREEN_PLUGIN}"
-                        "$<TARGET_FILE_DIR:TaskPinScreenshotTests>/platforms")
-        endif()
+        foreach(test_target TaskPinScreenshotTests TaskPinIntegrationTests)
+            add_custom_command(TARGET ${test_target} POST_BUILD
+                COMMAND ${CMAKE_COMMAND} -E copy_if_different "$<TARGET_FILE:Qt6::Test>"
+                        "$<TARGET_FILE_DIR:${test_target}>")
+            if(QT_OFFSCREEN_PLUGIN)
+                add_custom_command(TARGET ${test_target} POST_BUILD
+                    COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:${test_target}>/platforms"
+                    COMMAND ${CMAKE_COMMAND} -E copy_if_different "${QT_OFFSCREEN_PLUGIN}"
+                            "$<TARGET_FILE_DIR:${test_target}>/platforms")
+            endif()
+        endforeach()
     endif()
 endif()

@@ -5,6 +5,7 @@
 #include "core/History.h"
 #include "core/Ocr.h"
 #include "core/Settings.h"
+#include "core/InstanceNames.h"
 #include "core/Store.h"
 #include "core/TimeParser.h"
 #include "platform/Autostart.h"
@@ -165,7 +166,8 @@ void AppHost::start(const QString &initialCommand)
     qInfo("TaskPin Qt %s started, rolled over %d task(s)", TASKPIN_VERSION, moved);
 
     // keep the logon entry in sync with settings.json (S5)
-    Autostart::setEnabled(Settings::instance().autostart, QCoreApplication::applicationFilePath());
+    if (!taskPinAutomation())
+        Autostart::setEnabled(Settings::instance().autostart, QCoreApplication::applicationFilePath());
 
     m_card = new CardWindow(m_store);
     m_card->placeOnScreen();
@@ -197,8 +199,9 @@ void AppHost::start(const QString &initialCommand)
     // command channel: TaskPinQt.exe --snip / --full / --last / --pin / --pins / --quick /
     // --toggle / --recycle / --history / --calendar / --settings / --quit (also used by tests)
     m_cmd = new QLocalServer(this);
-    QLocalServer::removeServer(QStringLiteral("TaskPinQt.Cmd"));
-    if (!m_cmd->listen(QStringLiteral("TaskPinQt.Cmd"))) qWarning("cmd channel listen failed");
+    const auto names = instanceNamesFor(qEnvironmentVariable("TASKPIN_DATA"));
+    QLocalServer::removeServer(names.command);
+    if (!m_cmd->listen(names.command)) qWarning("cmd channel listen failed");
     connect(m_cmd, &QLocalServer::newConnection, this, [this] {
         while (auto *sock = m_cmd->nextPendingConnection()) {
             connect(sock, &QLocalSocket::readyRead, this, [this, sock] {
@@ -321,6 +324,7 @@ void AppHost::registerHotkeys()
 {
     if (!m_hotkeys) return;
     m_hotkeys->unbindAll();
+    if (taskPinAutomation()) return;
     int registered = 0;
     for (const auto &pair : hotkeyActions()) {
         const QString wanted = Settings::instance().chordFor(pair.first);
@@ -438,7 +442,9 @@ void AppHost::captureAndEdit(bool preselectLast)
     connect(overlay, &SnipOverlay::copied, this, [this](const QImage &image) {
         toast(QStringLiteral("已复制 %1 × %2").arg(image.width()).arg(image.height()));
     });
-    connect(overlay, &SnipOverlay::pinned, this, &AppHost::pinImage);
+    connect(overlay, &SnipOverlay::pinned, this, [this, overlay, origin = shot.logicalRect.topLeft()](const QImage &image) {
+        pinImage(image, overlay->selection().translated(origin));
+    });
     connect(overlay, &SnipOverlay::recognizeRequested, this, &AppHost::recognizeImage);
     connect(overlay, &SnipOverlay::printed, this, &AppHost::printImage);
     connect(overlay, &QObject::destroyed, this, [this] {
@@ -498,10 +504,10 @@ void AppHost::recordCapture(const QImage &image, const QRect &logicalRegion)
 
 // ---------------------------------------------------------------- pins
 
-void AppHost::pinImage(const QImage &image)
+void AppHost::pinImage(const QImage &image, const QRect &sourceRegion)
 {
     if (image.isNull()) return;
-    auto *pin = new PinWindow(image);
+    auto *pin = new PinWindow(image, QString(), nullptr, sourceRegion);
     connect(pin, &PinWindow::recognizeRequested, this, &AppHost::recognizeImage);
     pin->show();
     WindowFx::keepOnTop(pin);
@@ -691,7 +697,7 @@ void AppHost::showHistory()
     auto *dlg = new HistoryDialog();
     m_history = dlg;
     dlg->setAttribute(Qt::WA_DeleteOnClose, true);
-    connect(dlg, &HistoryDialog::pinRequested, this, &AppHost::pinImage);
+    connect(dlg, &HistoryDialog::pinRequested, this, [this](const QImage &image) { pinImage(image); });
     connect(dlg, &HistoryDialog::printRequested, this, &AppHost::printImage);
     dlg->show();
     dlg->raise();
@@ -735,7 +741,8 @@ void AppHost::applySettings()
     registerHotkeys();
     if (m_card) m_card->applySettings();
     syncCardTopAction();
-    Autostart::setEnabled(Settings::instance().autostart, QCoreApplication::applicationFilePath());
+    if (!taskPinAutomation())
+        Autostart::setEnabled(Settings::instance().autostart, QCoreApplication::applicationFilePath());
     toast(QStringLiteral("设置已保存"));
 }
 
@@ -825,6 +832,9 @@ QJsonObject AppHost::dumpState() const
     o["dbPath"] = Settings::dbPath();
     o["logPath"] = Settings::logPath();
     o["historyDir"] = History::dir();
+    const auto names = instanceNamesFor(qEnvironmentVariable("TASKPIN_DATA"));
+    o["instance"] = QJsonObject{{"command", names.command}, {"singleInstance", names.singleInstance},
+                               {"automation", taskPinAutomation()}, {"pid", QCoreApplication::applicationPid()}};
 
     QJsonObject cfg;
     cfg["cardPosition"] = s.cardPosition;
@@ -896,6 +906,17 @@ QJsonObject AppHost::dumpState() const
     QJsonArray groups;
     for (const QString &g : PinWindow::groups()) groups.append(g);
     pins["groups"] = groups;
+    QJsonArray pinItems;
+    for (const auto *pin : PinWindow::all()) {
+        const QRect content = pin->contentGeometry();
+        pinItems.append(QJsonObject{{"x", pin->x()}, {"y", pin->y()}, {"w", pin->width()},
+            {"h", pin->height()}, {"imageWidth", pin->image().width()}, {"imageHeight", pin->image().height()},
+            {"zoom", pin->zoom()}, {"opacity", pin->pinOpacity()}, {"visible", pin->isVisible()},
+            {"clickThrough", pin->clickThrough()}, {"group", pin->group()},
+            {"contentX", content.x()}, {"contentY", content.y()},
+            {"contentWidth", content.width()}, {"contentHeight", content.height()}});
+    }
+    pins["items"] = pinItems;
     o["pins"] = pins;
 
     QJsonObject history;
@@ -920,6 +941,7 @@ QJsonObject AppHost::dumpState() const
 
     QJsonObject snip;
     snip["active"] = m_snip != nullptr;
+    QJsonArray actions;
     if (m_snip) {
         snip["hoverHint"] = m_snip->hoverHint();
         const QRect tb = m_snip->toolbarRect();
@@ -929,7 +951,14 @@ QJsonObject AppHost::dumpState() const
                               .arg(origin.y())
                               .arg(tb.width())
                               .arg(tb.height());
+        for (const auto &action : m_snip->toolbarActions()) {
+            const QPoint pos = m_snip->mapToGlobal(action.rect.topLeft());
+            actions.append(QJsonObject{{"id", action.id}, {"enabled", action.enabled},
+                {"label", action.label}, {"shortcut", action.shortcut}, {"group", action.group},
+                {"x", pos.x()}, {"y", pos.y()}, {"w", action.rect.width()}, {"h", action.rect.height()}});
+        }
     }
+    snip["actions"] = actions;
     o["snip"] = snip;
 
     QJsonArray screens;

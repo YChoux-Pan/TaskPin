@@ -2,6 +2,7 @@
 
 #include "core/FileNaming.h"
 #include "core/Settings.h"
+#include "core/InstanceNames.h"
 #include "platform/WindowPicker.h"
 #include "ui/IconSet.h"
 
@@ -52,7 +53,8 @@ SnipOverlay::SnipOverlay(const ScreenCapture &shot, QWidget *parent)
     : QWidget(parent)
     , m_shot(shot)
 {
-    setWindowFlags(Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint | Qt::Tool);
+    setWindowFlags(Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint |
+                   (taskPinAutomation() ? Qt::Window : Qt::Tool));
     setAttribute(Qt::WA_DeleteOnClose, true);
     setMouseTracking(true);
     setCursor(Qt::CrossCursor);

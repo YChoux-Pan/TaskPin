@@ -2,9 +2,11 @@
 
 #include "core/FileNaming.h"
 #include "core/Settings.h"
+#include "core/InstanceNames.h"
 #include "platform/WindowFx.h"
 
 #include <QAction>
+#include <QActionGroup>
 #include <QApplication>
 #include <QClipboard>
 #include <QContextMenuEvent>
@@ -49,10 +51,12 @@ QString &currentGroupRef()
 }
 }   // namespace
 
-PinWindow::PinWindow(const QImage &image, const QString &group, QWidget *parent)
-    : QWidget(parent), m_image(image), m_group(group)
+PinWindow::PinWindow(const QImage &image, const QString &group, QWidget *parent, const QRect &sourceRegion)
+    : QWidget(parent), m_image(image),
+      m_logicalImageSize(sourceRegion.isValid() ? sourceRegion.size() : image.size()), m_group(group)
 {
-    setWindowFlags(Qt::Tool | Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint | Qt::NoDropShadowWindowHint);
+    setWindowFlags((taskPinAutomation() ? Qt::Window : Qt::Tool) | Qt::FramelessWindowHint |
+                   Qt::WindowStaysOnTopHint | Qt::NoDropShadowWindowHint);
     setAttribute(Qt::WA_TranslucentBackground, true);
     setAttribute(Qt::WA_DeleteOnClose, true);
     setFocusPolicy(Qt::StrongFocus);
@@ -71,9 +75,13 @@ PinWindow::PinWindow(const QImage &image, const QString &group, QWidget *parent)
     if (!screen) screen = QGuiApplication::primaryScreen();
     const QRect area = screen ? screen->availableGeometry() : QRect(0, 0, 800, 600);
     const QPoint cursor = QCursor::pos();
-    int x = qBound(area.left() + 8, cursor.x() + 16, area.right() - width() - 8);
-    int y = qBound(area.top() + 8, cursor.y() + 16, area.bottom() - height() - 8);
-    move(x, y);
+    const int minX = area.left() + qMin(8, qMax(0, area.width() - width()));
+    const int minY = area.top() + qMin(8, qMax(0, area.height() - height()));
+    int x = qBound(minX, cursor.x() + 16, qMax(minX, area.right() - width() - 8));
+    int y = qBound(minY, cursor.y() + 16, qMax(minY, area.bottom() - height() - 8));
+    // Direct captures overlay the original content exactly, even at a monitor edge.
+    // Only the transparent shadow padding can extend beyond the captured monitor.
+    move(sourceRegion.isValid() ? sourceRegion.topLeft() - QPoint(kPad, kPad) : QPoint(x, y));
 
     registry().append(this);
     setPinOpacity(m_opacity);
@@ -92,8 +100,8 @@ const QList<PinWindow *> &PinWindow::all() { return registry(); }
 
 void PinWindow::relayout()
 {
-    const int w = qMax(1, qRound(m_image.width() * m_zoom)) + kPad * 2;
-    const int h = qMax(1, qRound(m_image.height() * m_zoom)) + kPad * 2;
+    const int w = qMax(1, qRound(m_logicalImageSize.width() * m_zoom)) + kPad * 2;
+    const int h = qMax(1, qRound(m_logicalImageSize.height() * m_zoom)) + kPad * 2;
     resize(w, h);
     update();
 }
@@ -104,8 +112,8 @@ void PinWindow::paintEvent(QPaintEvent *)
     p.setRenderHint(QPainter::SmoothPixmapTransform, true);
     p.setRenderHint(QPainter::Antialiasing, true);
 
-    const QRect target(kPad, kPad, qMax(1, qRound(m_image.width() * m_zoom)),
-                       qMax(1, qRound(m_image.height() * m_zoom)));
+    const QRect target(kPad, kPad, qMax(1, qRound(m_logicalImageSize.width() * m_zoom)),
+                       qMax(1, qRound(m_logicalImageSize.height() * m_zoom)));
 
     // soft double shadow like the C# build
     p.setPen(Qt::NoPen);
@@ -118,6 +126,11 @@ void PinWindow::paintEvent(QPaintEvent *)
     p.setBrush(Qt::NoBrush);
     p.setPen(QPen(QColor(255, 255, 255, 60), 1));
     p.drawRect(target.adjusted(0, 0, -1, -1));
+}
+
+QRect PinWindow::contentGeometry() const
+{
+    return QRect(mapToGlobal(QPoint(kPad, kPad)), size() - QSize(kPad * 2, kPad * 2));
 }
 
 void PinWindow::setZoom(qreal zoom)
@@ -136,6 +149,13 @@ void PinWindow::setPinOpacity(qreal opacity)
 {
     m_opacity = qBound(0.1, opacity, 1.0);
     setWindowOpacity(m_opacity);
+}
+
+void PinWindow::resetDisplay()
+{
+    setZoom(1.0);
+    setPinOpacity(1.0);
+    if (m_clickThrough) toggleClickThrough();
 }
 
 void PinWindow::flash()
@@ -211,7 +231,10 @@ void PinWindow::keyPressEvent(QKeyEvent *e)
         setZoom(m_zoom / 1.1);
         return;
     case Qt::Key_0:
-        if (e->modifiers() & Qt::ControlModifier) setZoom(1.0);
+        if (e->modifiers() & Qt::ControlModifier) {
+            if (e->modifiers() & Qt::ShiftModifier) resetDisplay();
+            else setZoom(1.0);
+        }
         return;
     case Qt::Key_C:
         if (e->modifiers() & Qt::ControlModifier) QApplication::clipboard()->setImage(m_image);
@@ -245,39 +268,48 @@ void PinWindow::contextMenuEvent(QContextMenuEvent *e)
 
 void PinWindow::buildMenu(QMenu *menu)
 {
-    menu->addAction(QStringLiteral("识别为任务  Ctrl+R"), this, [this] { emit recognizeRequested(m_image); });
+    menu->addAction(QStringLiteral("识别为任务\tCtrl+R"), this, [this] { emit recognizeRequested(m_image); });
     menu->addSeparator();
-    menu->addAction(QStringLiteral("复制图像  Ctrl+C"), this,
+    menu->addAction(QStringLiteral("复制图像\tCtrl+C"), this,
                     [this] { QApplication::clipboard()->setImage(m_image); });
-    menu->addAction(QStringLiteral("保存图片…  Ctrl+S"), this, [this] { saveImage(); });
+    menu->addAction(QStringLiteral("保存图片…\tCtrl+S"), this, [this] { saveImage(); });
     menu->addAction(QStringLiteral("以剪贴板内容替换"), this, [this] { replaceFromClipboard(); });
     menu->addSeparator();
 
     QMenu *opacity = menu->addMenu(QStringLiteral("不透明度"));
-    for (int pct : {100, 90, 80, 70, 60, 50, 40, 30}) {
+    opacity->menuAction()->setToolTip(QStringLiteral("Ctrl+滚轮微调不透明度"));
+    auto *opacityGroup = new QActionGroup(opacity);
+    for (int pct : {100, 90, 80, 70, 60, 50, 40, 30, 20, 10}) {
         QAction *a = opacity->addAction(QStringLiteral("%1%").arg(pct));
+        a->setCheckable(true);
+        a->setChecked(qAbs(m_opacity - pct / 100.0) < 0.001);
+        opacityGroup->addAction(a);
         connect(a, &QAction::triggered, this, [this, pct] { setPinOpacity(pct / 100.0); });
     }
 
-    const QList<int> presets{25, 50, 75, 100, 150, 200};
-    QString zoomLabel = QStringLiteral("缩放：%1%（点击切换）").arg(qRound(m_zoom * 100));
-    menu->addAction(zoomLabel, this, [this, presets] {
-        for (int p : presets) {
-            if (p > qRound(m_zoom * 100) + 1) {
-                setZoom(p / 100.0);
-                return;
-            }
-        }
-        setZoom(0.25);
-    });
+    QMenu *zoom = menu->addMenu(QStringLiteral("缩放"));
+    zoom->menuAction()->setToolTip(QStringLiteral("滚轮或 + / - 微调缩放"));
+    auto *zoomGroup = new QActionGroup(zoom);
+    for (int pct : {25, 50, 75, 100, 150, 200, 300, 400}) {
+        QAction *a = zoom->addAction(QStringLiteral("%1%").arg(pct));
+        a->setCheckable(true);
+        a->setChecked(qAbs(m_zoom - pct / 100.0) < 0.001);
+        zoomGroup->addAction(a);
+        connect(a, &QAction::triggered, this, [this, pct] { setZoom(pct / 100.0); });
+    }
+    menu->addAction(QStringLiteral("原始大小\tCtrl+0"), this, [this] { setZoom(1.0); });
+    auto *reset = menu->addAction(QStringLiteral("重置显示\tCtrl+Shift+0"), this, [this] { resetDisplay(); });
+    reset->setToolTip(QStringLiteral("恢复原始大小、100% 不透明度，并取消点击穿透"));
 
     QMenu *rotate = menu->addMenu(QStringLiteral("旋转 / 翻转"));
     rotate->addAction(QStringLiteral("顺时针 90°"), this, [this] {
         m_image = m_image.transformed(QTransform().rotate(90));
+        m_logicalImageSize.transpose();
         relayout();
     });
     rotate->addAction(QStringLiteral("逆时针 90°"), this, [this] {
         m_image = m_image.transformed(QTransform().rotate(-90));
+        m_logicalImageSize.transpose();
         relayout();
     });
     rotate->addAction(QStringLiteral("水平翻转"), this, [this] {
@@ -285,8 +317,10 @@ void PinWindow::buildMenu(QMenu *menu)
         relayout();
     });
 
-    menu->addAction(m_clickThrough ? QStringLiteral("取消点击穿透") : QStringLiteral("点击穿透"), this,
-                    [this] { toggleClickThrough(); });
+    QAction *clickThrough = menu->addAction(QStringLiteral("点击穿透"), this, [this] { toggleClickThrough(); });
+    clickThrough->setCheckable(true);
+    clickThrough->setChecked(m_clickThrough);
+    clickThrough->setToolTip(QStringLiteral("可通过托盘菜单取消全部贴图点击穿透"));
     menu->addSeparator();
 
     QMenu *groups = menu->addMenu(QStringLiteral("贴图分组（当前：%1）").arg(m_group));
@@ -316,7 +350,7 @@ void PinWindow::buildMenu(QMenu *menu)
     groups->addAction(QStringLiteral("关闭该分组的全部贴图"), this, [this] { closeGroup(m_group); });
 
     menu->addSeparator();
-    menu->addAction(QStringLiteral("关闭  Esc"), this, [this] { close(); });
+    menu->addAction(QStringLiteral("关闭\tEsc / Delete"), this, [this] { close(); });
     menu->addAction(QStringLiteral("关闭全部贴图"), this, [] { closeAll(); });
 }
 
@@ -332,6 +366,7 @@ void PinWindow::replaceFromClipboard()
     const QImage img = QApplication::clipboard()->image();
     if (img.isNull()) return;
     m_image = img;
+    m_logicalImageSize = img.size();
     relayout();
 }
 
@@ -409,7 +444,7 @@ bool PinWindow::toggleAll()
 void PinWindow::clearClickThrough()
 {
     for (auto *p : registry()) {
-        if (WindowFx::isClickThrough(p)) {
+        if (p->m_clickThrough || WindowFx::isClickThrough(p)) {
             p->m_clickThrough = false;
             WindowFx::setClickThrough(p, false);
         }

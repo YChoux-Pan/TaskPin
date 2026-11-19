@@ -6,6 +6,7 @@
 #include <QList>
 #include <QObject>
 #include <QPointer>
+#include <QRect>
 #include <QString>
 
 class AiClient;
@@ -74,7 +75,7 @@ private:
     void restoreAfterCapture();
 
     void recordCapture(const QImage &image, const QRect &logicalRegion);
-    void pinImage(const QImage &image);
+    void pinImage(const QImage &image, const QRect &sourceRegion = QRect());
     void recognizeImage(const QImage &image);
     void onOcrFinished(const QString &text);
     void onOcrFailed(const QString &reason);

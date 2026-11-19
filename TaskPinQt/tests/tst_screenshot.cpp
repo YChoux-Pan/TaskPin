@@ -1,4 +1,5 @@
 #include "ui/SnipOverlay.h"
+#include "core/InstanceNames.h"
 #include <QFontDatabase>
 #include <QInputMethodEvent>
 #include <QLineEdit>
@@ -24,7 +25,8 @@ void ready(SnipOverlay &w, QRect region = { 40, 40, 300, 200 })
 {
     w.setAttribute(Qt::WA_DeleteOnClose, false);
     w.setPreselect(region);
-    QTest::ignoreMessage(QtWarningMsg, "This plugin does not support raise()");
+    if (!taskPinAutomation())
+        QTest::ignoreMessage(QtWarningMsg, "This plugin does not support raise()");
     w.show();
     QCoreApplication::processEvents();
     w.repaint();
@@ -133,7 +135,8 @@ private slots:
     {
         SnipOverlay w(fixture());
         w.setAttribute(Qt::WA_DeleteOnClose, false);
-        QTest::ignoreMessage(QtWarningMsg, "This plugin does not support raise()");
+        if (!taskPinAutomation())
+            QTest::ignoreMessage(QtWarningMsg, "This plugin does not support raise()");
         w.show();
         QTest::mousePress(&w, Qt::LeftButton, Qt::NoModifier, { 40, 40 });
         QMouseEvent move(QEvent::MouseMove, QPointF(200, 180), QPointF(200, 180), Qt::NoButton,

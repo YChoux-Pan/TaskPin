@@ -13,7 +13,9 @@ class QMenu;
 class PinWindow : public QWidget {
     Q_OBJECT
 public:
-    explicit PinWindow(const QImage &image, const QString &group = QString(), QWidget *parent = nullptr);
+    /// sourceRegion is the global logical capture rectangle; pixels remain at source resolution.
+    explicit PinWindow(const QImage &image, const QString &group = QString(), QWidget *parent = nullptr,
+                       const QRect &sourceRegion = QRect());
     ~PinWindow() override;
 
     static const QList<PinWindow *> &all();
@@ -37,6 +39,10 @@ public:
 
     QString group() const { return m_group; }
     QImage image() const { return m_image; }
+    qreal zoom() const { return m_zoom; }
+    qreal pinOpacity() const { return m_opacity; }
+    bool clickThrough() const { return m_clickThrough; }
+    QRect contentGeometry() const;
 
 signals:
     void recognizeRequested(const QImage &image);
@@ -55,6 +61,7 @@ private:
     void relayout();
     void setZoom(qreal zoom);
     void setPinOpacity(qreal opacity);
+    void resetDisplay();
     void flash();
     void toggleClickThrough();
     void replaceFromClipboard();
@@ -64,6 +71,7 @@ private:
     static QImage renderTextImage(const QString &text);
 
     QImage m_image;
+    QSize m_logicalImageSize;
     QString m_group;
     qreal m_zoom = 1.0;
     qreal m_opacity = 1.0;
