@@ -1,6 +1,6 @@
 # Build and package on Windows
 
-Use Windows 10/11 x64, PowerShell 5.1 or newer, Git, CMake >= 3.20, Ninja and a matching Qt/MinGW kit. The baseline is Qt 6.4.3 `mingw_64` with MinGW 11.2 x64 and C++17. Install the Qt SVG module (`qtsvg`) and Qt Test alongside Core, Gui, Widgets, Sql, Network and PrintSupport. Newer Qt 6 kits must be verified separately; keep the source compatible with Qt >= 6.4.
+Use Windows 10/11 x64, PowerShell 5.1 or newer, Git, CMake >= 3.20, Ninja and a matching Qt/MinGW kit. The baseline is Qt 6.4.3 `mingw_64` with MinGW 11.2 x64 and C++17. The Qt 6.4.3 base kit includes SVG and Qt Test alongside Core, Gui, Widgets, Sql, Network and PrintSupport. With aqt/install-qt-action, install the base `win64_mingw` kit without `modules: qtsvg`: SVG is not a separate add-on package for this version. CMake explicitly requires `Qt6::Svg`, so an incomplete kit fails configuration. Newer Qt 6 kits must be verified separately; keep the source compatible with Qt >= 6.4.
 
 ## Configure and build
 
