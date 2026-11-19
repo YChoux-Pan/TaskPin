@@ -16,6 +16,12 @@ docs/artifacts/
 *.db-shm
 *.db-wal
 *.log
+settings.json
+settings.json.broken
+.env
+toolchain/
+history/snip/
+ocr/
 
 # Portable release staging and developer reports
 dist/
