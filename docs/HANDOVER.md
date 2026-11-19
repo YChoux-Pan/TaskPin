@@ -20,15 +20,15 @@ The task schema, notes, card/calendar workflows, settings and shortcuts remain c
 
 ## Evidence and remaining work
 
-Fresh Task 3 local automation: CTest 2/2, screenshot suite 41/0, integration suite 26/0 and application selftest 53/0. Exact script invocations and deployment manifest are recorded with the task handover report; public reproducible commands are in BUILDING. Future work must report its own current results.
+After the final code-review fixes at `f3747c3`, local and hosted automation passed: CTest 2/2, screenshot suite 41/0, integration suite 29/0 and application selftest 53/0, with no skipped cases. The real-user-account offscreen Settings Save regression passed 4/0 with exact raw registry comparisons. The extracted portable application passed selftest 53/0 with a Windows-only PATH. See the [versioned verification record](reports/2026-11-19-0.3.0-verification.md); future changes must report their own results.
 
-The physical desktop record covers primary-screen DPR 1.25 screenshot selection → direct pin with matching logical content geometry, wheel zoom and grouped menu. Fixture-only cropped editor/menu images are committed. The screenshot was taken from the 0.3.0 development UI before the binary version bump; it is not evidence of every editor action. Full native annotation editing, copy/save and notes acceptance remains pending user timing. No printer, real AI provider, fresh OS or every OCR language/physical monitor was accepted by these tests. Do not publish a claim that these passed without a subsequent record.
+The physical desktop record covers primary-screen DPR 1.25 screenshot selection → direct pin with matching logical content geometry, wheel zoom and grouped menu. Fixture-only cropped editor/menu images are committed. The screenshot was taken from the 0.3.0 development UI before the binary version bump; it is not evidence of every editor action. The user authorized the remaining native checks without another confirmation, but the next attempt encountered a locked Windows desktop. Full annotation editing, copy/save and notes acceptance awaits unlocking. No printer, real AI provider, fresh OS or every OCR language/physical monitor was accepted by these tests. Do not publish a claim that these passed without a subsequent record.
 
 ## Safety and maintenance boundaries
 
 - Use a new absolute `TASKPIN_DATA` for tests; do not send `--quit` or desktop inputs to the normal user instance. New scripts never invoke the legacy desktop-input script.
 - Coordinate native input with the user. Preserve the user's running process, data, autostart value, clipboard and window state; use synthetic fixture content.
-- All Win32 API includes stay in `src/platform/`. Keep C++17/Qt 6.4 compatibility and do not casually migrate the SQLite schema.
+- Production Win32 API includes stay in `src/platform/`; independent read-only Windows test probes have the limited exception documented in ARCHITECTURE. Keep C++17/Qt 6.4 compatibility and do not casually migrate the SQLite schema.
 - Screenshot scope is the monitor under the cursor, not cross-monitor capture. Automated DPR fixtures do not establish all physical-monitor behavior.
 - Source/release archives must contain no databases, credentials, personal screenshots, logs or developer toolchains. Keep third-party runtime/icon notices with the portable files.
 - Do not share settings or logs without review: API keys are plaintext and logs can contain OCR/AI results. AI remains optional.

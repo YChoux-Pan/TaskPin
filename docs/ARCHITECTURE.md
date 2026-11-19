@@ -11,7 +11,7 @@ The maintained application is C++17 / Qt Widgets for Windows 10/11 x64. CMake re
 | `src/core/` | Task/store/settings, parsing, filename/history, OCR, optional AI, instance names and selftest |
 | `src/platform/` | Windows hotkeys, capture, window picking/effects and autostart; all Win32 API includes stay here |
 
-UI uses core/platform services; core and platform must not depend on UI. App orchestration may use all layers. Storage has no window code. Qt modules are Core, Gui, Widgets, Sql, Network, PrintSupport and Svg; test targets additionally link Test. Icons are embedded SVG paths rendered locally by `QSvgRenderer`; no icon network request occurs.
+UI uses core/platform services; core and platform must not depend on UI. App orchestration may use all layers. Storage has no window code. Production Win32 includes/calls remain in `src/platform/`. Windows-only test translation units may use read-only native probes as independent assertions: the integration registry snapshot queries status/type/raw bytes and never writes the registry; it is excluded from the application executable. Qt modules are Core, Gui, Widgets, Sql, Network, PrintSupport and Svg; test targets additionally link Test. Icons are embedded SVG paths rendered locally by `QSvgRenderer`; no icon network request occurs.
 
 ## Startup, process isolation and commands
 
