@@ -437,7 +437,7 @@ void AppHost::captureAndEdit(bool preselectLast)
 
     connect(overlay, &SnipOverlay::captured, this, &AppHost::recordCapture);
     connect(overlay, &SnipOverlay::saved, this, [this](const QString &path) {
-        toast(QStringLiteral("已保存：%1").arg(QDir::toNativeSeparators(path)));
+        toast(QStringLiteral("已保存并复制路径：%1").arg(QDir::toNativeSeparators(path)));
     });
     connect(overlay, &SnipOverlay::copied, this, [this](const QImage &image) {
         toast(QStringLiteral("已复制 %1 × %2").arg(image.width()).arg(image.height()));

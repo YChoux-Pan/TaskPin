@@ -29,13 +29,17 @@ Verify the download with `Get-FileHash -Algorithm SHA256 -LiteralPath .\TaskPin-
 
 | Global action | Default shortcut |
 |---|---|
-| Region / current monitor / last region | `Ctrl+Alt+A` / `Ctrl+Alt+F` / `Ctrl+Alt+R` |
-| Pin clipboard image / show or hide pins | `Ctrl+Alt+V` / `Ctrl+Alt+H` |
+| Region / current monitor / last region | `F1` / `Ctrl+Alt+F` / `Ctrl+Alt+R` |
+| Pin clipboard image / show or hide pins | `F3` / `Shift+F3` |
 | Quick note / show or hide card / screenshot history | `Ctrl+Alt+Space` / `Ctrl+Alt+D` / `Ctrl+Alt+G` |
 
 Inside the editor: `V` select, `R` rectangle, `O` ellipse, `A` arrow, `T` text, `M` mosaic, `B` blur; `Ctrl+Z` / `Ctrl+Y` undo/redo, `Enter` copy, `Ctrl+S` save, `Ctrl+Shift+S` quick-save, `Ctrl+P` pin, `Ctrl+R` recognize as a task and `Esc` cancel. Hover a button for its label and shortcut. Global hotkeys can be changed in Settings; the tray shows the shortcuts actually registered after conflict handling.
 
 ## Data, privacy and optional AI
+
+Successful save and quick-save copy the screenshot's absolute native Windows file path to the clipboard. `Ctrl+Shift+S` uses the configured auto-save directory and adds a suffix to avoid overwriting existing files. Failed or cancelled saves leave the clipboard unchanged; `Enter` still copies the image.
+
+The three screenshot/pin shortcuts match Snipaste defaults. Upgrades migrate only their old default values while preserving custom bindings; subsequent user choices remain unchanged. If Snipaste occupies the keys, TaskPin uses fallback bindings shown in its tray menu.
 
 The default data directory is `%LOCALAPPDATA%\TaskPin\TaskPinQt\`, containing `taskpin.db` (SQLite and WAL), `settings.json`, `taskpinqt.log`, `history\snip\` and `ocr\`. Set `TASKPIN_DATA` to use a separate directory. Exit the application before copying the whole directory for a backup. Screenshot history and OCR temporary files may contain private information.
 

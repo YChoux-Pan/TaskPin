@@ -188,6 +188,7 @@ QWidget *SettingsDialog::buildHotkeyPage()
     }
     layout->addLayout(form);
     layout->addWidget(hintLabel(QStringLiteral(
+        "默认 F1 截图、F3 贴图、Shift+F3 显隐全部贴图，与 Snipaste 一致。\n"
         "点进输入框后直接按下组合键即可录制；Backspace 清除（恢复默认）。\n"
         "被其它软件占用时会自动降级到备用键，并把实际生效的按键写进日志。")));
 
@@ -249,6 +250,8 @@ QWidget *SettingsDialog::buildSnipPage()
         if (!dir.isEmpty()) m_ui->autoSaveDir->setText(QDir::toNativeSeparators(dir));
     });
     form->addRow(QStringLiteral("自动保存目录"), dirRow);
+    form->addRow(QString(), hintLabel(QStringLiteral(
+        "Ctrl+Shift+S 保存到此目录；保存或另存为成功后，完整文件路径会复制到剪贴板。")));
 
     m_ui->namePattern = new QLineEdit(s.namePattern, page);
     form->addRow(QStringLiteral("文件名规则"), m_ui->namePattern);

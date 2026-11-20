@@ -93,6 +93,55 @@ private slots:
         qputenv("TASKPIN_AUTOMATION", "1");
         Settings::instance().autoSaveDir = m_data.path() + "/images";
     }
+    void hotkeySettingsUpgrade_data()
+    {
+        QTest::addColumn<QByteArray>("json");
+        QTest::addColumn<QStringList>("expected");
+        QTest::newRow("fresh") << QByteArray("{}")
+            << QStringList{"F1", "F3", "Shift+F3"};
+        QTest::newRow("old-defaults")
+            << QByteArray(R"({"version":2,"hotkeys":{"snip":"Ctrl+Alt+A","pin":"Ctrl+Alt+V","pins":"Ctrl+Alt+H"}})")
+            << QStringList{"F1", "F3", "Shift+F3"};
+        QTest::newRow("legacy-flat") << QByteArray(R"({"snipHotkey":"Ctrl+Alt+A"})")
+            << QStringList{"F1", "F3", "Shift+F3"};
+        QTest::newRow("custom")
+            << QByteArray(R"({"version":2,"hotkeys":{"snip":"Ctrl+Shift+1","pin":"Ctrl+Shift+2","pins":"Ctrl+Shift+3"}})")
+            << QStringList{"Ctrl+Shift+1", "Ctrl+Shift+2", "Ctrl+Shift+3"};
+        QTest::newRow("new-schema-preserves-old-chords")
+            << QByteArray(R"({"version":3,"hotkeys":{"snip":"Ctrl+Alt+A","pin":"Ctrl+Alt+V","pins":"Ctrl+Alt+H"}})")
+            << QStringList{"Ctrl+Alt+A", "Ctrl+Alt+V", "Ctrl+Alt+H"};
+        QTest::newRow("mixed")
+            << QByteArray(R"({"version":2,"hotkeys":{"snip":"Ctrl+Alt+A","pin":"Ctrl+Shift+2","pins":"Ctrl+Alt+H"}})")
+            << QStringList{"F1", "Ctrl+Shift+2", "Shift+F3"};
+    }
+    void hotkeySettingsUpgrade()
+    {
+        QFETCH(QByteArray, json);
+        QFETCH(QStringList, expected);
+        QFile file(Settings::settingsPath());
+        const bool existed = file.exists();
+        QByteArray original;
+        if (existed) { QVERIFY(file.open(QIODevice::ReadOnly)); original = file.readAll(); file.close(); }
+        const auto restore = qScopeGuard([&] {
+            if (!existed) { file.remove(); return; }
+            if (file.open(QIODevice::WriteOnly | QIODevice::Truncate)) { file.write(original); file.close(); }
+        });
+        QVERIFY(file.open(QIODevice::WriteOnly | QIODevice::Truncate));
+        QCOMPARE(file.write(json), qint64(json.size()));
+        file.close();
+        Settings settings;
+        settings.load();
+        const QStringList keys{"snip", "pin", "pins"};
+        for (int i = 0; i < keys.size(); ++i) QCOMPARE(settings.chordFor(keys[i]), expected[i]);
+        QCOMPARE(settings.chordFor("quick"), QStringLiteral("Ctrl+Alt+Space"));
+        settings.save();
+        Settings reloaded;
+        reloaded.load();
+        for (int i = 0; i < keys.size(); ++i) QCOMPARE(reloaded.chordFor(keys[i]), expected[i]);
+        QVERIFY(file.open(QIODevice::ReadOnly));
+        QCOMPARE(QJsonDocument::fromJson(file.readAll()).object().value("version").toInt(), 3);
+        file.close();
+    }
     void instanceNamespaces()
     {
         QCOMPARE(instanceNamesFor(QString()).command, QStringLiteral("TaskPinQt.Cmd"));

@@ -13,6 +13,7 @@
 #include <QDebug>
 #include <QDir>
 #include <QFileDialog>
+#include <QFileInfo>
 #include <QFontMetrics>
 #include <QGuiApplication>
 #include <QKeyEvent>
@@ -1110,6 +1111,7 @@ bool SnipOverlay::saveToPath(const QString &path)
     }
     m_completed = true;
     emit captured(img, selection().translated(m_shot.logicalRect.topLeft()));
+    QApplication::clipboard()->setText(QDir::toNativeSeparators(QFileInfo(path).absoluteFilePath()));
     emit saved(path);
     close();
     return true;

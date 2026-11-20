@@ -5,10 +5,15 @@ Keep the DLLs and plugin folders beside the executable. No Qt SDK is required.
 Use the system tray menu for Settings and Exit.
 
 Default shortcuts:
-Ctrl+Alt+A region screenshot; Ctrl+Alt+F current monitor capture
-Ctrl+Alt+V pin clipboard image; Ctrl+Alt+Space quick note
+F1 region screenshot; Ctrl+Alt+F current monitor capture
+F3 pin clipboard image; Shift+F3 show/hide all pins; Ctrl+Alt+Space quick note
 Ctrl+Alt+D show/hide task card; Ctrl+Alt+G screenshot history
 Editor: Enter copy; Ctrl+S save; Ctrl+P pin; Ctrl+R recognize as a task
+Ctrl+Shift+S saves to the configured directory with a unique filename.
+Successful Save and Quick Save copy the absolute file path to the clipboard.
+Failed or cancelled saves keep the clipboard unchanged. Enter still copies pixels.
+Old default screenshot/pin keys migrate once; custom keys remain unchanged.
+If another app occupies a key, the tray menu shows TaskPin's actual fallback.
 
 Portable application files do not imply portable user data.
 Data defaults to %LOCALAPPDATA%\TaskPin\TaskPinQt\.

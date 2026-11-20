@@ -118,7 +118,7 @@ int runSelfTest(const QString &outDir)
         Settings s;
         check(out, "default rows", s.visibleRows == 6, QString::number(s.visibleRows));
         check(out, "default width", s.cardWidth == 340, QString::number(s.cardWidth));
-        check(out, "hotkey default has modifier", s.chordFor(QStringLiteral("snip")).contains(QLatin1Char('+')),
+        check(out, "default snip chord is valid", HotkeyText::parse(s.chordFor(QStringLiteral("snip"))).valid(),
               s.chordFor(QStringLiteral("snip")));
         check(out, "every action has a default chord", [&] {
             for (const auto &a : Settings::hotkeyActions())

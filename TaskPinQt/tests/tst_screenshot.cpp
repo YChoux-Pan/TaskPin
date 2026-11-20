@@ -1,10 +1,15 @@
 #include "ui/SnipOverlay.h"
 #include "core/InstanceNames.h"
+#include "core/Settings.h"
+#include <QClipboard>
+#include <QDir>
+#include <QFileInfo>
 #include <QFontDatabase>
 #include <QInputMethodEvent>
 #include <QLineEdit>
 #include <QPainter>
 #include <QSignalSpy>
+#include <QScopeGuard>
 #include <QTemporaryDir>
 #include <QtTest>
 
@@ -273,14 +278,65 @@ private slots:
         SnipOverlay w(fixture());
         ready(w);
         QSignalSpy captured(&w, &SnipOverlay::captured);
+        QSignalSpy saved(&w, &SnipOverlay::saved);
+        QApplication::clipboard()->setText(QStringLiteral("keep clipboard on failure"));
         QVERIFY(!w.saveToPath(data.path() + "/missing/screenshot.png"));
         QVERIFY(w.isVisible());
         QVERIFY(!w.errorMessage().isEmpty());
         QCOMPARE(captured.count(), 0);
+        QCOMPARE(saved.count(), 0);
+        QCOMPARE(QApplication::clipboard()->text(), QStringLiteral("keep clipboard on failure"));
         QVERIFY(w.saveToPath(data.path() + "/screenshot.png"));
         QCOMPARE(captured.count(), 1);
         QVERIFY(!w.saveToPath(data.path() + "/duplicate.png"));
         QCOMPARE(captured.count(), 1);
+    }
+    void successfulSaveCopiesAbsoluteNativePath()
+    {
+        SnipOverlay w(fixture());
+        ready(w);
+        const QString directory = data.path() + QStringLiteral("/截图 空格");
+        QVERIFY(QDir().mkpath(directory));
+        const QString path = directory + QStringLiteral("/文件.png");
+        QSignalSpy saved(&w, &SnipOverlay::saved);
+        QString clipboardAtSignal;
+        connect(&w, &SnipOverlay::saved, &w, [&] { clipboardAtSignal = QApplication::clipboard()->text(); });
+        QApplication::clipboard()->setText(QStringLiteral("old clipboard"));
+        const QString relativePath = QDir::current().relativeFilePath(path);
+        QVERIFY(w.saveToPath(relativePath));
+        const QImage image(path);
+        QCOMPARE(image.size(), QSize(300, 200));
+        QCOMPARE(image.pixelColor(10, 10), QColor(Qt::red));
+        QCOMPARE(saved.count(), 1);
+        QCOMPARE(QApplication::clipboard()->text(), QDir::toNativeSeparators(path));
+        QCOMPARE(clipboardAtSignal, QDir::toNativeSeparators(path));
+        QVERIFY(QFileInfo(QApplication::clipboard()->text()).isAbsolute());
+        QVERIFY(!w.isVisible());
+    }
+    void quickSaveCopiesFinalUniquePath()
+    {
+        auto &settings = Settings::instance();
+        const QString oldDirectory = settings.autoSaveDir, oldPattern = settings.namePattern;
+        const auto restore = qScopeGuard([&] {
+            settings.autoSaveDir = oldDirectory;
+            settings.namePattern = oldPattern;
+        });
+        settings.autoSaveDir = data.path() + "/quick-save";
+        settings.namePattern = QStringLiteral("capture");
+        QVERIFY(QDir().mkpath(settings.autoSaveDir));
+        QImage existing(2, 2, QImage::Format_RGB32);
+        existing.fill(Qt::blue);
+        QVERIFY(existing.save(settings.autoSaveDir + "/capture.png"));
+        SnipOverlay w(fixture());
+        ready(w);
+        QSignalSpy saved(&w, &SnipOverlay::saved);
+        QTest::keyClick(&w, Qt::Key_S, Qt::ControlModifier | Qt::ShiftModifier);
+        QCOMPARE(saved.count(), 1);
+        const QString path = saved.first().first().toString();
+        QVERIFY(path != settings.autoSaveDir + "/capture.png");
+        QCOMPARE(QApplication::clipboard()->text(), QDir::toNativeSeparators(path));
+        QCOMPARE(QImage(path).size(), QSize(300, 200));
+        QCOMPARE(QImage(settings.autoSaveDir + "/capture.png").pixelColor(0, 0), QColor(Qt::blue));
     }
     void failedSaveReasonVisibleOnSmallFullScreenSelection()
     {
