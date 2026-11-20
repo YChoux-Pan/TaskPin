@@ -1,6 +1,6 @@
 # TaskPin 0.3.0 handover
 
-Updated 2026-11-19. This document describes the current Qt implementation; use code, current test reports and observed desktop evidence together. Old reports, screenshots and `docs/legacy/` are historical context rather than a current acceptance checklist.
+Updated 2026-11-20. This document describes the current Qt implementation; use code, current test reports and observed desktop evidence together. Old reports, screenshots and `docs/legacy/` are historical context rather than a current acceptance checklist.
 
 ## Start here
 
@@ -22,7 +22,7 @@ The task schema, notes, card/calendar workflows, settings and shortcuts remain c
 
 After the final code-review fixes at `f3747c3`, local and hosted automation passed: CTest 2/2, screenshot suite 41/0, integration suite 29/0 and application selftest 53/0, with no skipped cases. The real-user-account offscreen Settings Save regression passed 4/0 with exact raw registry comparisons. The extracted portable application passed selftest 53/0 with a Windows-only PATH. See the [versioned verification record](reports/2026-11-19-0.3.0-verification.md); future changes must report their own results.
 
-The physical desktop record covers primary-screen DPR 1.25 screenshot selection → direct pin with matching logical content geometry, wheel zoom and grouped menu. Fixture-only cropped editor/menu images are committed. The screenshot was taken from the 0.3.0 development UI before the binary version bump; it is not evidence of every editor action. The user authorized the remaining native checks without another confirmation, but the next attempt encountered a locked Windows desktop. Full annotation editing, copy/save and notes acceptance awaits unlocking. No printer, real AI provider, fresh OS or every OCR language/physical monitor was accepted by these tests. Do not publish a claim that these passed without a subsequent record.
+The physical desktop record covers primary-screen DPR 1.25 screenshot selection → direct pin with matching logical content geometry, wheel zoom and grouped menu. Fixture-only cropped editor/menu images are committed. The screenshot was taken from the 0.3.0 development UI before the binary version bump; it is not evidence of every editor action. The user authorized the remaining native checks without another confirmation. The desktop was unlocked on 2026-11-20, but external input/minimization interrupted testing and the user requested background work first. Fresh automation passed; exploratory native quick-add/OCR used a different executable from the candidate and must be repeated against the audited final binary. See the [follow-up](reports/2026-11-20-background-verification.md). Full annotation editing, copy/save, note/calendar persistence and normal-mode window acceptance remain pending. No printer, real AI provider, fresh OS or every OCR language/physical monitor was accepted by these tests. Do not publish a claim that these passed without a subsequent record.
 
 ## Safety and maintenance boundaries
 
