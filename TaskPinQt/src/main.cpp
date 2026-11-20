@@ -2,6 +2,7 @@
 #include "core/SelfTest.h"
 #include "core/Settings.h"
 #include "core/InstanceNames.h"
+#include "ui/AppIcon.h"
 
 #include <QApplication>
 #include <QDateTime>
@@ -42,6 +43,7 @@ int main(int argc, char *argv[])
     QApplication app(argc, argv);
     QApplication::setApplicationName(QStringLiteral("TaskPinQt"));
     QApplication::setOrganizationName(QStringLiteral("TaskPin"));
+    QApplication::setWindowIcon(taskpinIcon());
     QApplication::setQuitOnLastWindowClosed(false);
     QLocale::setDefault(QLocale(QLocale::Chinese, QLocale::China));
     qInstallMessageHandler(fileLogger);

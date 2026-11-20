@@ -22,6 +22,7 @@
 #include "ui/SnipOverlay.h"
 #include "ui/WhiteboardWindow.h"
 #include "ui/TaskDialogs.h"
+#include "ui/AppIcon.h"
 
 #include <QAction>
 #include <QApplication>
@@ -59,22 +60,6 @@
 #endif
 
 namespace {
-
-QIcon makeTrayIcon()
-{
-    QPixmap pm(32, 32);
-    pm.fill(Qt::transparent);
-    QPainter p(&pm);
-    p.setRenderHint(QPainter::Antialiasing);
-    QPainterPath path;
-    path.addRoundedRect(QRectF(3, 3, 26, 26), 8, 8);
-    p.fillPath(path, QColor(0x4C, 0x9A, 0xFF));
-    p.setPen(QPen(Qt::white, 2.4, Qt::SolidLine, Qt::RoundCap));
-    p.drawLine(QPointF(10, 12), QPointF(22, 12));
-    p.drawLine(QPointF(10, 18), QPointF(18, 18));
-    p.end();
-    return QIcon(pm);
-}
 
 /// action id -> hotkey action id
 const QList<QPair<QString, int>> &hotkeyActions()
@@ -264,7 +249,7 @@ void AppHost::handleCommand(const QString &command)
 
 void AppHost::buildTray()
 {
-    m_tray = new QSystemTrayIcon(makeTrayIcon(), this);
+    m_tray = new QSystemTrayIcon(taskpinIcon(), this);
     m_tray->setToolTip(QStringLiteral("TaskPin %1").arg(QStringLiteral(TASKPIN_VERSION)));
 
     auto *menu = new QMenu();

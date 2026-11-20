@@ -7,6 +7,7 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 
 if(WIN32)
+    enable_language(RC)
     add_compile_definitions(NOMINMAX WIN32_LEAN_AND_MEAN UNICODE _UNICODE)
 endif()
 
@@ -42,6 +43,7 @@ endif()
 
 qt_add_executable(TaskPinQt WIN32
     src/main.cpp
+    src/ui/AppIcon.h assets/brand/brand.qrc
 
     src/core/Task.h
     src/core/Store.h              src/core/Store.cpp
@@ -110,6 +112,10 @@ endif()
 
 # copy the Qt runtime next to the exe (windeployqt) after build
 if(WIN32)
+    set_source_files_properties(assets/brand/taskpin.rc PROPERTIES
+        OBJECT_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/assets/brand/taskpin.ico")
+    target_sources(TaskPinQt PRIVATE assets/brand/taskpin.rc)
+    target_include_directories(TaskPinQt PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/assets/brand")
     find_program(WINDEPLOYQT windeployqt HINTS "${QT6_INSTALL_PREFIX}/bin" "${Qt6_DIR}/../../../bin")
     if(WINDEPLOYQT)
         add_custom_command(TARGET TaskPinQt POST_BUILD

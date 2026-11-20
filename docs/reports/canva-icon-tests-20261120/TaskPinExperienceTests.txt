@@ -1,0 +1,101 @@
+********* Start testing of ExperienceTests *********
+Config: Using QtTest library 6.4.3, Qt 6.4.3 (x86_64-little_endian-llp64 shared (dynamic) release build; by GCC 11.2.0), windows 11
+PASS   : ExperienceTests::initTestCase()
+QINFO  : ExperienceTests::wheelHonorsSmallDeltasAndReverses() pin created 200x100 group=默认
+QINFO  : ExperienceTests::wheelHonorsSmallDeltasAndReverses() pin closed, 0 remaining
+PASS   : ExperienceTests::wheelHonorsSmallDeltasAndReverses()
+QINFO  : ExperienceTests::plainPinHasExactContentAndNoHalo() pin created 200x100 group=默认
+QWARN  : ExperienceTests::plainPinHasExactContentAndNoHalo() QFontDatabase: Cannot find font directory D:/CodexDocuments/2026-11-19/https-github-com-kael-odin-codex/work/TaskPin/source/TaskPinQt/build/lib/fonts.
+Note that Qt no longer ships fonts. Deploy some (from https://dejavu-fonts.github.io/ for example) or switch to fontconfig.
+QWARN  : ExperienceTests::plainPinHasExactContentAndNoHalo() This plugin does not support raise()
+QWARN  : ExperienceTests::plainPinHasExactContentAndNoHalo() This plugin does not support grabbing the keyboard
+QINFO  : ExperienceTests::plainPinHasExactContentAndNoHalo() pin closed, 0 remaining
+PASS   : ExperienceTests::plainPinHasExactContentAndNoHalo()
+PASS   : ExperienceTests::magnifierFollowsCursorBeforeFirstMove()
+QWARN  : ExperienceTests::textOpensFullTaskWithoutCompleting() This plugin does not support propagateSizeHints()
+QWARN  : ExperienceTests::textOpensFullTaskWithoutCompleting() This plugin does not support raise()
+PASS   : ExperienceTests::textOpensFullTaskWithoutCompleting()
+QWARN  : ExperienceTests::completedListRestoresTaskAndDailyCounts() This plugin does not support raise()
+QWARN  : ExperienceTests::completedListRestoresTaskAndDailyCounts() This plugin does not support grabbing the keyboard
+QWARN  : ExperienceTests::completedListRestoresTaskAndDailyCounts() This plugin does not support propagateSizeHints()
+QWARN  : ExperienceTests::completedListRestoresTaskAndDailyCounts() This plugin does not support raise()
+PASS   : ExperienceTests::completedListRestoresTaskAndDailyCounts()
+PASS   : ExperienceTests::doubleClickCompletionDoesNotCompleteNextTask()
+QINFO  : ExperienceTests::liveColorPreviewCancelAndSave() TaskPin Qt 0.3.0 started, rolled over 0 task(s)
+QINFO  : ExperienceTests::liveColorPreviewCancelAndSave() card z-order: topmost (native topmost=0)
+QWARN  : ExperienceTests::liveColorPreviewCancelAndSave() This plugin does not support propagateSizeHints()
+QWARN  : ExperienceTests::liveColorPreviewCancelAndSave() This plugin does not support raise()
+QWARN  : ExperienceTests::liveColorPreviewCancelAndSave() This plugin does not support propagateSizeHints()
+QINFO  : ExperienceTests::liveColorPreviewCancelAndSave() card z-order retry: topmost=0
+QWARN  : ExperienceTests::liveColorPreviewCancelAndSave() This plugin does not support propagateSizeHints()
+QWARN  : ExperienceTests::liveColorPreviewCancelAndSave() This plugin does not support raise()
+QWARN  : ExperienceTests::liveColorPreviewCancelAndSave() This plugin does not support propagateSizeHints()
+QWARN  : ExperienceTests::liveColorPreviewCancelAndSave() This plugin does not support propagateSizeHints()
+QINFO  : ExperienceTests::liveColorPreviewCancelAndSave() settings applied
+QINFO  : ExperienceTests::liveColorPreviewCancelAndSave() card z-order: topmost (native topmost=0)
+QINFO  : ExperienceTests::liveColorPreviewCancelAndSave() toast: 设置已保存
+PASS   : ExperienceTests::liveColorPreviewCancelAndSave()
+PASS   : ExperienceTests::quickUndoRestoresTheCompletedTask()
+QINFO  : ExperienceTests::largePinContinuousZoomDrawCost() pin created 3840x2160 group=默认
+QINFO  : ExperienceTests::largePinContinuousZoomDrawCost() 4K pin clipped draw ms: median=2.398 p95=3.015 max=4.369 samples=24
+QINFO  : ExperienceTests::largePinContinuousZoomDrawCost() pin closed, 0 remaining
+PASS   : ExperienceTests::largePinContinuousZoomDrawCost()
+QINFO  : ExperienceTests::slowAiKeepsOneRecoverableTaskAndReplacesTitle() TaskPin Qt 0.3.0 started, rolled over 0 task(s)
+QINFO  : ExperienceTests::slowAiKeepsOneRecoverableTaskAndReplacesTitle() card z-order: topmost (native topmost=0)
+QINFO  : ExperienceTests::slowAiKeepsOneRecoverableTaskAndReplacesTitle() toast: 识别完成，AI 归纳中…
+QINFO  : ExperienceTests::slowAiKeepsOneRecoverableTaskAndReplacesTitle() ai request -> http://127.0.0.1:57729/v1/chat/completions
+QINFO  : ExperienceTests::slowAiKeepsOneRecoverableTaskAndReplacesTitle() card z-order retry: topmost=0
+QINFO  : ExperienceTests::slowAiKeepsOneRecoverableTaskAndReplacesTitle() ai title: condensed title
+QINFO  : ExperienceTests::slowAiKeepsOneRecoverableTaskAndReplacesTitle() toast: 已建任务：condensed title
+PASS   : ExperienceTests::slowAiKeepsOneRecoverableTaskAndReplacesTitle()
+QINFO  : ExperienceTests::aiFailureKeepsLocalTask(http-error) TaskPin Qt 0.3.0 started, rolled over 0 task(s)
+QINFO  : ExperienceTests::aiFailureKeepsLocalTask(http-error) card z-order: topmost (native topmost=0)
+QINFO  : ExperienceTests::aiFailureKeepsLocalTask(http-error) toast: 识别完成，AI 归纳中…
+QINFO  : ExperienceTests::aiFailureKeepsLocalTask(http-error) ai request -> http://127.0.0.1:57731/v1/chat/completions
+QINFO  : ExperienceTests::aiFailureKeepsLocalTask(http-error) card z-order retry: topmost=0
+QWARN  : ExperienceTests::aiFailureKeepsLocalTask(http-error) ai summarize failed: Error transferring http://127.0.0.1:57731/v1/chat/completions - server replied: Test {}
+QINFO  : ExperienceTests::aiFailureKeepsLocalTask(http-error) toast: AI 暂未完成，已保留本地识别任务和原文
+PASS   : ExperienceTests::aiFailureKeepsLocalTask(http-error)
+QINFO  : ExperienceTests::aiFailureKeepsLocalTask(malformed) TaskPin Qt 0.3.0 started, rolled over 0 task(s)
+QINFO  : ExperienceTests::aiFailureKeepsLocalTask(malformed) card z-order: topmost (native topmost=0)
+QINFO  : ExperienceTests::aiFailureKeepsLocalTask(malformed) toast: 识别完成，AI 归纳中…
+QINFO  : ExperienceTests::aiFailureKeepsLocalTask(malformed) ai request -> http://127.0.0.1:57733/v1/chat/completions
+QINFO  : ExperienceTests::aiFailureKeepsLocalTask(malformed) card z-order retry: topmost=0
+QWARN  : ExperienceTests::aiFailureKeepsLocalTask(malformed) ai summarize failed: 响应里没有 choices
+QINFO  : ExperienceTests::aiFailureKeepsLocalTask(malformed) toast: AI 暂未完成，已保留本地识别任务和原文
+PASS   : ExperienceTests::aiFailureKeepsLocalTask(malformed)
+QINFO  : ExperienceTests::aiFailureKeepsLocalTask(empty) TaskPin Qt 0.3.0 started, rolled over 0 task(s)
+QINFO  : ExperienceTests::aiFailureKeepsLocalTask(empty) card z-order: topmost (native topmost=0)
+QINFO  : ExperienceTests::aiFailureKeepsLocalTask(empty) toast: 识别完成，AI 归纳中…
+QINFO  : ExperienceTests::aiFailureKeepsLocalTask(empty) ai request -> http://127.0.0.1:57736/v1/chat/completions
+QINFO  : ExperienceTests::aiFailureKeepsLocalTask(empty) card z-order retry: topmost=0
+QWARN  : ExperienceTests::aiFailureKeepsLocalTask(empty) ai summarize failed: 模型返回空标题
+QINFO  : ExperienceTests::aiFailureKeepsLocalTask(empty) toast: AI 暂未完成，已保留本地识别任务和原文
+PASS   : ExperienceTests::aiFailureKeepsLocalTask(empty)
+QINFO  : ExperienceTests::aiTimeoutEmitsOneFailure() ai request -> http://127.0.0.1:57738/v1/chat/completions
+PASS   : ExperienceTests::aiTimeoutEmitsOneFailure()
+QINFO  : ExperienceTests::captureWhileAiWaitsIsQueued() TaskPin Qt 0.3.0 started, rolled over 0 task(s)
+QINFO  : ExperienceTests::captureWhileAiWaitsIsQueued() card z-order: topmost (native topmost=0)
+QINFO  : ExperienceTests::captureWhileAiWaitsIsQueued() toast: 识别完成，AI 归纳中…
+QINFO  : ExperienceTests::captureWhileAiWaitsIsQueued() ai request -> http://127.0.0.1:57740/v1/chat/completions
+QINFO  : ExperienceTests::captureWhileAiWaitsIsQueued() pin created 60x40 group=默认
+QINFO  : ExperienceTests::captureWhileAiWaitsIsQueued() toast: 已贴到桌面 60 × 40
+QINFO  : ExperienceTests::captureWhileAiWaitsIsQueued() toast: 已加入识别队列，前面还有 1 张
+QINFO  : ExperienceTests::captureWhileAiWaitsIsQueued() card z-order retry: topmost=0
+QINFO  : ExperienceTests::captureWhileAiWaitsIsQueued() ai title: first request
+QINFO  : ExperienceTests::captureWhileAiWaitsIsQueued() toast: 已建任务：first request
+QINFO  : ExperienceTests::captureWhileAiWaitsIsQueued() toast: 正在识别文字…
+QINFO  : ExperienceTests::captureWhileAiWaitsIsQueued() ocr start 60x40
+QINFO  : ExperienceTests::captureWhileAiWaitsIsQueued() pin closed, 0 remaining
+PASS   : ExperienceTests::captureWhileAiWaitsIsQueued()
+PASS   : ExperienceTests::restartRecoversPendingLocalTitle()
+QINFO  : ExperienceTests::ocrTimeoutEmitsOnlyOneFailure() ocr start 100x60
+QWARN  : ExperienceTests::ocrTimeoutEmitsOnlyOneFailure() ocr failed: "OCR 超时"
+PASS   : ExperienceTests::ocrTimeoutEmitsOnlyOneFailure()
+QINFO  : ExperienceTests::calendarTaskOpensDetailsAndCanRestore() calendar opened month=2026-11 selected=2026-11-20
+QWARN  : ExperienceTests::calendarTaskOpensDetailsAndCanRestore() This plugin does not support propagateSizeHints()
+QWARN  : ExperienceTests::calendarTaskOpensDetailsAndCanRestore() This plugin does not support raise()
+PASS   : ExperienceTests::calendarTaskOpensDetailsAndCanRestore()
+PASS   : ExperienceTests::cleanupTestCase()
+Totals: 20 passed, 0 failed, 0 skipped, 0 blacklisted, 3754ms
+********* Finished testing of ExperienceTests *********

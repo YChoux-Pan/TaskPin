@@ -1,8 +1,10 @@
 # TaskPin
 
+![TaskPin 图标](TaskPinQt/assets/brand/taskpin-128.png)
+
 **留住画面，记下灵感。** 面向 Windows 的截图、桌面贴图与每日任务卡片。
 
-当前开发分支已加入[体验改进](docs/reports/2026-11-20-experience-update.md)：连续贴图缩放、可关闭的边框/阴影、长任务全文、完成撤销与恢复、AI 等待提示，以及设置实时预览。新版 Canva 图标尚待接口连接后完成，当前仍使用原图标；0.3.0 尚未正式发行。
+当前开发分支已加入[体验改进](docs/reports/2026-11-20-experience-update.md)：连续贴图缩放、可关闭的边框/阴影、长任务全文、完成撤销与恢复、AI 等待提示，以及设置实时预览。[新版图标](docs/BRANDING.md)通过 Canva 设计，并统一用于程序、托盘、桌面快捷方式与日历；0.3.0 尚未正式发行。
 
 [English](README.en.md) · [下载发行版](https://github.com/YChoux-Pan/TaskPin/releases) · [更新日志](CHANGELOG.md) · [构建](docs/BUILDING.md) · [测试](docs/TESTING.md)
 

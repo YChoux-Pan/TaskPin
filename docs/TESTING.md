@@ -1,5 +1,7 @@
 # Testing and evidence
 
+Latest Canva icon verification: [2026-11-20 brand update](reports/2026-11-20-canva-icon.md). The final icon build reran all three CTest targets and selftest successfully; source provenance, resource packaging, visual size checks and native-observation limits are recorded there.
+
 Latest experience work: [2026-11-20 report](reports/2026-11-20-experience-update.md). It adds `TaskPinExperienceTests` as a third CTest target and includes controlled localhost AI delay/error/timeout tests. Current local totals are screenshot 43/0, integration 35/0, experience 20/0 and selftest 53/0; native Windows subset 12/0 including setup/cleanup. Earlier records below describe their own commits and do not substitute for the latest run.
 
 ## Safe automated entry point

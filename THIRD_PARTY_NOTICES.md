@@ -4,6 +4,8 @@ TaskPin's own code is Unlicense; this does not replace the licenses of bundled t
 
 ## Embedded icon graphics
 
+The TaskPin application brand icon was created in Canva and prepared for this project. Its preserved export, design provenance and asset preparation steps are documented in [BRANDING.md](https://github.com/YChoux-Pan/TaskPin/blob/feat/snip-experience-0.3.0/docs/BRANDING.md).
+
 - **Lucide** SVG paths in `TaskPinQt/src/ui/IconSet.cpp`: ISC, copyright (c) 2026 Lucide Icons and Contributors. The upstream license also retains Feather-derived icons' MIT notice, copyright (c) 2013-present Cole Bemis. Both notices are preserved in [Lucide-LICENSE](licenses/Lucide-LICENSE). Source: https://github.com/lucide-icons/lucide (upstream LICENSE blob `718bb3f0e44153809972abed31839375804bf652`).
 - **Material Design Icons / Pictogrammers**, including the numbered-circle graphic: icon graphics are Apache-2.0, not the upstream code MIT license. [MDI-LICENSE](licenses/MDI-LICENSE) preserves the upstream Pictogrammers Free License distinctions between icons, fonts and code; [Apache-2.0.txt](licenses/Apache-2.0.txt) supplies the full Apache license. Source: https://github.com/Templarian/MaterialDesign (LICENSE blob `382f8a138afaaefe9ca2cfa80d33317f7814d997`). Full Apache text: https://github.com/apache/.github/blob/main/LICENSE . Graphics are embedded as SVG path fragments and colored/rendered by TaskPin; no font is bundled.
 
