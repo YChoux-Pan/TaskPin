@@ -22,7 +22,7 @@ try {
         Invoke-Checked $ctest @('--test-dir', $build, '--build-config', 'Release', '--output-on-failure', '--no-tests=error',
             '--verbose', '--output-log', (Join-Path $reports 'ctest.log'), '--output-junit', (Join-Path $reports 'ctest.xml'))
     } finally {
-        foreach ($name in @('TaskPinScreenshotTests', 'TaskPinIntegrationTests')) {
+        foreach ($name in @('TaskPinScreenshotTests', 'TaskPinIntegrationTests', 'TaskPinExperienceTests')) {
             foreach ($extension in @('txt', 'xml')) {
                 $path = Join-Path $build "$name.$extension"
                 if (Test-Path -LiteralPath $path) { Copy-Item -LiteralPath $path -Destination $reports -Force }

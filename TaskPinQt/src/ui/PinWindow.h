@@ -1,6 +1,9 @@
 #pragma once
 
 #include <QImage>
+#include <QColor>
+#include <QTimer>
+#include <QVariantAnimation>
 #include <QList>
 #include <QString>
 #include <QStringList>
@@ -43,11 +46,13 @@ public:
     qreal pinOpacity() const { return m_opacity; }
     bool clickThrough() const { return m_clickThrough; }
     QRect contentGeometry() const;
+    void applyAppearance(int shadowStrength, int borderWidth, const QColor &borderColor);
 
 signals:
     void recognizeRequested(const QImage &image);
 
 protected:
+    bool event(QEvent *event) override;
     void paintEvent(QPaintEvent *e) override;
     void mousePressEvent(QMouseEvent *e) override;
     void mouseMoveEvent(QMouseEvent *e) override;
@@ -60,6 +65,10 @@ protected:
 private:
     void relayout();
     void setZoom(qreal zoom);
+    void displayZoom(qreal zoom, const QPointF &center);
+    void rebuildCache();
+    void rebuildPreview();
+    int padding() const;
     void setPinOpacity(qreal opacity);
     void resetDisplay();
     void flash();
@@ -74,6 +83,15 @@ private:
     QSize m_logicalImageSize;
     QString m_group;
     qreal m_zoom = 1.0;
+    qreal m_targetZoom = 1.0;
+    QPointF m_zoomCenter;
+    QVariantAnimation m_zoomAnimation;
+    QTimer m_qualityTimer;
+    QImage m_preview;
+    QImage m_cache;
+    int m_shadowStrength = 18;
+    int m_borderWidth = 1;
+    QColor m_borderColor;
     qreal m_opacity = 1.0;
     bool m_clickThrough = false;
     bool m_menuOpen = false;

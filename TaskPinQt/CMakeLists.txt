@@ -67,6 +67,7 @@ qt_add_executable(TaskPinQt WIN32
     src/ui/SnipOverlay.h          src/ui/SnipOverlay.cpp
     src/ui/SnipToolbar.h src/ui/SnipToolbar.cpp src/ui/EditorHistory.h
     src/ui/CardWindow.h           src/ui/CardWindow.cpp
+    src/ui/CardAppearance.h       src/ui/TaskDialogs.h src/ui/TaskDialogs.cpp
     src/ui/QuickAddDialog.h       src/ui/QuickAddDialog.cpp
     src/ui/PinWindow.h            src/ui/PinWindow.cpp
     src/ui/HistoryDialog.h        src/ui/HistoryDialog.cpp
@@ -95,6 +96,16 @@ if(BUILD_TESTING)
     target_link_libraries(TaskPinIntegrationTests PRIVATE
         Qt6::Sql Qt6::Network Qt6::PrintSupport Qt6::Svg gdi32 shell32)
     add_dependencies(TaskPinIntegrationTests TaskPinQt)
+    qt_add_executable(TaskPinExperienceTests tests/tst_experience.cpp ${TASKPIN_APP_SOURCES})
+    target_include_directories(TaskPinExperienceTests PRIVATE src)
+    target_compile_definitions(TaskPinExperienceTests PRIVATE TASKPIN_VERSION="${PROJECT_VERSION}")
+    target_link_libraries(TaskPinExperienceTests PRIVATE Qt6::Test Qt6::Widgets Qt6::Sql Qt6::Network
+        Qt6::PrintSupport Qt6::Svg user32 gdi32 shell32 dwmapi)
+    add_dependencies(TaskPinExperienceTests TaskPinIntegrationTests)
+    add_test(NAME TaskPinExperienceTests COMMAND TaskPinExperienceTests -o -,txt
+        -o "${CMAKE_BINARY_DIR}/TaskPinExperienceTests.txt,txt"
+        -o "${CMAKE_BINARY_DIR}/TaskPinExperienceTests.xml,junitxml")
+    set_tests_properties(TaskPinExperienceTests PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
 endif()
 
 # copy the Qt runtime next to the exe (windeployqt) after build
@@ -106,7 +117,7 @@ if(WIN32)
                     --no-opengl-sw "$<TARGET_FILE:TaskPinQt>"
             COMMENT "windeployqt")
         if(BUILD_TESTING)
-            foreach(test_target TaskPinScreenshotTests TaskPinIntegrationTests)
+            foreach(test_target TaskPinScreenshotTests TaskPinIntegrationTests TaskPinExperienceTests)
                 add_custom_command(TARGET ${test_target} POST_BUILD
                     COMMAND "${WINDEPLOYQT}" --no-translations --no-system-d3d-compiler
                             --no-opengl-sw "$<TARGET_FILE:${test_target}>"
@@ -116,7 +127,7 @@ if(WIN32)
     endif()
     if(BUILD_TESTING)
         find_file(QT_OFFSCREEN_PLUGIN qoffscreen.dll HINTS "${Qt6_DIR}/../../../plugins/platforms" NO_DEFAULT_PATH)
-        foreach(test_target TaskPinScreenshotTests TaskPinIntegrationTests)
+        foreach(test_target TaskPinScreenshotTests TaskPinIntegrationTests TaskPinExperienceTests)
             add_custom_command(TARGET ${test_target} POST_BUILD
                 COMMAND ${CMAKE_COMMAND} -E copy_if_different "$<TARGET_FILE:Qt6::Test>"
                         "$<TARGET_FILE_DIR:${test_target}>")

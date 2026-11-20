@@ -233,11 +233,15 @@ void Ocr::cleanup()
         m_timeout = nullptr;
     }
     if (m_process) {
-        if (m_process->state() != QProcess::NotRunning) {
-            m_process->kill();
-            m_process->waitForFinished(500);
-        }
-        m_process->deleteLater();
+        auto *process = m_process;
         m_process = nullptr;
+        // waitForFinished can emit finished synchronously while killing a timed-out helper.
+        // Detach its handlers first so cleanup cannot re-enter or finish the next queued OCR.
+        disconnect(process, nullptr, this, nullptr);
+        if (process->state() != QProcess::NotRunning) {
+            process->kill();
+            process->waitForFinished(500);
+        }
+        process->deleteLater();
     }
 }

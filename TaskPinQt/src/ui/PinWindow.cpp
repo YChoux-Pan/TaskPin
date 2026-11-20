@@ -9,6 +9,7 @@
 #include <QActionGroup>
 #include <QApplication>
 #include <QClipboard>
+#include <QColorDialog>
 #include <QContextMenuEvent>
 #include <QCursor>
 #include <QDateTime>
@@ -28,6 +29,7 @@
 #include <QTransform>
 #include <QWheelEvent>
 #include <algorithm>
+#include <cmath>
 
 namespace {
 constexpr int kPad = 6;   // transparent padding that carries the drop shadow
@@ -65,6 +67,18 @@ PinWindow::PinWindow(const QImage &image, const QString &group, QWidget *parent,
 
     const auto &s = Settings::instance();
     m_opacity = qBound(0.1, s.pinOpacity, 1.0);
+    m_shadowStrength = s.pinShadowStrength;
+    m_borderWidth = s.pinBorderWidth;
+    m_borderColor = s.pinBorderColor;
+    rebuildPreview();
+    m_zoomAnimation.setDuration(110);
+    m_zoomAnimation.setEasingCurve(QEasingCurve::OutCubic);
+    connect(&m_zoomAnimation, &QVariantAnimation::valueChanged, this, [this](const QVariant &value) {
+        displayZoom(value.toReal(), m_zoomCenter);
+    });
+    m_qualityTimer.setSingleShot(true);
+    m_qualityTimer.setInterval(150);
+    connect(&m_qualityTimer, &QTimer::timeout, this, &PinWindow::rebuildCache);
     if (m_group.trimmed().isEmpty()) m_group = currentGroupRef();
     ensureGroup(m_group);
 
@@ -81,7 +95,7 @@ PinWindow::PinWindow(const QImage &image, const QString &group, QWidget *parent,
     int y = qBound(minY, cursor.y() + 16, qMax(minY, area.bottom() - height() - 8));
     // Direct captures overlay the original content exactly, even at a monitor edge.
     // Only the transparent shadow padding can extend beyond the captured monitor.
-    move(sourceRegion.isValid() ? sourceRegion.topLeft() - QPoint(kPad, kPad) : QPoint(x, y));
+    move(sourceRegion.isValid() ? sourceRegion.topLeft() - QPoint(padding(), padding()) : QPoint(x, y));
 
     registry().append(this);
     setPinOpacity(m_opacity);
@@ -100,49 +114,104 @@ const QList<PinWindow *> &PinWindow::all() { return registry(); }
 
 void PinWindow::relayout()
 {
-    const int w = qMax(1, qRound(m_logicalImageSize.width() * m_zoom)) + kPad * 2;
-    const int h = qMax(1, qRound(m_logicalImageSize.height() * m_zoom)) + kPad * 2;
+    m_cache = {};
+    const int w = qMax(1, qRound(m_logicalImageSize.width() * m_zoom)) + padding() * 2;
+    const int h = qMax(1, qRound(m_logicalImageSize.height() * m_zoom)) + padding() * 2;
     resize(w, h);
     update();
+}
+
+bool PinWindow::event(QEvent *event)
+{
+    if (event->type() == QEvent::ScreenChangeInternal) {
+        m_cache = {};
+        m_qualityTimer.start();
+        update();
+    }
+    return QWidget::event(event);
 }
 
 void PinWindow::paintEvent(QPaintEvent *)
 {
     QPainter p(this);
-    p.setRenderHint(QPainter::SmoothPixmapTransform, true);
-    p.setRenderHint(QPainter::Antialiasing, true);
+    // Clear the backing surface as it shrinks; stale translucent pixels looked like a second edge.
+    p.setCompositionMode(QPainter::CompositionMode_Source);
+    p.fillRect(rect(), Qt::transparent);
+    p.setCompositionMode(QPainter::CompositionMode_SourceOver);
+    const bool moving = m_zoomAnimation.state() == QAbstractAnimation::Running || m_qualityTimer.isActive();
+    p.setRenderHint(QPainter::SmoothPixmapTransform, !moving);
 
-    const QRect target(kPad, kPad, qMax(1, qRound(m_logicalImageSize.width() * m_zoom)),
+    const QRect target(padding(), padding(), qMax(1, qRound(m_logicalImageSize.width() * m_zoom)),
                        qMax(1, qRound(m_logicalImageSize.height() * m_zoom)));
 
-    // soft double shadow like the C# build
-    p.setPen(Qt::NoPen);
-    p.setBrush(QColor(0, 0, 0, 50));
-    p.drawRect(target.adjusted(2, 3, 3, 3));
-    p.setBrush(QColor(0, 0, 0, 28));
-    p.drawRect(target.adjusted(5, 6, 6, 6));
-
-    p.drawImage(target, m_image);
+    // A single fading contour, rather than two hard offset copies.
+    for (int spread = 6; m_shadowStrength > 0 && spread >= 1; --spread) {
+        p.setPen(QPen(QColor(0, 0, 0, qRound(m_shadowStrength * (7 - spread) / 10.0)), 1));
+        p.setBrush(Qt::NoBrush);
+        p.drawRect(target.adjusted(-spread, -spread, spread - 1, spread - 1));
+    }
+    const QImage &frame = moving ? m_preview : m_cache.isNull() ? m_image : m_cache;
+    p.drawImage(target, frame);
     p.setBrush(Qt::NoBrush);
-    p.setPen(QPen(QColor(255, 255, 255, 60), 1));
-    p.drawRect(target.adjusted(0, 0, -1, -1));
+    if (m_borderWidth > 0) {
+        p.setPen(QPen(m_borderColor, m_borderWidth));
+        const qreal inset = m_borderWidth / 2.0;
+        p.drawRect(QRectF(target).adjusted(inset, inset, -inset, -inset));
+    }
+}
+
+int PinWindow::padding() const { return m_shadowStrength > 0 ? kPad : 0; }
+
+void PinWindow::applyAppearance(int shadowStrength, int borderWidth, const QColor &color)
+{
+    const QPoint origin = contentGeometry().topLeft();
+    m_shadowStrength = qBound(0, shadowStrength, 100);
+    m_borderWidth = qBound(0, borderWidth, 8);
+    if (color.isValid()) m_borderColor = color;
+    relayout();
+    move(origin - QPoint(padding(), padding()));
+    m_qualityTimer.start();
+}
+
+void PinWindow::rebuildCache()
+{
+    const QSize pixels = (contentGeometry().size() * devicePixelRatioF());
+    // Bound the cache; a 4x enlargement of a multi-monitor screenshot can otherwise exceed 1 GB.
+    if (qint64(pixels.width()) * pixels.height() <= 16000000) {
+        m_cache = m_image.scaled(pixels, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
+        m_cache.setDevicePixelRatio(devicePixelRatioF());
+    }
+    update();
+}
+
+void PinWindow::rebuildPreview()
+{
+    m_preview = m_image.width() > 2000 || m_image.height() > 2000
+        ? m_image.scaled(QSize(2000, 2000), Qt::KeepAspectRatio, Qt::FastTransformation) : m_image;
 }
 
 QRect PinWindow::contentGeometry() const
 {
-    return QRect(mapToGlobal(QPoint(kPad, kPad)), size() - QSize(kPad * 2, kPad * 2));
+    return QRect(mapToGlobal(QPoint(padding(), padding())), size() - QSize(padding() * 2, padding() * 2));
 }
 
 void PinWindow::setZoom(qreal zoom)
 {
     const qreal next = qBound(0.25, zoom, 4.0);
-    if (qAbs(next - m_zoom) < 0.001) return;
-    // keep the centre stable while zooming
-    const QPoint center = geometry().center();
-    m_zoom = next;
-    relayout();
-    move(center - QPoint(width() / 2, height() / 2));
-    qInfo("pin zoom %.2f", m_zoom);
+    m_zoomAnimation.stop();
+    m_targetZoom = next;
+    displayZoom(next, QRectF(geometry()).center());
+    m_qualityTimer.start();
+}
+
+void PinWindow::displayZoom(qreal zoom, const QPointF &center)
+{
+    m_zoom = zoom;
+    m_cache = {};
+    const QSize next(qMax(1, qRound(m_logicalImageSize.width() * zoom)) + 2 * padding(),
+                     qMax(1, qRound(m_logicalImageSize.height() * zoom)) + 2 * padding());
+    setGeometry(QRect((center - QPointF(next.width() / 2.0, next.height() / 2.0)).toPoint(), next));
+    update();
 }
 
 void PinWindow::setPinOpacity(qreal opacity)
@@ -180,6 +249,8 @@ void PinWindow::flash()
 void PinWindow::mousePressEvent(QMouseEvent *e)
 {
     if (e->button() == Qt::LeftButton) {
+        m_zoomAnimation.stop();
+        m_targetZoom = m_zoom;
         m_dragging = true;
         m_dragOffset = e->globalPosition().toPoint() - frameGeometry().topLeft();
         raise();
@@ -203,12 +274,21 @@ void PinWindow::mouseDoubleClickEvent(QMouseEvent *e)
 
 void PinWindow::wheelEvent(QWheelEvent *e)
 {
-    const int dir = e->angleDelta().y() > 0 ? 1 : -1;
+    const qreal steps = !e->pixelDelta().isNull() ? e->pixelDelta().y() / 120.0 : e->angleDelta().y() / 120.0;
+    if (qFuzzyIsNull(steps)) { e->accept(); return; }
     if (e->modifiers() & Qt::ControlModifier) {
-        setPinOpacity(m_opacity + dir * 0.05);
+        setPinOpacity(m_opacity + steps * 0.05);
+        e->accept();
         return;
     }
-    setZoom(m_zoom * (dir > 0 ? 1.1 : 0.9));
+    if (m_zoomAnimation.state() != QAbstractAnimation::Running) m_zoomCenter = QRectF(geometry()).center();
+    m_zoomAnimation.stop();
+    m_targetZoom = qBound(.25, m_targetZoom * std::pow(1.1, steps), 4.0);
+    m_zoomAnimation.setStartValue(m_zoom);
+    m_zoomAnimation.setEndValue(m_targetZoom);
+    m_zoomAnimation.start();
+    m_qualityTimer.start();
+    e->accept();
 }
 
 void PinWindow::keyPressEvent(QKeyEvent *e)
@@ -270,6 +350,31 @@ void PinWindow::buildMenu(QMenu *menu)
 {
     menu->addAction(QStringLiteral("识别为任务\tCtrl+R"), this, [this] { emit recognizeRequested(m_image); });
     menu->addSeparator();
+
+    auto *appearance = menu->addMenu(QStringLiteral("边框与阴影"));
+    appearance->addAction(QStringLiteral("无边框与阴影"), this, [this] {
+        applyAppearance(0, 0, m_borderColor);
+    });
+    auto *shadow = appearance->addMenu(QStringLiteral("阴影强度"));
+    for (int value : {0, 18, 35, 60, 100}) {
+        auto *a = shadow->addAction(value == 0 ? QStringLiteral("关闭阴影") : QStringLiteral("%1%").arg(value));
+        a->setCheckable(true); a->setChecked(m_shadowStrength == value);
+        connect(a, &QAction::triggered, this, [this, value] { applyAppearance(value, m_borderWidth, m_borderColor); });
+    }
+    auto *border = appearance->addMenu(QStringLiteral("边框宽度"));
+    for (int value : {0, 1, 2, 4, 8}) {
+        auto *a = border->addAction(value == 0 ? QStringLiteral("关闭边框") : QStringLiteral("%1 px").arg(value));
+        a->setCheckable(true); a->setChecked(m_borderWidth == value);
+        connect(a, &QAction::triggered, this, [this, value] { applyAppearance(m_shadowStrength, value, m_borderColor); });
+    }
+    appearance->addAction(QStringLiteral("边框颜色…"), this, [this] {
+        const auto c = QColorDialog::getColor(m_borderColor, this, QStringLiteral("贴图边框颜色"));
+        if (c.isValid()) applyAppearance(m_shadowStrength, m_borderWidth, c);
+    });
+    appearance->addAction(QStringLiteral("恢复设置中的外观"), this, [this] {
+        const auto &s = Settings::instance();
+        applyAppearance(s.pinShadowStrength, s.pinBorderWidth, s.pinBorderColor);
+    });
     menu->addAction(QStringLiteral("复制图像\tCtrl+C"), this,
                     [this] { QApplication::clipboard()->setImage(m_image); });
     menu->addAction(QStringLiteral("保存图片…\tCtrl+S"), this, [this] { saveImage(); });
@@ -309,15 +414,18 @@ void PinWindow::buildMenu(QMenu *menu)
     rotate->addAction(QStringLiteral("顺时针 90°"), this, [this] {
         m_image = m_image.transformed(QTransform().rotate(90));
         m_logicalImageSize.transpose();
+        rebuildPreview();
         relayout();
     });
     rotate->addAction(QStringLiteral("逆时针 90°"), this, [this] {
         m_image = m_image.transformed(QTransform().rotate(-90));
         m_logicalImageSize.transpose();
+        rebuildPreview();
         relayout();
     });
     rotate->addAction(QStringLiteral("水平翻转"), this, [this] {
         m_image = m_image.mirrored(true, false);
+        rebuildPreview();
         relayout();
     });
 
@@ -371,6 +479,7 @@ void PinWindow::replaceFromClipboard()
     if (img.isNull()) return;
     m_image = img;
     m_logicalImageSize = img.size();
+    rebuildPreview();
     relayout();
 }
 

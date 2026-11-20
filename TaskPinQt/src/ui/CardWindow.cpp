@@ -4,6 +4,7 @@
 #include "core/InstanceNames.h"
 #include "core/Store.h"
 #include "platform/WindowFx.h"
+#include "ui/TaskDialogs.h"
 
 #include <QApplication>
 #include <QClipboard>
@@ -19,6 +20,8 @@
 #include <QScreen>
 #include <QShowEvent>
 #include <QTimer>
+#include <QToolTip>
+#include <QKeyEvent>
 #include <QWheelEvent>
 
 namespace {
@@ -44,19 +47,63 @@ CardWindow::CardWindow(Store *store, QWidget *parent)
     m_desktopLayer = !Settings::instance().alwaysOnTop;
 
     connect(m_store, &Store::changed, this, &CardWindow::refresh);
+    m_undoTimer.setSingleShot(true);
+    m_undoTimer.setInterval(10000);
+    connect(&m_undoTimer, &QTimer::timeout, this, [this] { m_lastDoneId.clear(); update(); });
+    connect(m_store, &Store::completionChanged, this, [this](const QString &id, bool done) {
+        if (done) { m_lastDoneId = id; m_undoTimer.start(); }
+        else if (id == m_lastDoneId) { m_lastDoneId.clear(); m_undoTimer.stop(); }
+        update();
+    });
     relayout();
     refresh();
 }
 
 void CardWindow::relayout()
 {
-    const auto &s = Settings::instance();
-    const int visible = qMax(1, s.visibleRows);
+    const auto a = appearance();
+    const int visible = qMax(1, a.rows);
     m_rowHeight = 27;
-    const int footerH = 24;
+    const int footerH = 44;
     const int h = kMargin * 2 + kHeaderH + 8 + visible * m_rowHeight + footerH;
-    const int w = qMax(240, s.cardWidth);
+    const int w = qMax(240, a.width);
     resize(w, h);
+}
+
+CardAppearance CardWindow::appearance() const { return m_preview.value_or(CardAppearance::current()); }
+
+void CardWindow::previewAppearance(const CardAppearance &appearance)
+{
+    m_preview = appearance;
+    relayout();
+    refresh();
+}
+
+void CardWindow::clearAppearancePreview()
+{
+    m_preview.reset();
+    relayout();
+    refresh();
+}
+
+void CardWindow::revealTask(const QString &id)
+{
+    for (int i = 0; i < m_tasks.size(); ++i) {
+        if (m_tasks[i].id != id) continue;
+        if (i < m_scroll || i >= m_scroll + qMax(1, appearance().rows)) m_scroll = i;
+        update(); return;
+    }
+}
+
+void CardWindow::undoCompletion()
+{
+    if (!m_lastDoneId.isEmpty()) m_store->setDone(m_lastDoneId, false);
+}
+
+void CardWindow::keyPressEvent(QKeyEvent *event)
+{
+    if (event->matches(QKeySequence::Undo)) { undoCompletion(); event->accept(); return; }
+    QWidget::keyPressEvent(event);
 }
 
 void CardWindow::placeOnScreen()
@@ -142,16 +189,18 @@ bool CardWindow::nativeEvent(const QByteArray &eventType, void *message, qintptr
 void CardWindow::refresh()
 {
     m_tasks = m_store->openTasks();
-    const int maxScroll = qMax(0, m_tasks.size() - qMax(1, Settings::instance().visibleRows));
+    const int maxScroll = qMax(0, m_tasks.size() - qMax(1, appearance().rows));
     m_scroll = qBound(0, m_scroll, maxScroll);
+    if (!m_lastDoneId.isEmpty() && !m_store->task(m_lastDoneId).isDone()) m_lastDoneId.clear();
     update();
 }
 
 int CardWindow::rowAt(const QPoint &p) const
 {
-    if (m_rowHeight <= 0 || p.y() < m_rowTop) return -1;
+    if (m_rowHeight <= 0 || p.y() < m_rowTop || p.x() < kMargin + kPadX - 4 ||
+        p.x() > width() - kMargin - kPadX + 4) return -1;
     const int i = (p.y() - m_rowTop) / m_rowHeight;
-    const int visible = qMax(1, Settings::instance().visibleRows);
+    const int visible = qMax(1, appearance().rows);
     if (i < 0 || i >= visible) return -1;
     const int real = m_scroll + i;
     return real < m_tasks.size() ? real : -1;
@@ -160,6 +209,7 @@ int CardWindow::rowAt(const QPoint &p) const
 void CardWindow::paintEvent(QPaintEvent *)
 {
     const auto &s = Settings::instance();
+    const auto a = appearance();
     QPainter p(this);
     p.setRenderHint(QPainter::Antialiasing, true);
     p.setRenderHint(QPainter::TextAntialiasing, true);
@@ -169,8 +219,8 @@ void CardWindow::paintEvent(QPaintEvent *)
     path.addRoundedRect(card, 16, 16);
 
     QLinearGradient grad(card.topLeft(), card.bottomLeft());
-    QColor bg = s.cardBg;
-    bg.setAlphaF(qBound(0.35, s.opacity, 1.0));
+    QColor bg = a.background;
+    bg.setAlphaF(qBound(0.35, a.opacity, 1.0));
     QColor bg2 = bg.darker(140);
     grad.setColorAt(0, bg);
     grad.setColorAt(1, bg2);
@@ -180,7 +230,7 @@ void CardWindow::paintEvent(QPaintEvent *)
     p.drawPath(path);
 
     // header
-    const QColor fg = s.cardFg;
+    const QColor fg = a.foreground;
     QColor dim = fg; dim.setAlphaF(0.55);
     QColor faint = fg; faint.setAlphaF(0.40);
 
@@ -232,7 +282,7 @@ void CardWindow::paintEvent(QPaintEvent *)
     m_rowTop = y;
 
     // rows
-    const int visible = qMax(1, s.visibleRows);
+    const int visible = qMax(1, a.rows);
     QFont row = font();
     row.setPointSizeF(8.6);
     QFont time = font();
@@ -270,13 +320,14 @@ void CardWindow::paintEvent(QPaintEvent *)
         p.setFont(row);
         p.setPen(t.isDone() ? faint : fg);
         QRect textRect = rowRect.adjusted(20, 0, -48, 0);
-        const QString elided = p.fontMetrics().elidedText(t.title, Qt::ElideRight, textRect.width());
+        const QString caption = t.aiState == "pending" ? QStringLiteral("AI识别中…") : t.title;
+        const QString elided = p.fontMetrics().elidedText(caption, Qt::ElideRight, textRect.width());
         p.drawText(textRect, Qt::AlignLeft | Qt::AlignVCenter, elided);
 
         p.setFont(time);
         p.setPen(faint);
         QString right;
-        if (s.showCarryMark && t.carryCount > 0) right = QStringLiteral("×%1").arg(t.carryCount);
+        if (a.carryMark && t.carryCount > 0) right = QStringLiteral("×%1").arg(t.carryCount);
         if (!right.isEmpty()) {
             const int w = p.fontMetrics().horizontalAdvance(right);
             p.drawText(QRect(rowRect.right() - w, rowRect.top(), w, rowRect.height()),
@@ -286,7 +337,13 @@ void CardWindow::paintEvent(QPaintEvent *)
 
     // footer hint
     int footY = card.bottom() - 8;
+    m_completedRect = QRect(card.right() - 70, footY - 34, 56, 18);
+    m_undoRect = QRect(card.left() + kPadX, footY - 34, card.width() - 100, 18);
     p.setFont(time);
+    p.setPen(QColor(0xA9, 0xC4, 0xFF));
+    p.drawText(m_completedRect, Qt::AlignRight | Qt::AlignVCenter, QStringLiteral("已完成 ›"));
+    if (!m_lastDoneId.isEmpty()) p.drawText(m_undoRect, Qt::AlignLeft | Qt::AlignVCenter,
+                                          QStringLiteral("已完成 · 撤销 (Ctrl+Z)"));
     p.setPen(faint);
     p.drawText(QRect(card.left() + kPadX, footY - 14, card.width() - kPadX * 2, 14),
                Qt::AlignLeft | Qt::AlignVCenter,
@@ -297,11 +354,18 @@ void CardWindow::paintEvent(QPaintEvent *)
 void CardWindow::mousePressEvent(QMouseEvent *e)
 {
     if (e->button() == Qt::LeftButton) {
+        m_pressedCompletionId.clear();
+        if (m_completedRect.contains(e->pos())) { showCompletedTasks(m_store, this); return; }
+        if (m_undoRect.contains(e->pos()) && !m_lastDoneId.isEmpty()) { undoCompletion(); return; }
         if (m_plusRect.contains(e->pos())) { emit quickAddRequested(); return; }
         const int idx = rowAt(e->pos());
         if (idx >= 0) {
             const Task &t = m_tasks.at(idx);
-            m_store->setDone(t.id, !t.isDone());
+            if (e->pos().x() <= kMargin + kPadX + 16) {
+                if (t.aiState != "pending") m_pressedCompletionId = t.id;
+            } else {
+                showTaskDetails(m_store, t.id, this);
+            }
             return;
         }
         m_dragging = true;
@@ -317,10 +381,19 @@ void CardWindow::mouseMoveEvent(QMouseEvent *e)
     }
     const int idx = rowAt(e->pos());
     if (idx != m_hoverRow) { m_hoverRow = idx; update(); }
+    setToolTip(idx >= 0 ? m_tasks.at(idx).title : QString());
+    setCursor(idx >= 0 || m_completedRect.contains(e->pos()) ||
+        (!m_lastDoneId.isEmpty() && m_undoRect.contains(e->pos())) ? Qt::PointingHandCursor : Qt::ArrowCursor);
 }
 
-void CardWindow::mouseReleaseEvent(QMouseEvent *)
+void CardWindow::mouseReleaseEvent(QMouseEvent *event)
 {
+    const QString id = m_pressedCompletionId;
+    m_pressedCompletionId.clear();
+    const int idx = rowAt(event->pos());
+    if (event->button() == Qt::LeftButton && !id.isEmpty() && idx >= 0 &&
+        m_tasks[idx].id == id && event->pos().x() <= kMargin + kPadX + 16)
+        m_store->setDone(id, true);
     if (!m_dragging) return;
     m_dragging = false;
     // remember where the user put the card (T9 appearance / position)
@@ -332,6 +405,10 @@ void CardWindow::mouseReleaseEvent(QMouseEvent *)
 
 void CardWindow::mouseDoubleClickEvent(QMouseEvent *e)
 {
+    // The first release may already have removed a row. Never apply its second click to the next row.
+    m_pressedCompletionId.clear();
+    m_dragging = false;
+    if (rowAt(e->pos()) >= 0) { e->accept(); return; }
     qInfo("card double-click at %d,%d dateRect=%d,%d %dx%d", e->pos().x(), e->pos().y(), m_dateRect.x(),
           m_dateRect.y(), m_dateRect.width(), m_dateRect.height());
     if (e->button() == Qt::LeftButton && m_dateRect.contains(e->pos())) {
@@ -344,7 +421,7 @@ void CardWindow::mouseDoubleClickEvent(QMouseEvent *e)
 void CardWindow::wheelEvent(QWheelEvent *e)
 {
     const int step = e->angleDelta().y() > 0 ? -1 : 1;
-    const int maxScroll = qMax(0, m_tasks.size() - qMax(1, Settings::instance().visibleRows));
+    const int maxScroll = qMax(0, m_tasks.size() - qMax(1, appearance().rows));
     const int next = qBound(0, m_scroll + step, maxScroll);
     if (next != m_scroll) { m_scroll = next; m_hoverRow = -1; update(); }
     e->accept();
@@ -356,8 +433,10 @@ void CardWindow::contextMenuEvent(QContextMenuEvent *e)
     const int idx = rowAt(e->pos());
     if (idx >= 0) {
         const Task t = m_tasks.at(idx);
-        menu.addAction(t.isDone() ? QStringLiteral("标为未完成") : QStringLiteral("✓ 完成"),
+        menu.addAction(QStringLiteral("查看全文…"), [this, t] { showTaskDetails(m_store, t.id, this); });
+        auto *done = menu.addAction(t.isDone() ? QStringLiteral("标为未完成") : QStringLiteral("✓ 完成"),
                        [this, t] { m_store->setDone(t.id, !t.isDone()); });
+        done->setEnabled(t.aiState != "pending");
         auto *pri = menu.addMenu(QStringLiteral("优先级"));
         const QStringList names{QStringLiteral("P0 关键"), QStringLiteral("P1 高"),
                                 QStringLiteral("P2 普通"), QStringLiteral("P3 低")};
@@ -379,5 +458,8 @@ void CardWindow::contextMenuEvent(QContextMenuEvent *e)
         connect(top, &QAction::triggered, this, [this](bool checked) { setDesktopLayer(!checked); });
         menu.addAction(QStringLiteral("隐藏卡片"), this, &QWidget::hide);
     }
+    menu.addSeparator();
+    if (!m_lastDoneId.isEmpty()) menu.addAction(QStringLiteral("撤销完成\tCtrl+Z"), [this] { undoCompletion(); });
+    menu.addAction(QStringLiteral("已完成…"), [this] { showCompletedTasks(m_store, this); });
     menu.exec(e->globalPos());
 }

@@ -9,6 +9,8 @@
 #include <QApplication>
 #include <QClipboard>
 #include <QColorDialog>
+#include <QCursor>
+#include <QShowEvent>
 #include <QDateTime>
 #include <QDebug>
 #include <QDir>
@@ -60,6 +62,7 @@ SnipOverlay::SnipOverlay(const ScreenCapture &shot, QWidget *parent)
     setMouseTracking(true);
     setCursor(Qt::CrossCursor);
     setGeometry(shot.logicalRect);
+    m_cursor = boundedPoint(QCursor::pos() - shot.logicalRect.topLeft());
     setFocusPolicy(Qt::StrongFocus);
     setWindowTitle(QStringLiteral("TaskPin 截图"));
 
@@ -83,6 +86,12 @@ SnipOverlay::SnipOverlay(const ScreenCapture &shot, QWidget *parent)
 }
 
 SnipOverlay::~SnipOverlay() = default;
+
+void SnipOverlay::showEvent(QShowEvent *event)
+{
+    m_cursor = boundedPoint(QCursor::pos() - m_shot.logicalRect.topLeft());
+    QWidget::showEvent(event);
+}
 
 void SnipOverlay::setPreselect(const QRect &r)
 {

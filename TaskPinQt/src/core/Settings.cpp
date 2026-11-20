@@ -181,6 +181,9 @@ void Settings::load()
     lastRegion = o.value(QStringLiteral("lastRegion")).toString(lastRegion);
 
     pinOpacity = o.value(QStringLiteral("pinOpacity")).toDouble(pinOpacity);
+    pinShadowStrength = qBound(0, o.value("pinShadowStrength").toInt(pinShadowStrength), 100);
+    pinBorderWidth = qBound(0, o.value("pinBorderWidth").toInt(pinBorderWidth), 8);
+    pinBorderColor = colorFrom(o, "pinBorderColor", pinBorderColor);
     pinGroup = o.value(QStringLiteral("pinGroup")).toString(pinGroup);
     const auto groups = o.value(QStringLiteral("pinGroups")).toArray();
     if (!groups.isEmpty()) {
@@ -252,6 +255,9 @@ void Settings::save()
     o[QStringLiteral("lastRegion")] = lastRegion;
 
     o[QStringLiteral("pinOpacity")] = pinOpacity;
+    o["pinShadowStrength"] = pinShadowStrength;
+    o["pinBorderWidth"] = pinBorderWidth;
+    o["pinBorderColor"] = colorToHex(pinBorderColor);
     QJsonArray groups;
     for (const auto &g : pinGroups) groups.append(g);
     o[QStringLiteral("pinGroups")] = groups;

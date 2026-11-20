@@ -37,12 +37,15 @@ public:
 
     QList<Task> openTasks() const;
     QList<Task> deletedTasks() const;
+    QList<Task> completedTasks() const;
+    Task task(const QString &id) const;
     int openCount() const;
     int countByState(const QString &state) const;
 
     QString addTask(const QString &title, const QString &source = QStringLiteral("manual"),
                     const QString &attachment = QString(), const QDateTime &due = QDateTime(),
-                    int priority = -1, const QString &ocrText = QString());
+                    int priority = -1, const QString &ocrText = QString(), const QString &aiState = QStringLiteral("none"));
+    void finishAiTask(const QString &id, const QString &title, bool success);
     void setDone(const QString &id, bool done);
     void setPriority(const QString &id, int priority);
     void setDue(const QString &id, const QDateTime &due);
@@ -61,6 +64,7 @@ public:
 
 signals:
     void changed();
+    void completionChanged(const QString &id, bool done);
 
 private:
     void ensureSchema();

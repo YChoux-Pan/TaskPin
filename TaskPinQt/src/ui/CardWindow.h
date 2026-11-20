@@ -1,9 +1,12 @@
 #pragma once
 
 #include "core/Task.h"
+#include "ui/CardAppearance.h"
 
 #include <QList>
 #include <QWidget>
+#include <optional>
+#include <QTimer>
 
 class Store;
 
@@ -19,6 +22,9 @@ public:
     void placeOnScreen();
     /// Re-applies settings.json (row count, width, colours, z-order mode).
     void applySettings();
+    void previewAppearance(const CardAppearance &appearance);
+    void clearAppearancePreview();
+    void revealTask(const QString &id);
 
     /// True when the card sits on the desktop layer instead of being topmost.
     bool isDesktopLayer() const { return m_desktopLayer; }
@@ -45,11 +51,14 @@ protected:
     void wheelEvent(QWheelEvent *e) override;
     void contextMenuEvent(QContextMenuEvent *e) override;
     void showEvent(QShowEvent *e) override;
+    void keyPressEvent(QKeyEvent *e) override;
     bool nativeEvent(const QByteArray &eventType, void *message, qintptr *result) override;
 
 private:
     int rowAt(const QPoint &p) const;
     void relayout();
+    CardAppearance appearance() const;
+    void undoCompletion();
 
     Store *m_store;
     QList<Task> m_tasks;
@@ -58,6 +67,12 @@ private:
     bool m_dragging = false;
     QPoint m_dragOffset;
     bool m_desktopLayer = false;
+    std::optional<CardAppearance> m_preview;
+    QString m_pressedCompletionId;
+    QString m_lastDoneId;
+    QTimer m_undoTimer;
+    QRect m_completedRect;
+    QRect m_undoRect;
 
     QRect m_dateRect;
     QRect m_plusRect;

@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuite name="ExperienceTests" timestamp="2026&#x002D;11&#x002D;20T16:42:36" hostname="XYC&#x002D;PYC" tests="20" failures="0" errors="0" skipped="0" time="3.681">
+  <properties>
+    <property name="QTestVersion" value="6.4.3"/>
+    <property name="QtVersion" value="6.4.3"/>
+    <property name="QtBuild" value="Qt 6.4.3 (x86_64&#x002D;little_endian&#x002D;llp64 shared (dynamic) release build; by GCC 11.2.0)"/>
+  </properties>
+  <testcase name="initTestCase" classname="ExperienceTests" time="0.002"/>
+  <testcase name="wheelHonorsSmallDeltasAndReverses" classname="ExperienceTests" time="0.525">
+    <system-out>
+      <![CDATA[pin created 200x100 group=默认]]>
+      <![CDATA[pin closed, 0 remaining]]>
+    </system-out>
+  </testcase>
+  <testcase name="plainPinHasExactContentAndNoHalo" classname="ExperienceTests" time="0.004">
+    <system-out>
+      <![CDATA[pin created 200x100 group=默认]]>
+      <![CDATA[pin closed, 0 remaining]]>
+    </system-out>
+    <system-err>
+      <![CDATA[QFontDatabase: Cannot find font directory D:/CodexDocuments/2026-11-19/https-github-com-kael-odin-codex/work/TaskPin/source/TaskPinQt/build/lib/fonts.
+Note that Qt no longer ships fonts. Deploy some (from https://dejavu-fonts.github.io/ for example) or switch to fontconfig.]]>
+      <![CDATA[This plugin does not support raise()]]>
+      <![CDATA[This plugin does not support grabbing the keyboard]]>
+    </system-err>
+  </testcase>
+  <testcase name="magnifierFollowsCursorBeforeFirstMove" classname="ExperienceTests" time="0.007"/>
+  <testcase name="textOpensFullTaskWithoutCompleting" classname="ExperienceTests" time="0.016">
+    <system-err>
+      <![CDATA[This plugin does not support propagateSizeHints()]]>
+      <![CDATA[This plugin does not support raise()]]>
+    </system-err>
+  </testcase>
+  <testcase name="completedListRestoresTaskAndDailyCounts" classname="ExperienceTests" time="0.012">
+    <system-err>
+      <![CDATA[This plugin does not support raise()]]>
+      <![CDATA[This plugin does not support grabbing the keyboard]]>
+      <![CDATA[This plugin does not support propagateSizeHints()]]>
+      <![CDATA[This plugin does not support raise()]]>
+    </system-err>
+  </testcase>
+  <testcase name="doubleClickCompletionDoesNotCompleteNextTask" classname="ExperienceTests" time="0.013"/>
+  <testcase name="liveColorPreviewCancelAndSave" classname="ExperienceTests" time="0.053">
+    <system-out>
+      <![CDATA[TaskPin Qt 0.3.0 started, rolled over 0 task(s)]]>
+      <![CDATA[card z-order: topmost (native topmost=0)]]>
+      <![CDATA[card z-order retry: topmost=0]]>
+      <![CDATA[settings applied]]>
+      <![CDATA[card z-order: topmost (native topmost=0)]]>
+      <![CDATA[toast: 设置已保存]]>
+    </system-out>
+    <system-err>
+      <![CDATA[This plugin does not support propagateSizeHints()]]>
+      <![CDATA[This plugin does not support raise()]]>
+      <![CDATA[This plugin does not support propagateSizeHints()]]>
+      <![CDATA[This plugin does not support propagateSizeHints()]]>
+      <![CDATA[This plugin does not support raise()]]>
+      <![CDATA[This plugin does not support propagateSizeHints()]]>
+      <![CDATA[This plugin does not support propagateSizeHints()]]>
+    </system-err>
+  </testcase>
+  <testcase name="quickUndoRestoresTheCompletedTask" classname="ExperienceTests" time="0.014"/>
+  <testcase name="largePinContinuousZoomDrawCost" classname="ExperienceTests" time="0.586">
+    <system-out>
+      <![CDATA[pin created 3840x2160 group=默认]]>
+      <![CDATA[4K pin clipped draw ms: median=2.229 p95=3.013 max=3.088 samples=24]]>
+      <![CDATA[pin closed, 0 remaining]]>
+    </system-out>
+  </testcase>
+  <testcase name="slowAiKeepsOneRecoverableTaskAndReplacesTitle" classname="ExperienceTests" time="0.382">
+    <system-out>
+      <![CDATA[TaskPin Qt 0.3.0 started, rolled over 0 task(s)]]>
+      <![CDATA[card z-order: topmost (native topmost=0)]]>
+      <![CDATA[toast: 识别完成，AI 归纳中…]]>
+      <![CDATA[ai request -> http://127.0.0.1:49381/v1/chat/completions]]>
+      <![CDATA[card z-order retry: topmost=0]]>
+      <![CDATA[ai title: condensed title]]>
+      <![CDATA[toast: 已建任务：condensed title]]>
+    </system-out>
+  </testcase>
+  <testcase name="aiFailureKeepsLocalTask(http&#x002D;error)" classname="ExperienceTests" time="0.187">
+    <system-out>
+      <![CDATA[TaskPin Qt 0.3.0 started, rolled over 0 task(s)]]>
+      <![CDATA[card z-order: topmost (native topmost=0)]]>
+      <![CDATA[toast: 识别完成，AI 归纳中…]]>
+      <![CDATA[ai request -> http://127.0.0.1:49383/v1/chat/completions]]>
+      <![CDATA[card z-order retry: topmost=0]]>
+      <![CDATA[toast: AI 暂未完成，已保留本地识别任务和原文]]>
+    </system-out>
+    <system-err>
+      <![CDATA[ai summarize failed: Error transferring http://127.0.0.1:49383/v1/chat/completions - server replied: Test {}]]>
+    </system-err>
+  </testcase>
+  <testcase name="aiFailureKeepsLocalTask(malformed)" classname="ExperienceTests" time="0.188">
+    <system-out>
+      <![CDATA[TaskPin Qt 0.3.0 started, rolled over 0 task(s)]]>
+      <![CDATA[card z-order: topmost (native topmost=0)]]>
+      <![CDATA[toast: 识别完成，AI 归纳中…]]>
+      <![CDATA[ai request -> http://127.0.0.1:49385/v1/chat/completions]]>
+      <![CDATA[card z-order retry: topmost=0]]>
+      <![CDATA[toast: AI 暂未完成，已保留本地识别任务和原文]]>
+    </system-out>
+    <system-err>
+      <![CDATA[ai summarize failed: 响应里没有 choices]]>
+    </system-err>
+  </testcase>
+  <testcase name="aiFailureKeepsLocalTask(empty)" classname="ExperienceTests" time="0.186">
+    <system-out>
+      <![CDATA[TaskPin Qt 0.3.0 started, rolled over 0 task(s)]]>
+      <![CDATA[card z-order: topmost (native topmost=0)]]>
+      <![CDATA[toast: 识别完成，AI 归纳中…]]>
+      <![CDATA[ai request -> http://127.0.0.1:49387/v1/chat/completions]]>
+      <![CDATA[card z-order retry: topmost=0]]>
+      <![CDATA[toast: AI 暂未完成，已保留本地识别任务和原文]]>
+    </system-out>
+    <system-err>
+      <![CDATA[ai summarize failed: 模型返回空标题]]>
+    </system-err>
+  </testcase>
+  <testcase name="aiTimeoutEmitsOneFailure" classname="ExperienceTests" time="0.620">
+    <system-out>
+      <![CDATA[ai request -> http://127.0.0.1:49389/v1/chat/completions]]>
+    </system-out>
+  </testcase>
+  <testcase name="captureWhileAiWaitsIsQueued" classname="ExperienceTests" time="0.614">
+    <system-out>
+      <![CDATA[TaskPin Qt 0.3.0 started, rolled over 0 task(s)]]>
+      <![CDATA[card z-order: topmost (native topmost=0)]]>
+      <![CDATA[toast: 识别完成，AI 归纳中…]]>
+      <![CDATA[ai request -> http://127.0.0.1:49391/v1/chat/completions]]>
+      <![CDATA[pin created 60x40 group=默认]]>
+      <![CDATA[toast: 已贴到桌面 60 × 40]]>
+      <![CDATA[toast: 已加入识别队列，前面还有 1 张]]>
+      <![CDATA[card z-order retry: topmost=0]]>
+      <![CDATA[ai title: first request]]>
+      <![CDATA[toast: 已建任务：first request]]>
+      <![CDATA[toast: 正在识别文字…]]>
+      <![CDATA[ocr start 60x40]]>
+      <![CDATA[pin closed, 0 remaining]]>
+    </system-out>
+  </testcase>
+  <testcase name="restartRecoversPendingLocalTitle" classname="ExperienceTests" time="0.015"/>
+  <testcase name="ocrTimeoutEmitsOnlyOneFailure" classname="ExperienceTests" time="0.227">
+    <system-out>
+      <![CDATA[ocr start 100x60]]>
+    </system-out>
+    <system-err>
+      <![CDATA[ocr failed: "OCR 超时"]]>
+    </system-err>
+  </testcase>
+  <testcase name="calendarTaskOpensDetailsAndCanRestore" classname="ExperienceTests" time="0.023">
+    <system-out>
+      <![CDATA[calendar opened month=2026-11 selected=2026-11-20]]>
+    </system-out>
+    <system-err>
+      <![CDATA[This plugin does not support propagateSizeHints()]]>
+      <![CDATA[This plugin does not support raise()]]>
+    </system-err>
+  </testcase>
+  <testcase name="cleanupTestCase" classname="ExperienceTests" time="0.000"/>
+</testsuite>

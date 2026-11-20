@@ -1,4 +1,5 @@
 #include "ui/CalendarWindow.h"
+#include "ui/TaskDialogs.h"
 
 #include <QDebug>
 #include <QFont>
@@ -102,6 +103,9 @@ void CalendarWindow::mousePressEvent(QMouseEvent *e)
 {
     if (e->button() != Qt::LeftButton) return;
     const QPoint pos = e->pos();
+    for (const auto &row : m_taskRows) {
+        if (row.first.contains(pos)) { showTaskDetails(m_store, row.second, this); return; }
+    }
     if (m_prevRect.contains(pos)) {
         goMonth(-1);
         return;
@@ -243,6 +247,7 @@ void CalendarWindow::drawGrid(QPainter &p)
 
 void CalendarWindow::drawDayPanel(QPainter &p)
 {
+    m_taskRows.clear();
     const QLocale zh(QLocale::Chinese, QLocale::China);
     const QRect panel(width() - 288, 96, 264, height() - 120);
     p.setPen(Qt::NoPen);
@@ -266,6 +271,7 @@ void CalendarWindow::drawDayPanel(QPainter &p)
     p.setFont(yahei(9));
     for (const DayTask &t : m_dayTasks) {
         if (y + 20 > panel.bottom() - 30) break;
+        m_taskRows.append({QRect(panel.left() + 12, y, panel.width() - 24, 22), t.id});
         QColor color = kAccent;
         QString mark;
         if (t.state == QStringLiteral("done")) {

@@ -296,7 +296,7 @@ private slots:
         QWheelEvent zoom(QPointF(10, 10), pin.mapToGlobal(QPoint(10, 10)), {}, {0, 120},
                          Qt::NoButton, Qt::NoModifier, Qt::NoScrollPhase, false);
         QApplication::sendEvent(&pin, &zoom);
-        QCOMPARE(pin.zoom(), 1.1);
+        QTRY_COMPARE(pin.zoom(), 1.1);
         QWheelEvent opacity(QPointF(10, 10), pin.mapToGlobal(QPoint(10, 10)), {}, {0, -120},
                             Qt::NoButton, Qt::ControlModifier, Qt::NoScrollPhase, false);
         QApplication::sendEvent(&pin, &opacity);

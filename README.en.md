@@ -1,5 +1,9 @@
 # TaskPin
 
+The development branch now includes continuous pin zoom, configurable borders/shadows, full task details, completion undo/restore, an AI pending row and live card appearance previews. See the [experience update report](docs/reports/2026-11-20-experience-update.md). The requested Canva icon redesign is pending connector availability; the existing icon remains in use and 0.3.0 is not yet a stable release.
+
+Click task text to open scrollable, selectable details; use the circle to complete a task. Undo is available for 10 seconds (or Ctrl+Z on the card); completed tasks can always be restored from the card footer, context menu, tray or calendar details. Restoring updates today's state while preserving historical day snapshots. Appearance previews never persist until Save. AI failures/timeouts/restarts retain the local title and original OCR text; captures are serialized, with a waiting queue limited to three images / 128 MiB.
+
 **Keep the picture. Capture the thought.** Screenshots, desktop image pins and daily task cards for Windows.
 
 [简体中文](README.md) · [Downloads](https://github.com/YChoux-Pan/TaskPin/releases) · [Changelog](CHANGELOG.md) · [Building](docs/BUILDING.md) · [Testing](docs/TESTING.md)

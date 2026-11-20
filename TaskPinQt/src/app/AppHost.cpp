@@ -21,6 +21,7 @@
 #include "ui/SettingsDialog.h"
 #include "ui/SnipOverlay.h"
 #include "ui/WhiteboardWindow.h"
+#include "ui/TaskDialogs.h"
 
 #include <QAction>
 #include <QApplication>
@@ -152,7 +153,15 @@ private:
 
 AppHost::AppHost(QObject *parent) : QObject(parent) {}
 
-AppHost::~AppHost() = default;
+AppHost::~AppHost()
+{
+    // Top-level widgets must go before QObject destroys their Store and signal targets.
+    delete m_snip;
+    delete m_settings.data();
+    delete m_calendar.data();
+    delete m_history.data();
+    delete m_card;
+}
 
 void AppHost::start(const QString &initialCommand)
 {
@@ -187,7 +196,10 @@ void AppHost::start(const QString &initialCommand)
     connect(m_ai, &AiClient::finished, this, &AppHost::onAiFinished);
     connect(m_ai, &AiClient::failed, this, [this](const QString &reason) {
         qWarning("ai summarize failed: %s", qUtf8Printable(reason));
-        if (!m_pendingOcrText.isEmpty()) createTaskFromCapture(m_pendingLocalTitle);
+        if (m_pendingTaskId.isEmpty()) return;
+        m_store->finishAiTask(m_pendingTaskId, QString(), false);
+        toast(QStringLiteral("AI 暂未完成，已保留本地识别任务和原文"));
+        finishCapture();
     });
 
     m_hotkeys = new Hotkeys(this);
@@ -256,6 +268,8 @@ void AppHost::buildTray()
     m_tray->setToolTip(QStringLiteral("TaskPin %1").arg(QStringLiteral(TASKPIN_VERSION)));
 
     auto *menu = new QMenu();
+    menu->addAction(QStringLiteral("已完成任务…"), this, [this] { showCompletedTasks(m_store, m_card); });
+    menu->addSeparator();
     // Every item that has a global hotkey is tracked so the menu can show the chord right-aligned
     // (a tab in the action text: QMenu renders the part after it as the shortcut hint, without
     // registering a second QAction shortcut that could double-fire with RegisterHotKey).
@@ -601,20 +615,35 @@ void AppHost::captureWhiteboard(bool transparent)
 
 void AppHost::recognizeImage(const QImage &image)
 {
-    if (!m_ocr) return;
-    if (m_ocr->busy()) {
-        toast(QStringLiteral("上一次识别还没结束…"));
+    if (!m_ocr || image.isNull()) return;
+    qint64 bytes = image.sizeInBytes();
+    for (const auto &queued : m_captureQueue) bytes += queued.sizeInBytes();
+    if (m_captureQueue.size() >= 3 || bytes > 128 * 1024 * 1024) {
+        toast(QStringLiteral("识别队列已满，请等当前任务完成后重试"));
         return;
     }
+    m_captureQueue.enqueue(image);
+    if (m_captureBusy) toast(QStringLiteral("已加入识别队列，前面还有 %1 张").arg(m_captureQueue.size()));
+    startNextCapture();
+}
+
+void AppHost::startNextCapture()
+{
+    if (m_captureBusy || m_captureQueue.isEmpty()) return;
+    m_captureBusy = true;
+    const auto image = m_captureQueue.dequeue();
     toast(QStringLiteral("正在识别文字…"));
     m_ocr->recognize(image);
 }
 
 void AppHost::onOcrFinished(const QString &text)
 {
+    if (!m_pendingTaskId.isEmpty()) return;
+    m_captureBusy = true;
     m_pendingOcrText = text.trimmed();
     if (m_pendingOcrText.isEmpty()) {
         toast(QStringLiteral("没有识别到文字"));
+        finishCapture();
         return;
     }
     const ParsedTask parsed = TimeParser::parse(m_pendingOcrText);
@@ -624,37 +653,44 @@ void AppHost::onOcrFinished(const QString &text)
     if (m_pendingLocalTitle.isEmpty()) m_pendingLocalTitle = firstLineTitle(m_pendingOcrText);
 
     const auto &s = Settings::instance();
-    if (s.aiEnabled && !s.aiApiKey.trimmed().isEmpty()) {
+    const bool useAi = s.aiEnabled && !s.aiApiKey.trimmed().isEmpty();
+    const QString id = m_store->addTask(m_pendingLocalTitle, QStringLiteral("ocr"), QString(), m_pendingDue,
+        m_pendingPriority, m_pendingOcrText, useAi ? QStringLiteral("pending") : QStringLiteral("none"));
+    if (m_card) m_card->revealTask(id);
+    if (useAi) {
+        m_pendingTaskId = id;
         toast(QStringLiteral("识别完成，AI 归纳中…"));
         m_ai->summarize(m_pendingOcrText);
         return;
     }
-    createTaskFromCapture(m_pendingLocalTitle);
+    toast(QStringLiteral("已建任务：%1").arg(m_pendingLocalTitle));
+    finishCapture();
 }
 
 void AppHost::onOcrFailed(const QString &reason)
 {
     toast(QStringLiteral("识别失败：%1").arg(reason));
-    m_pendingOcrText.clear();
+    finishCapture();
 }
 
 void AppHost::onAiFinished(const QString &title)
 {
-    createTaskFromCapture(title.trimmed().isEmpty() ? m_pendingLocalTitle : title.trimmed());
+    if (m_pendingTaskId.isEmpty()) return;
+    const QString summary = title.trimmed().isEmpty() ? m_pendingLocalTitle : title.trimmed();
+    m_store->finishAiTask(m_pendingTaskId, summary, true);
+    toast(QStringLiteral("已建任务：%1").arg(summary));
+    finishCapture();
 }
 
-void AppHost::createTaskFromCapture(const QString &title)
+void AppHost::finishCapture()
 {
-    if (title.trimmed().isEmpty() || m_pendingOcrText.isEmpty()) return;
-    const QString id = m_store->addTask(title.trimmed(), QStringLiteral("ocr"), QString(), m_pendingDue,
-                                        m_pendingPriority, m_pendingOcrText);
-    qInfo("ocr task created: %s id=%s due=%s", qUtf8Printable(title), qUtf8Printable(id),
-          qUtf8Printable(m_pendingDue.isValid() ? m_pendingDue.toString(Qt::ISODate) : QStringLiteral("-")));
-    toast(QStringLiteral("已建任务：%1").arg(title.trimmed()));
     m_pendingOcrText.clear();
     m_pendingLocalTitle.clear();
     m_pendingDue = QDateTime();
     m_pendingPriority = 2;
+    m_pendingTaskId.clear();
+    m_captureBusy = false;
+    QTimer::singleShot(0, this, &AppHost::startNextCapture);
 }
 
 // ---------------------------------------------------------------- windows
@@ -730,6 +766,9 @@ void AppHost::showSettings()
     m_settings = dlg;
     dlg->setAttribute(Qt::WA_DeleteOnClose, true);
     connect(dlg, &SettingsDialog::saved, this, &AppHost::applySettings);
+    connect(dlg, &SettingsDialog::cardPreviewChanged, m_card, &CardWindow::previewAppearance);
+    connect(dlg, &QDialog::finished, m_card, [this] { m_card->clearAppearancePreview(); });
+    connect(dlg, &QObject::destroyed, m_card, [this] { m_card->clearAppearancePreview(); });
     dlg->show();
     dlg->raise();
     WindowFx::forceForeground(dlg);
@@ -740,6 +779,8 @@ void AppHost::applySettings()
     qInfo("settings applied");
     registerHotkeys();
     if (m_card) m_card->applySettings();
+    const auto &s = Settings::instance();
+    for (auto *pin : PinWindow::all()) pin->applyAppearance(s.pinShadowStrength, s.pinBorderWidth, s.pinBorderColor);
     syncCardTopAction();
     if (!taskPinAutomation())
         Autostart::setEnabled(Settings::instance().autostart, QCoreApplication::applicationFilePath());
@@ -856,6 +897,9 @@ QJsonObject AppHost::dumpState() const
     cfg["historyLimit"] = s.historyLimit;
     cfg["lastRegion"] = s.lastRegion;
     cfg["pinOpacity"] = s.pinOpacity;
+    cfg["pinShadowStrength"] = s.pinShadowStrength;
+    cfg["pinBorderWidth"] = s.pinBorderWidth;
+    cfg["pinBorderColor"] = s.pinBorderColor.name();
     cfg["pinGroup"] = s.pinGroup;
     cfg["aiEnabled"] = s.aiEnabled;
     cfg["aiBaseUrl"] = s.aiBaseUrl;
@@ -926,6 +970,9 @@ QJsonObject AppHost::dumpState() const
 
     QJsonObject ocr;
     ocr["available"] = Ocr::available();
+    ocr["busy"] = m_captureBusy;
+    ocr["queued"] = m_captureQueue.size();
+    ocr["aiPending"] = !m_pendingTaskId.isEmpty();
     ocr["engine"] = QStringLiteral("Windows.Media.Ocr");
     o["ocr"] = ocr;
 

@@ -26,6 +26,10 @@ bool Store::open(const QString &path)
         return false;
     }
     ensureSchema();
+    // The local title and OCR text were saved before the network call. A restarted process
+    // cannot finish that old reply, so expose the useful local task instead of a stuck spinner.
+    QSqlQuery recover(m_db);
+    recover.exec("UPDATE task SET ai_state='failed' WHERE ai_state='pending'");
     m_open = true;
     return true;
 }
@@ -97,6 +101,17 @@ QList<Task> Store::deletedTasks() const
     return query("SELECT * FROM task WHERE state='dropped' ORDER BY updated DESC LIMIT 200");
 }
 
+QList<Task> Store::completedTasks() const
+{
+    return query("SELECT * FROM task WHERE state='done' ORDER BY completed DESC, sort_key DESC");
+}
+
+Task Store::task(const QString &id) const
+{
+    const auto items = query("SELECT * FROM task WHERE id=?", {id});
+    return items.isEmpty() ? Task{} : items.first();
+}
+
 int Store::openCount() const { return countByState(QStringLiteral("open")); }
 
 int Store::countByState(const QString &state) const
@@ -117,7 +132,7 @@ qint64 Store::nextSortKey() const
 }
 
 QString Store::addTask(const QString &title, const QString &source, const QString &attachment,
-                       const QDateTime &due, int priority, const QString &ocrText)
+                       const QDateTime &due, int priority, const QString &ocrText, const QString &aiState)
 {
     Task t;
     t.id = QUuid::createUuid().toString(QUuid::WithoutBraces);
@@ -135,7 +150,7 @@ QString Store::addTask(const QString &title, const QString &source, const QStrin
     QSqlQuery q(m_db);
     q.prepare("INSERT INTO task (id,title,note,ocr_text,source,tags,due,priority,sort_key,state,created,"
               "updated,completed,origin_date,last_day,carry_count,attachment,ai_state,ai_attempts) "
-              "VALUES (?,?,?,?,?,?,?,?,?,'open',?,?,'',?,?,0,?,'none',0)");
+              "VALUES (?,?,?,?,?,?,?,?,?,'open',?,?,'',?,?,0,?,?,0)");
     q.addBindValue(t.id);
     q.addBindValue(t.title);
     q.addBindValue("");
@@ -150,6 +165,7 @@ QString Store::addTask(const QString &title, const QString &source, const QStrin
     q.addBindValue(t.originDate);
     q.addBindValue(t.lastDay);
     q.addBindValue(t.attachment);
+    q.addBindValue(aiState == "pending" ? "pending" : "none");
     if (!q.exec()) qWarning() << "insert failed:" << q.lastError().text();
 
     QSqlQuery d(m_db);
@@ -163,15 +179,30 @@ QString Store::addTask(const QString &title, const QString &source, const QStrin
     return t.id;
 }
 
+void Store::finishAiTask(const QString &id, const QString &title, bool success)
+{
+    QSqlQuery q(m_db);
+    q.prepare("UPDATE task SET title=CASE WHEN ? AND state<>'dropped' THEN ? ELSE title END, "
+              "ai_state=?, updated=? WHERE id=? AND ai_state='pending'");
+    q.addBindValue(success && !title.trimmed().isEmpty());
+    q.addBindValue(title.trimmed());
+    q.addBindValue(success ? "done" : "failed");
+    q.addBindValue(nowIso());
+    q.addBindValue(id);
+    if (q.exec() && q.numRowsAffected() > 0) emit changed();
+}
+
 void Store::setDone(const QString &id, bool done)
 {
     QSqlQuery q(m_db);
-    q.prepare("UPDATE task SET state=?, completed=?, updated=? WHERE id=?");
+    if (!m_db.transaction()) return;
+    q.prepare("UPDATE task SET state=?, completed=?, updated=? WHERE id=? AND state=?");
     q.addBindValue(done ? "done" : "open");
     q.addBindValue(done ? nowIso() : QString());
     q.addBindValue(nowIso());
     q.addBindValue(id);
-    q.exec();
+    q.addBindValue(done ? "open" : "done");
+    if (!q.exec() || q.numRowsAffected() != 1) { m_db.rollback(); return; }
 
     QSqlQuery d(m_db);
     d.prepare("INSERT OR REPLACE INTO task_day (task_id,day,state,seen_at) VALUES (?,?,?,?)");
@@ -179,8 +210,8 @@ void Store::setDone(const QString &id, bool done)
     d.addBindValue(todayKey());
     d.addBindValue(done ? "done" : "open");
     d.addBindValue(nowIso());
-    d.exec();
-
+    if (!d.exec() || !m_db.commit()) { m_db.rollback(); return; }
+    emit completionChanged(id, done);
     emit changed();
 }
 

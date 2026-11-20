@@ -34,6 +34,7 @@ private:
     QMap<QString, DayStat> m_stats;
     QList<DayTask> m_dayTasks;
     QVector<QPair<QRect, QDate>> m_cells;
+    QVector<QPair<QRect, QString>> m_taskRows;
     QRect m_prevRect;
     QRect m_nextRect;
     QRect m_todayRect;

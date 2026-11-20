@@ -44,6 +44,7 @@ signals:
     void captured(const QImage &image, const QRect &logicalRegion);
 
 protected:
+    void showEvent(QShowEvent *e) override;
     void paintEvent(QPaintEvent *e) override;
     void mousePressEvent(QMouseEvent *e) override;
     void mouseMoveEvent(QMouseEvent *e) override;
