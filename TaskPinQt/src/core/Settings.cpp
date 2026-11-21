@@ -232,7 +232,7 @@ void Settings::load()
     }
 }
 
-void Settings::save()
+bool Settings::save(QString *error)
 {
     QJsonObject o;
     o[QStringLiteral("version")] = 3;
@@ -280,10 +280,15 @@ void Settings::save()
     QSaveFile f(settingsPath());
     if (!f.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
         qWarning() << "settings save failed:" << f.errorString();
-        return;
+        if(error)*error=QStringLiteral("设置保存失败：%1").arg(f.errorString());
+        return false;
     }
-    f.write(QJsonDocument(o).toJson(QJsonDocument::Indented));
-    f.commit();
+    const auto bytes=QJsonDocument(o).toJson(QJsonDocument::Indented);
+    if(f.write(bytes)!=bytes.size() || !f.commit()) {
+        if(error)*error=QStringLiteral("设置写入失败：%1").arg(f.errorString());
+        qWarning()<<"settings commit failed:"<<f.errorString();return false;
+    }
+    return true;
 }
 
 void Settings::resetToDefaults()

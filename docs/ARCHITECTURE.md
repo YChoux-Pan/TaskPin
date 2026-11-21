@@ -1,4 +1,4 @@
-# Architecture — TaskPin 0.4.0
+# Architecture — TaskPin 0.4.1
 
 The maintained application is C++17 / Qt Widgets for Windows 10/11 x64. CMake requires Qt >= 6.4. The reference release kit is Qt 6.4.3 / MinGW 11.2 x64. The repository contains one active implementation under `TaskPinQt/`; older C# documents in `docs/legacy/` are historical references, not current contracts.
 
@@ -42,7 +42,7 @@ AI is optional and off by default. If enabled, the configured OpenAI-compatible 
 
 ## Independent screen translation
 
-Ctrl+Alt+T uses a separate TranslationOverlay and TranslationWindow. It does not modify the screenshot history, last region or task store. TranslationOcr passes image bytes through stdin to a Windows.Media.Ocr helper without content files. OCR lines retain geometry and unknown confidence; technical characters need comparison with the original image. TranslationClient uses a separate network manager, endpoint-scoped consent, Windows credential storage, a single task generation, bounded sequential batches, strict block/token validation and a 64-block memory cache. Closing cancels work and invalidates late results. Default mode is local OCR; no genuine offline translation model is bundled. See [SCREEN-TRANSLATION](SCREEN-TRANSLATION.md) for behavior and limits.
+Ctrl+Alt+T uses a separate TranslationOverlay and TranslationWindow. It does not modify the screenshot history, last region or task store. TranslationOcr passes image bytes through stdin to a Windows.Media.Ocr helper without content files. OCR lines retain geometry and unknown confidence; technical characters need comparison with the original image. TranslationClient uses a separate network manager, endpoint-scoped consent, the shared AI Settings connection, a single task generation, bounded sequential batches, strict block/token validation and a 64-block memory cache. Closing cancels work and invalidates late results. TranslationCanvas renders successful blocks over their original image rectangles, preserves original pixels separately and provides bounded callout fallback. A single nonmodal SettingsDialog contains TranslationSettingsPage; all entries reuse that window. Default mode is local OCR; no genuine offline translation model is bundled. See [SCREEN-TRANSLATION](SCREEN-TRANSLATION.md) for behavior and limits.
 
 ## Build and verification
 

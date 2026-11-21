@@ -15,7 +15,7 @@ public:
     static Settings &instance();
 
     void load();
-    void save();
+    bool save(QString *error=nullptr);
     void resetToDefaults();
 
     static QString dataDir();

@@ -1,0 +1,21 @@
+********* Start testing of TranslationCanvasTests *********
+Config: Using QtTest library 6.4.3, Qt 6.4.3 (x86_64-little_endian-llp64 shared (dynamic) release build; by GCC 11.2.0), windows 11
+PASS   : TranslationCanvasTests::initTestCase()
+PASS   : TranslationCanvasTests::emptyContentIsSafe()
+PASS   : TranslationCanvasTests::originalIsAnIndependentPhysicalPixelImage()
+PASS   : TranslationCanvasTests::successfulBlockReplacesTextInsideItsBounds(white)
+PASS   : TranslationCanvasTests::successfulBlockReplacesTextInsideItsBounds(dark)
+PASS   : TranslationCanvasTests::borderMedianIgnoresSparseForeground()
+PASS   : TranslationCanvasTests::failedPendingCodeAndFormulaRemainOriginal()
+PASS   : TranslationCanvasTests::resultsUseIdsAndClampPhysicalCoordinates()
+PASS   : TranslationCanvasTests::longTranslationCompletesBelowImageAndPreservesNeighbor()
+PASS   : TranslationCanvasTests::overlappingCodeIsProtected()
+PASS   : TranslationCanvasTests::markupIsRenderedAsLiteralText()
+PASS   : TranslationCanvasTests::mockIsVisiblyMarked()
+PASS   : TranslationCanvasTests::zoomAndOriginalModeUseCurrentCachedImageSize()
+PASS   : TranslationCanvasTests::excessiveCalloutsUseVisibleNoticeWithinPixelBudget(32-long-blocks)
+PASS   : TranslationCanvasTests::excessiveCalloutsUseVisibleNoticeWithinPixelBudget(128-long-blocks)
+PASS   : TranslationCanvasTests::displayedPixelsMatchCachedExport()
+PASS   : TranslationCanvasTests::cleanupTestCase()
+Totals: 17 passed, 0 failed, 0 skipped, 0 blacklisted, 784ms
+********* Finished testing of TranslationCanvasTests *********

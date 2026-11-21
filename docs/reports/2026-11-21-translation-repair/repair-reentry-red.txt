@@ -1,0 +1,18 @@
+********* Start testing of TranslationTests *********
+Config: Using QtTest library 6.4.3, Qt 6.4.3 (x86_64-little_endian-llp64 shared (dynamic) release build; by GCC 11.2.0), windows 11
+PASS   : TranslationTests::initTestCase()
+QINFO  : TranslationTests::topmostTranslationDoesNotCoverSettings() TaskPin Qt 0.4.1 started, rolled over 0 task(s)
+QINFO  : TranslationTests::topmostTranslationDoesNotCoverSettings() card z-order: topmost (native topmost=0)
+QINFO  : TranslationTests::topmostTranslationDoesNotCoverSettings() card z-order retry: topmost=0
+QWARN  : TranslationTests::topmostTranslationDoesNotCoverSettings() This plugin does not support raise()
+QWARN  : TranslationTests::topmostTranslationDoesNotCoverSettings() QFontDatabase: Cannot find font directory D:/CodexDocuments/2026-11-19/https-github-com-kael-odin-codex/work/TaskPin/repair-build/lib/fonts.
+Note that Qt no longer ships fonts. Deploy some (from https://dejavu-fonts.github.io/ for example) or switch to fontconfig.
+QWARN  : TranslationTests::topmostTranslationDoesNotCoverSettings() This plugin does not support raise()
+QWARN  : TranslationTests::topmostTranslationDoesNotCoverSettings() This plugin does not support propagateSizeHints()
+QWARN  : TranslationTests::topmostTranslationDoesNotCoverSettings() This plugin does not support raise()
+QWARN  : TranslationTests::topmostTranslationDoesNotCoverSettings() This plugin does not support raise()
+FAIL!  : TranslationTests::topmostTranslationDoesNotCoverSettings() 'reentryHidden' returned FALSE. ()
+D:/CodexDocuments/2026-11-19/https-github-com-kael-odin-codex/work/TaskPin/repair-source/TaskPinQt/tests/tst_translation.cpp(342) : failure location
+PASS   : TranslationTests::cleanupTestCase()
+Totals: 2 passed, 1 failed, 0 skipped, 0 blacklisted, 164ms
+********* Finished testing of TranslationTests *********

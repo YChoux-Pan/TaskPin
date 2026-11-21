@@ -1,0 +1,26 @@
+{
+  "endpoint": "https://api.deepseek.com/v1/chat/completions",
+  "model": "deepseek-chat",
+  "existingAiKeyPresent": true,
+  "translationVaultKeyPresent": true,
+  "vaultReadError": 0,
+  "vaultMatchesExistingAI": false,
+  "fixtureOnly": true,
+  "requests": 1,
+  "httpStatus": 200,
+  "finishReason": "stop",
+  "jsonProtocolValid": true,
+  "placeholderPreserved": true,
+  "fixtureTranslation": "默认值是 __KEEP_fixture_0__。",
+  "usage": {
+    "prompt_tokens": 103,
+    "completion_tokens": 32,
+    "total_tokens": 135,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    },
+    "prompt_cache_hit_tokens": 0,
+    "prompt_cache_miss_tokens": 103
+  },
+  "elapsedMs": 844
+}

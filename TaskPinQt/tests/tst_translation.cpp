@@ -1,7 +1,6 @@
 #include "translation/TranslationClient.h"
 #include "translation/TranslationOcr.h"
 #include "translation/TranslationText.h"
-#include "platform/TranslationCredentials.h"
 #include "core/Settings.h"
 #include "core/Store.h"
 #include "app/AppHost.h"
@@ -10,6 +9,11 @@
 #include <QClipboard>
 #include <QDir>
 #include <QDialog>
+#include <QTabWidget>
+#include <QLineEdit>
+#include "ui/SettingsDialog.h"
+#include "ui/TranslationSettingsPage.h"
+#include <QCheckBox>
 #include <QFile>
 #include <QFontDatabase>
 #include <QJsonDocument>
@@ -84,6 +88,66 @@ private slots:
         QCOMPARE(Settings::defaultChord("snip"),QString("F1"));QCOMPARE(Settings::defaultChord("translate"),QString("Ctrl+Alt+T"));
         QVERIFY(Settings::fallbackChord("translate").isEmpty());
         auto cfg=Config::load();QCOMPARE(cfg.mode,QString("local"));QVERIFY(!cfg.authorized());
+    }
+    void sharedAiConfigurationIgnoresLegacyTranslationConnection() {
+        auto &s=Settings::instance();const auto endpoint=s.aiBaseUrl,model=s.aiModel;
+        Config cfg;cfg.endpoint="https://old-translation.invalid/v1";cfg.model="old-model";QString error;QVERIFY(cfg.save(&error));
+        s.aiBaseUrl="https://shared-ai.invalid/v1";s.aiModel="working-model";
+        auto actual=Config::load();
+        const bool shared=actual.endpoint==s.aiBaseUrl && actual.model==s.aiModel;
+        s.aiBaseUrl=endpoint;s.aiModel=model;Config local;QVERIFY(local.save(&error));
+        QVERIFY(shared);
+    }
+    void translationSettingsIsOneNonmodalPage() {
+        AppHost host;host.start();host.showSettings();
+        bool modalObserved=false;
+        QTimer watchdog;watchdog.setInterval(20);
+        connect(&watchdog,&QTimer::timeout,&host,[&] {for(auto *w:QApplication::topLevelWidgets())if(auto *d=qobject_cast<QDialog *>(w))if(d->isModal()){modalObserved=true;d->reject();}});
+        watchdog.start();host.showTranslationSettings();watchdog.stop();
+        int settings=0;bool pageFound=false;
+        for(auto *w:QApplication::topLevelWidgets())if(w->windowTitle()==QStringLiteral("TaskPin 设置")) {
+            ++settings;auto *tabs=w->findChild<QTabWidget *>();if(tabs)pageFound=tabs->tabText(tabs->currentIndex())==QStringLiteral("截图翻译");
+        }
+        QVERIFY(!modalObserved);QCOMPARE(settings,1);QVERIFY(pageFound);
+    }
+    void sharedKeySaveReloadAndCancel() {
+        auto &s=Settings::instance();const auto endpoint=s.aiBaseUrl,model=s.aiModel,key=s.aiApiKey;
+        Config local;QString error;QVERIFY(local.save(&error));
+        {
+            SettingsDialog dialog;dialog.findChild<QLineEdit *>("aiApiKey")->setText("fixture-saved-token");
+            dialog.findChild<QLineEdit *>("aiModel")->setText("fixture-model");
+            for(auto *b:dialog.findChildren<QPushButton *>())if(b->text()==QStringLiteral("保存"))b->click();
+            QCOMPARE(dialog.result(),int(QDialog::Accepted));
+        }
+        s.load();QCOMPARE(s.aiApiKey,QString("fixture-saved-token"));QCOMPARE(Config::load().apiKey(),QString("fixture-saved-token"));
+        {
+            SettingsDialog dialog;QCOMPARE(dialog.findChild<QLineEdit *>("aiApiKey")->text(),QString("fixture-saved-token"));
+            dialog.findChild<QLineEdit *>("aiApiKey")->setText("fixture-must-not-save");dialog.reject();
+        }
+        s.load();QCOMPARE(s.aiApiKey,QString("fixture-saved-token"));
+        s.aiBaseUrl=endpoint;s.aiModel=model;s.aiApiKey=key;s.save();
+    }
+    void revokedConsentSurvivesDraftKeyAndModelEdits() {
+        Config cfg;cfg.mode="cloud";cfg.consentEndpoint=cfg.requestUrl().toString(QUrl::FullyEncoded);QString error;QVERIFY(cfg.save(&error));
+        TranslationSettingsPage page;page.setConnection(cfg.endpoint,cfg.model,"fixture-key");
+        auto *consent=page.findChild<QCheckBox *>("translationConsent");QVERIFY(consent->isChecked());
+        consent->setChecked(false);page.setConnection(cfg.endpoint,"new-model","new-fixture-key");
+        const bool stillRevoked=!consent->isChecked();Config local;QVERIFY(local.save(&error));QVERIFY(stillRevoked);
+    }
+    void failedKeySaveDoesNotClaimSuccessOrChangeSettings() {
+        auto &s=Settings::instance();const QString oldKey=s.aiApiKey;
+        Config local;QString error;QVERIFY(local.save(&error));s.save();
+        QFile before(Settings::dataDir()+"/translation.json");QVERIFY(before.open(QIODevice::ReadOnly));const auto translationBefore=before.readAll();before.close();
+        SettingsDialog dialog;QSignalSpy saved(&dialog,&SettingsDialog::saved);
+        dialog.findChild<QLineEdit *>("aiApiKey")->setText("fixture-must-not-commit");
+        const QString path=Settings::settingsPath(),backup=path+".test-before";
+        QVERIFY(QFile::rename(path,backup));QVERIFY(QDir().mkpath(path));
+        for(auto *b:dialog.findChildren<QPushButton *>())if(b->text()==QStringLiteral("保存"))b->click();
+        const bool accepted=dialog.result()==QDialog::Accepted;
+        const QString afterKey=s.aiApiKey;const int savedCount=saved.size();
+        QVERIFY(QDir().rmdir(path));QVERIFY(QFile::rename(backup,path));
+        before.setFileName(Settings::dataDir()+"/translation.json");QVERIFY(before.open(QIODevice::ReadOnly));const auto translationAfter=before.readAll();
+        s.load();QVERIFY(!accepted);QCOMPARE(savedCount,0);QCOMPARE(afterKey,oldKey);QCOMPARE(translationAfter,translationBefore);
     }
     void protectionPreservesTechnicalText() {
         const QString text="watersheds_threshold Image Basins Threshold Row Column Radius HObject HTuple https://example.com/help C:\\demo\\x 24.05 10 mm";
@@ -182,6 +246,14 @@ private slots:
         QVERIFY(!QJsonDocument(server.payloads.first()).toJson().contains("image_url"));
         client.start("b",{block()},server.config(),"fixture-only");QTRY_COMPARE(finished.size(),2);QCOMPARE(server.requests,1);
     }
+    void connectionTestBypassesPriorSuccessfulCache() {
+        FixtureServer server;Client client;client.allowLoopbackForTests(true);
+        QSignalSpy finished(&client,&Client::finished),failed(&client,&Client::failed);
+        client.start("good",{block()},server.config(),"fixture-good");QTRY_COMPARE(finished.size(),1);
+        server.httpStatus=401;auto cfg=server.config();cfg.useCache=false;
+        client.start("bad",{block()},cfg,"fixture-invalid");
+        QTRY_COMPARE(server.requests,2);QTRY_COMPARE(failed.size(),1);QCOMPARE(finished.size(),1);
+    }
     void responseFailures_data() {
         QTest::addColumn<QString>("behavior");QTest::addColumn<int>("code");QTest::addColumn<bool>("partial");
         QTest::newRow("missing")<<QString("missing")<<200<<true;QTest::newRow("placeholder")<<QString("token")<<200<<true;
@@ -216,11 +288,6 @@ private slots:
         QString error;QVERIFY(cfg.save(&error));QFile file(data.path()+"/translation.json");QVERIFY(file.open(QIODevice::ReadOnly));auto bytes=file.readAll();
         file.close();QVERIFY(!bytes.contains("apiKey"));QVERIFY(!bytes.contains("secret"));cfg.endpoint="https://other.example/v1";QVERIFY(!cfg.authorized());
         Config local;QVERIFY(local.save(&error));
-    }
-    void credentialVaultIsolatedRoundTrip() {
-        Config cfg;cfg.endpoint="https://fixture.invalid/"+QUuid::createUuid().toString(QUuid::WithoutBraces);
-        QString error;const auto target=cfg.credentialTarget();QVERIFY(TranslationCredentials::write(target,"fixture-not-a-real-secret",&error));
-        QCOMPARE(TranslationCredentials::read(target),QString("fixture-not-a-real-secret"));QVERIFY(TranslationCredentials::remove(target,&error));QVERIFY(TranslationCredentials::read(target).isEmpty());
     }
     void cancelledWindowRejectsOldOcr() {
         TranslationWindow window;window.setAttribute(Qt::WA_DeleteOnClose,false);
@@ -261,6 +328,7 @@ private slots:
             for(auto *w:QApplication::topLevelWidgets())if(auto *b=w->findChild<QPushButton *>("openTranslationSettings"))button=b;
             QVERIFY(button);button->click();
         } else host.showTranslationSettings();
+        QCoreApplication::processEvents();
         QVERIFY(cancelledBeforeDialog);QVERIFY(!window->busy());
     }
     void hostEntryIsSeparateFromSnipAndNotes() {
@@ -274,6 +342,19 @@ private slots:
         QCOMPARE(host.dumpState()["settings"].toObject()["lastRegion"],before["settings"].toObject()["lastRegion"]);
         host.startSnip();QTRY_VERIFY(host.dumpState()["snip"].toObject()["active"].toBool());
         host.startTranslation();QVERIFY(!host.dumpState()["translation"].toObject()["selecting"].toBool());
+    }
+    void topmostTranslationDoesNotCoverSettings() {
+        AppHost host;host.start();host.startTranslation();TranslationOverlay *overlay=nullptr;
+        QTRY_VERIFY(([&] {for(auto *w:QApplication::topLevelWidgets())if(auto *t=qobject_cast<TranslationOverlay *>(w))overlay=t;return overlay;})());
+        QTest::mousePress(overlay,Qt::LeftButton,Qt::NoModifier,{20,20});QTest::mouseRelease(overlay,Qt::LeftButton,Qt::NoModifier,{180,90});
+        TranslationWindow *window=nullptr;for(auto *w:QApplication::topLevelWidgets())if(auto *t=qobject_cast<TranslationWindow *>(w))window=t;
+        QVERIFY(window);window->setWindowFlag(Qt::WindowStaysOnTopHint,true);window->show();
+        host.showTranslationSettings();
+        const bool hidden=!window->isVisible();
+        window->show();host.showTranslationSettings();
+        const bool reentryHidden=!window->isVisible();
+        for(auto *w:QApplication::topLevelWidgets())if(auto *d=qobject_cast<SettingsDialog *>(w))d->reject();
+        QVERIFY(hidden);QVERIFY(reentryHidden);QVERIFY(window->isVisible());QVERIFY(window->windowFlags().testFlag(Qt::WindowStaysOnTopHint));
     }
 };
 QTEST_MAIN(TranslationTests)

@@ -1,0 +1,14 @@
+{
+  "endpoint": "https://api.deepseek.com/v1/chat/completions",
+  "model": "deepseek-chat",
+  "existingAiKeyPresent": true,
+  "translationVaultKeyPresent": true,
+  "vaultReadError": 0,
+  "vaultMatchesExistingAI": false,
+  "fixtureOnly": true,
+  "requests": 1,
+  "credentialSource": "legacy-translation",
+  "httpStatus": 401,
+  "error": "service rejected synthetic test",
+  "elapsedMs": 375
+}
