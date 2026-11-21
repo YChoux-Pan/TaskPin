@@ -278,7 +278,7 @@ int runSelfTest(const QString &outDir)
     // ---- environment probes (informational, still asserted for the migration checklist)
     out << "\n== environment ==\n";
     {
-        check(out, "windows OCR reachable", Ocr::available(), QStringLiteral("Windows.Media.Ocr via PowerShell"));
+        check(out, "PaddleOCR runtime reachable", Ocr::available(), QStringLiteral("Local PaddleOCR CPU runtime"));
     }
 
     out << "\n== summary: " << g_pass << " passed, " << g_fail << " failed ==\n";

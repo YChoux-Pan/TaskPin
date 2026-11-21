@@ -1,0 +1,93 @@
+# Local PaddleOCR runtime
+
+Build on Windows x64 with a build-time Python 3.11 or newer. End users need
+neither Python nor a network connection. The bootstrap interpreter only uses
+its standard library; no global pip packages are installed or changed.
+
+```powershell
+./TaskPinQt/scripts/prepare-ocr-runtime.ps1 -OutputDir C:/build/taskpin/ocr -BootstrapPython C:/Python312/python.exe
+```
+
+`-CacheDir C:/build/ocr-download-cache` reuses SHA-256 verified downloads.
+`-Offline` forbids downloads and requires a complete cache. Running again
+verifies the existing runtime's file inventory and offline model self-check.
+Changed or damaged managed output is rebuilt from the pinned artifacts.
+An existing nonempty directory without the builder's receipt is never replaced.
+The output path must be absolute; cache and output must be separate directories.
+The builder needs Windows' built-in `expand.exe` to read Microsoft's runtime CAB.
+It does not execute or install the downloaded VC Redistributable.
+
+Copy the **entire output directory** into the application's `ocr/` directory:
+
+```text
+ocr/python.exe
+ocr/python312.zip, python312.dll, python312._pth, app-local MSVC DLLs, ...
+ocr/helper.py
+ocr/runtime-lock.json
+ocr/taskpin-ocr-runtime.json
+ocr/Lib/site-packages/...
+ocr/models/ch_PP-OCRv5_det_mobile.onnx
+ocr/models/ch_PP-OCRv5_rec_mobile.onnx
+ocr/LICENSE.txt
+ocr/licenses/...
+```
+
+Qt launches `python.exe -I -B helper.py`, writes one UTF-8 JSON request to stdin,
+and closes stdin. The helper writes exactly one UTF-8 JSON object plus a newline
+to stdout and exits. It accepts `{ "image": "<base64 PNG>" }`. Successful output:
+
+```json
+{"ok":true,"engine":"PaddleOCR PP-OCRv5","language":"multi","modelVersion":"PP-OCRv5_mobile/RapidOCR-v3.10.0","lines":[{"text":"Example","x":10,"y":20,"width":100,"height":24,"confidence":0.97}]}
+```
+
+The sample confidence above illustrates the schema. Actual values come directly
+from the recognition model. Rectangles bound the detected quadrilateral in the
+original image's physical pixels. The Chinese PP-OCRv5 recognition model covers
+Chinese and English text; `multi` describes this shared model and is not a
+promise to recognize every language. The angle classifier is disabled, so
+upright text is the intended input. RapidOCR may split a visual row into multiple
+detected text regions. It uses its normal detection and recognition thresholds.
+
+Limits are 16,000,000 image pixels, 16,384 pixels per dimension, 64 MiB PNG bytes,
+90 MiB input JSON, 512 regions, 32,000 Unicode characters, and 1 MiB output JSON.
+Excess output fails instead of silently truncating text. Empty images return
+`lines: []`. Recognition uses two intra-operation CPU threads and one
+inter-operation thread, with OpenCV/BLAS/OpenMP also capped at two threads.
+Each invocation loads the models again; cold-start time depends on the machine
+and input. All input/recognition data stays in memory. The helper never saves
+images or text, emits no dependency logs, verifies both model hashes before
+loading, disables RapidOCR's downloader, and blocks Python socket connections
+and name lookup. No API keys, cloud service, automatic model download, or font
+download is used. `-I -B` isolates user Python configuration and bytecode writes.
+
+Failure is a nonzero exit with `{"ok":false,"errorCode":"..."}`. Stable codes:
+`invalid_request`, `invalid_image`, `input_too_large`, `image_too_large`,
+`model_missing`, `model_hash_mismatch`, `runtime_incomplete`,
+`runtime_incompatible`, `runtime_unavailable`, `network_disabled`,
+`inference_failed`, `invalid_model_output`, `output_too_large`,
+`invalid_arguments`, and `internal_error`. No user contents or exception strings
+are written to stderr.
+
+Offline model self-check (also run by the builder):
+
+```powershell
+C:/build/taskpin/ocr/python.exe -I -B C:/build/taskpin/ocr/helper.py --self-check
+```
+
+Behavioral fixture checks (also run by `scripts/test.ps1`):
+
+```powershell
+C:/build/taskpin/ocr/python.exe -I -B ./TaskPinQt/ocr/test_helper.py --runtime C:/build/taskpin/ocr
+```
+
+The self-check verifies hashes, imports, and loads both local ONNX models.
+The behavioral test creates in-memory English/Chinese/dark technical fixtures,
+checks recognized phrases, real confidence, coordinates, invalid-input handling,
+and model tamper rejection. It writes no screenshots or recognition transcripts.
+English fixtures default to Windows Arial; Chinese fixtures use Microsoft YaHei.
+On a CI host without Chinese fonts, pass `--font C:/fonts/NotoSansCJK-Regular.ttc`
+with an available CJK/Latin TTF, OTF, or TTC font. Fonts are used only to create
+synthetic test images and are not part of the OCR runtime or model inference.
+Repository source contains manifests and scripts only; binary artifacts remain
+in the chosen output/cache directories. Dependency and model attributions are
+in `licenses/PADDLEOCR_RUNTIME_NOTICE.md` and each generated runtime's licenses.

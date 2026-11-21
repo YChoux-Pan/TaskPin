@@ -1,11 +1,11 @@
-TaskPin 0.4.1 - Windows 10/11 x64
+TaskPin 0.4.2 - Windows 10/11 x64
 
-Extract the whole TaskPin-0.4.1 folder and run TaskPinQt.exe.
+Extract the whole TaskPin-0.4.2 folder and run TaskPinQt.exe.
 Keep the DLLs and plugin folders beside the executable. No Qt SDK is required.
 Use the system tray menu for Settings and Exit.
 
 Default shortcuts:
-Ctrl+Alt+T independent screen translation (default: local OCR, no network)
+F1 region editor: Translate button / Ctrl+T produces a movable translation pin
 F1 region screenshot; Ctrl+Alt+F current monitor capture
 F3 pin clipboard image; Shift+F3 show/hide all pins; Ctrl+Alt+Space quick note
 Ctrl+Alt+D show/hide task card; Ctrl+Alt+G screenshot history
@@ -27,10 +27,12 @@ Do not share databases, settings, logs, screenshot history or OCR files.
 Screen translation is configured on the Screen Translation settings tab.
 It shares the AI tab endpoint, model and API key; no second key is required.
 Cloud translation sends recognized text only. The test button uses a fixed sentence.
-Default result: translated image overlay; switch to Original or Text Comparison.
+Translation output is a frameless desktop pin, not a separate result dialog.
+Drag to move, wheel to zoom; right-click for Original and optional Text Comparison.
 Long translations use numbered annotations; Save Translated Image exports PNG.
 Mock mode is a workflow demonstration, not real translation.
-Windows OCR requires suitable installed OCR components and language packs.
+PaddleOCR PP-OCRv5 models and CPU runtime are included in the ocr/ folder.
+Keep that complete folder. No system Python or Windows OCR language pack is required.
 Verify technical identifiers and formulas against the original image.
 Capture is limited to the monitor under the cursor.
 

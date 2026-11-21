@@ -1,0 +1,10 @@
+********* Start testing of TranslationCanvasTests *********
+Config: Using QtTest library 6.4.3, Qt 6.4.3 (x86_64-little_endian-llp64 shared (dynamic) release build; by GCC 11.2.0), windows 11
+PASS   : TranslationCanvasTests::initTestCase()
+QWARN  : TranslationCanvasTests::unchangedTranslationKeepsOriginalPixels() QFontDatabase: Cannot find font directory [development]/pin-build/lib/fonts.
+Note that Qt no longer ships fonts. Deploy some (from https://dejavu-fonts.github.io/ for example) or switch to fontconfig.
+FAIL!  : TranslationCanvasTests::unchangedTranslationKeepsOriginalPixels() Compared values are not the same
+[development]/pin-source/TaskPinQt/tests/tst_translation_canvas.cpp(161) : failure location
+PASS   : TranslationCanvasTests::cleanupTestCase()
+Totals: 2 passed, 1 failed, 0 skipped, 0 blacklisted, 6ms
+********* Finished testing of TranslationCanvasTests *********

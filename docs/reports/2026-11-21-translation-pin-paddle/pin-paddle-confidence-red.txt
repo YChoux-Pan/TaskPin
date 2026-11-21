@@ -1,0 +1,8 @@
+********* Start testing of TranslationTests *********
+Config: Using QtTest library 6.4.3, Qt 6.4.3 (x86_64-little_endian-llp64 shared (dynamic) release build; by GCC 11.2.0), windows 11
+PASS   : TranslationTests::initTestCase()
+FAIL!  : TranslationTests::paddleOcrPreservesModelConfidence() 'r.lines[0].recognitionConfidence.has_value()' returned FALSE. ()
+[development]/pin-source/TaskPinQt/tests/tst_translation.cpp(288) : failure location
+PASS   : TranslationTests::cleanupTestCase()
+Totals: 2 passed, 1 failed, 0 skipped, 0 blacklisted, 3ms
+********* Finished testing of TranslationTests *********

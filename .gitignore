@@ -21,7 +21,7 @@ settings.json.broken
 .env
 toolchain/
 history/snip/
-ocr/
+/ocr/
 
 # Portable release staging and developer reports
 dist/

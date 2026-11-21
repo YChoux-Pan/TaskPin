@@ -1,0 +1,10 @@
+********* Start testing of TranslationTests *********
+Config: Using QtTest library 6.4.3, Qt 6.4.3 (x86_64-little_endian-llp64 shared (dynamic) release build; by GCC 11.2.0), windows 11
+PASS   : TranslationTests::initTestCase()
+FAIL!  : TranslationTests::jitteredWordsDoNotBridgeColumnGap() Compared values are not the same
+   Actual   (blocks.size()): 1
+   Expected (2)            : 2
+[development]/pin-source/TaskPinQt/tests/tst_translation.cpp(293) : failure location
+PASS   : TranslationTests::cleanupTestCase()
+Totals: 2 passed, 1 failed, 0 skipped, 0 blacklisted, 5ms
+********* Finished testing of TranslationTests *********

@@ -1,0 +1,27 @@
+{
+    "cloudCalled": true,
+    "comparisonCreated": false,
+    "editorEntry": "F1 toolbar translation",
+    "elapsedMs": 3857,
+    "fixtureOnly": true,
+    "framelessPin": true,
+    "ocr": "The operator segments regions by a watershed.\n\ninner circle (Region, Row, Column, Radius)\n\nmax(W-B1, W-B2) Threshold",
+    "ocrEngine": "PaddleOCR PP-OCRv5",
+    "ocrModelVersion": "PP-OCRv5_mobile/RapidOCR-v3.10.0",
+    "positionAndZoomPreserved": true,
+    "recognitionScores": [
+        0.99905,
+        0.98019,
+        0.99914,
+        0.99114,
+        0.99836,
+        0.99668,
+        0.95897,
+        0.99908,
+        0.99947,
+        0.99388,
+        0.99976
+    ],
+    "result": "该算子通过分水岭对区域进行分割。\n\ninner circle (Region, Row, Column, Radius)\n\nmax(W-B1, W-B2) Threshold",
+    "state": "PRESENTING"
+}

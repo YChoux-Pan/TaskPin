@@ -4,8 +4,9 @@
 #include "core/Settings.h"
 #include "core/Store.h"
 #include "app/AppHost.h"
-#include "ui/TranslationOverlay.h"
+#include "ui/SnipOverlay.h"
 #include "ui/TranslationWindow.h"
+#include "ui/PinWindow.h"
 #include <QClipboard>
 #include <QDir>
 #include <QDialog>
@@ -14,6 +15,9 @@
 #include "ui/SettingsDialog.h"
 #include "ui/TranslationSettingsPage.h"
 #include <QCheckBox>
+#include <QMenu>
+#include <QWheelEvent>
+#include <QContextMenuEvent>
 #include <QFile>
 #include <QFontDatabase>
 #include <QJsonDocument>
@@ -74,6 +78,14 @@ public:
 static Block block(QString text="The operator uses Threshold and watersheds_threshold at 12 mm.",QString id="block-1") {
     Block b;b.id=id;b.kind="paragraph";b.source=text;return protect(b,"test");
 }
+static bool pinMenuAction(PinWindow &pin,const QString &name) {
+    QContextMenuEvent event(QContextMenuEvent::Mouse,{15,15},pin.mapToGlobal(QPoint(15,15)));QApplication::sendEvent(&pin,&event);
+    auto *menu=pin.findChild<QMenu *>();if(!menu)return false;
+    std::function<QAction *(QMenu *)> find=[&](QMenu *m)->QAction *{for(auto *a:m->actions()){
+        if(a->text().section('\t',0,0)==name)return a;if(a->menu())if(auto *nested=find(a->menu()))return nested;}return nullptr;};
+    auto *action=find(menu);if(action)action->trigger();menu->close();
+    QCoreApplication::sendPostedEvents(nullptr,QEvent::DeferredDelete);return action!=nullptr;
+}
 class TranslationTests : public QObject {
     Q_OBJECT
     QTemporaryDir data;
@@ -84,10 +96,75 @@ private slots:
         Settings::instance().resetToDefaults();
         QVERIFY(QFontDatabase::addApplicationFont(qEnvironmentVariable("TASKPIN_TEST_FONT","C:/Windows/Fonts/msyh.ttc"))>=0);
     }
-    void independentDefaultHotkey() {
-        QCOMPARE(Settings::defaultChord("snip"),QString("F1"));QCOMPARE(Settings::defaultChord("translate"),QString("Ctrl+Alt+T"));
+    void onlyRegionScreenshotEntryRemains() {
+        QCOMPARE(Settings::defaultChord("snip"),QString("F1"));QVERIFY(Settings::defaultChord("translate").isEmpty());
         QVERIFY(Settings::fallbackChord("translate").isEmpty());
         auto cfg=Config::load();QCOMPARE(cfg.mode,QString("local"));QVERIFY(!cfg.authorized());
+    }
+    void translationResultUsesPinAtCaptureOrigin() {
+        TranslationWindow window;window.setAttribute(Qt::WA_DeleteOnClose,false);
+        QImage image(800,400,QImage::Format_RGB32);image.fill(Qt::white);
+        const QRect region(-300,120,400,200);window.setCapture(image,region);window.cancel();
+        auto *pin=qobject_cast<PinWindow *>(&window);QVERIFY(pin);
+        QVERIFY(window.windowFlags().testFlag(Qt::FramelessWindowHint));
+        QCOMPARE(pin->contentGeometry(),region);QVERIFY(PinWindow::all().contains(pin));
+        QVERIFY(!window.findChild<QPushButton *>("translationRetry"));
+    }
+    void translatedFramePreservesMovedZoomedHiddenPin() {
+        Config config;config.mode="mock";QString error;QVERIFY(config.save(&error));
+        TranslationWindow pin;pin.setAttribute(Qt::WA_DeleteOnClose,false);
+        QImage image(800,400,QImage::Format_RGB32);image.fill(Qt::white);
+        pin.setCapture(image,{-300,120,400,200});const auto id=pin.taskId();pin.findChild<Translation::Ocr *>()->cancel();
+        QTest::keyClick(&pin,Qt::Key_Plus);pin.move(-190,85);
+        const QPoint origin=pin.contentGeometry().topLeft();const auto zoom=pin.zoom();pin.hide();
+        OcrResult result;result.imageSize=image.size();result.language="en-US";result.lines={{"a","The region is bright.",{24,30,600,40},{}}};
+        pin.presentOcr(id,result);QTRY_COMPARE(pin.state(),QString("PRESENTING"));
+        QVERIFY(!pin.isVisible());QCOMPARE(pin.contentGeometry().topLeft(),origin);QCOMPARE(pin.zoom(),zoom);
+        QVERIFY(pin.image()!=image);QVERIFY(pin.targetText().contains(QStringLiteral("非真实译文")));
+        QVERIFY(pinMenuAction(pin,QStringLiteral("查看原图")));QCOMPARE(pin.image(),image);
+        QCOMPARE(pin.contentGeometry().topLeft(),origin);QCOMPARE(pin.zoom(),zoom);
+        QVERIFY(pinMenuAction(pin,QStringLiteral("顺时针 90°")));QCOMPARE(pin.image(),image.transformed(QTransform().rotate(90)));
+        QVERIFY(pinMenuAction(pin,QStringLiteral("显示中文译图")));
+        QCOMPARE(pin.image(),pin.translatedImage().transformed(QTransform().rotate(90)));
+        Config local;QVERIFY(local.save(&error));
+    }
+    void closingPinWithOpenMenuCleansBoth() {
+        auto *pin=new TranslationWindow;QPointer<TranslationWindow> alive=pin;
+        QContextMenuEvent event(QContextMenuEvent::Mouse,{1,1},{50,50});QApplication::sendEvent(pin,&event);
+        QPointer<QMenu> menu=pin->findChild<QMenu *>();QVERIFY(menu);
+        pin->close();QCoreApplication::sendPostedEvents(nullptr,QEvent::DeferredDelete);
+        QVERIFY(alive.isNull());QVERIFY(menu.isNull());
+    }
+    void multipleTranslationPinsHaveOneActiveTaskAndHostOwnership() {
+        QPointer<TranslationWindow> first,second;
+        {
+            AppHost host;host.start();QImage image(300,100,QImage::Format_RGB32);image.fill(Qt::white);
+            host.translateImage(image,{20,20,300,100});first=qobject_cast<TranslationWindow *>(PinWindow::all().last());QVERIFY(first->busy());
+            host.translateImage(image,{60,60,300,100});second=qobject_cast<TranslationWindow *>(PinWindow::all().last());
+            QCOMPARE(PinWindow::all().size(),2);QVERIFY(first!=second);QCOMPARE(first->state(),QString("CANCELLED"));QVERIFY(second->busy());
+            first->close();QCoreApplication::sendPostedEvents(nullptr,QEvent::DeferredDelete);QVERIFY(first.isNull());
+            QVERIFY(host.dumpState()["translation"].toObject()["busy"].toBool());QVERIFY(second->busy());
+        }
+        QVERIFY(second.isNull());QVERIFY(PinWindow::all().isEmpty());
+    }
+    void retryCancelledOcrPinPreservesViewAndCancelsOtherTask() {
+        AppHost host;host.start();QImage image(400,200,QImage::Format_RGB32);image.fill(Qt::white);
+        host.translateImage(image,{20,20,200,100});auto *first=qobject_cast<TranslationWindow *>(PinWindow::all().last());
+        QTest::keyClick(first,Qt::Key_Plus);first->move(80,110);
+        const auto origin=first->contentGeometry().topLeft();const auto zoom=first->zoom();
+        host.translateImage(image,{40,40,200,100});auto *second=qobject_cast<TranslationWindow *>(PinWindow::all().last());
+        QCOMPARE(first->state(),QString("CANCELLED"));QVERIFY(second->busy());
+        QVERIFY(pinMenuAction(*first,QStringLiteral("重新翻译")));
+        QVERIFY(first->busy());QCOMPARE(second->state(),QString("CANCELLED"));
+        QCOMPARE(first->contentGeometry().topLeft(),origin);QCOMPARE(first->zoom(),zoom);
+    }
+    void settingsHidesAndRestoresAllTranslationPins() {
+        AppHost host;host.start();QImage image(200,100,QImage::Format_RGB32);image.fill(Qt::white);
+        host.translateImage(image,{20,20,200,100});auto *first=qobject_cast<TranslationWindow *>(PinWindow::all().last());
+        host.translateImage(image,{50,50,200,100});auto *second=qobject_cast<TranslationWindow *>(PinWindow::all().last());
+        host.showSettings();QVERIFY(!first->isVisible());QVERIFY(!second->isVisible());
+        for(auto *w:QApplication::topLevelWidgets())if(auto *d=qobject_cast<SettingsDialog *>(w))d->reject();
+        QVERIFY(first->isVisible());QVERIFY(second->isVisible());QVERIFY(!first->busy());QVERIFY(!second->busy());
     }
     void sharedAiConfigurationIgnoresLegacyTranslationConnection() {
         auto &s=Settings::instance();const auto endpoint=s.aiBaseUrl,model=s.aiModel;
@@ -191,6 +268,32 @@ private slots:
         OcrResult o;o.lines={{"a","Left column",{0,0,100,20},.3},{"b","Right column",{200,0,100,20},std::nullopt}};
         QStringList warning;auto blocks=buildBlocks(o,&warning);QCOMPARE(blocks.size(),2);QCOMPARE(warning.size(),3);
     }
+    void paddleFragmentsKeepSentenceReadingOrder() {
+        // Real PP-OCRv5 detections have slightly different tops within one sentence.
+        OcrResult o;o.imageSize={1100,280};
+        o.lines={{"a","The",{20,26,64,38},.99905},
+                 {"b","operator segments",{77,27,284,40},.98019},
+                 {"c","regions",{359,27,118,39},.99914},
+                 {"d","by a watershed.",{472,24,238,44},.99114},
+                 {"e","inner circle",{21,94,165,32},.99836},
+                 {"f","(Region,",{189,92,126,38},.99668},
+                 {"g","Row,",{316,94,74,33},.95897},
+                 {"h","Column,",{395,94,120,32},.99908},
+                 {"i","Radius)",{520,92,110,38},.99947}};
+        auto blocks=buildBlocks(o);QCOMPARE(blocks.size(),2);
+        QCOMPARE(blocks[0].source,QString("The operator segments regions by a watershed."));
+        QCOMPARE(blocks[0].rect,QRectF(20,24,690,44));
+        QCOMPARE(blocks[1].source,QString("inner circle (Region, Row, Column, Radius)"));
+        QVERIFY(blocks[1].bypass());
+    }
+    void jitteredWordsDoNotBridgeColumnGap() {
+        OcrResult o;o.lines={{"a","Left",{0,0,40,20},.99},
+                            {"b","text",{45,5,40,20},.99},
+                            {"c","RIGHT",{120,0,80,20},.99}};
+        auto blocks=buildBlocks(o);QCOMPARE(blocks.size(),2);
+        QCOMPARE(blocks[0].source,QString("Left text"));
+        QCOMPARE(blocks[1].source,QString("RIGHT"));
+    }
     void strictResponseValidation() {
         auto a=block("A sentence.","a"),b=block("Threshold controls merging.","b");
         auto row=[](const Block &x){return QJsonObject{{"block_id",x.id},{"translated_text",x.protectedText},{"status","ok"}};};
@@ -199,35 +302,17 @@ private slots:
         results.clear();QVERIFY(!validate({a},{row(a),row(a)},&results,&invalid,&error));
         results.clear();invalid.clear();QVERIFY(validate({a,b},{row(a)},&results,&invalid,&error));QCOMPARE(invalid,QStringList{"b"});
     }
-    void cropCoordinates_data() {
-        QTest::addColumn<double>("scale");QTest::addColumn<QPoint>("from");QTest::addColumn<QPoint>("to");
-        for (double scale:{1.,1.25,1.5,2.}) for(int direction=0;direction<4;++direction)
-            QTest::newRow(qPrintable(QString::number(scale)+"-"+QString::number(direction)))<<scale<<QPoint(direction&1?120:20,direction&2?80:10)<<QPoint(direction&1?20:120,direction&2?10:80);
-    }
-    void cropCoordinates() {
-        QFETCH(double,scale);QFETCH(QPoint,from);QFETCH(QPoint,to);
-        QCOMPARE(TranslationOverlay::pixelRect(QRectF(from,to),{200,100},{qRound(200*scale),qRound(100*scale)}),QRect(qFloor(20*scale),qFloor(10*scale),qCeil(120*scale)-qFloor(20*scale),qCeil(80*scale)-qFloor(10*scale)));
-        QVERIFY(TranslationOverlay::pixelRect({0,0,1,1},{200,100},{400,200}).isEmpty());
-    }
-    void selectionNoClipboardOrHistory() {
-        QImage image(400,200,QImage::Format_RGB32);image.fill(Qt::green);
-        ScreenCapture shot{QPixmap::fromImage(image),QRect(-200,50,200,100),2,"fixture"};
-        TranslationOverlay w(shot);w.setAttribute(Qt::WA_DeleteOnClose,false);w.show();
-        QApplication::clipboard()->setText("unchanged");QSignalSpy selected(&w,&TranslationOverlay::selected);
-        QTest::mousePress(&w,Qt::LeftButton,Qt::NoModifier,{120,80});QTest::mouseRelease(&w,Qt::LeftButton,Qt::NoModifier,{20,10});
-        QCOMPARE(selected.size(),1);QCOMPARE(qvariant_cast<QImage>(selected[0][0]).size(),QSize(200,140));
-        QCOMPARE(selected[0][1].toRect(),QRect(-180,60,100,70));QCOMPARE(QApplication::clipboard()->text(),QString("unchanged"));
-        QVERIFY(!QFile::exists(data.path()+"/history/snip"));
-    }
-    void selectionEscape() {
-        QPixmap image(200,100);image.fill(Qt::white);TranslationOverlay w({image,{0,0,200,100},1,"fixture"});
-        w.setAttribute(Qt::WA_DeleteOnClose,false);QSignalSpy cancelled(&w,&TranslationOverlay::cancelled);w.show();QTest::keyClick(&w,Qt::Key_Escape);QCOMPARE(cancelled.size(),1);
-    }
     void ocrContracts() {
         OcrResult r;QString error;
         QVERIFY(Translation::Ocr::decode(R"({"ok":true,"language":"en-US","lines":[{"text":"Threshold < 10","x":2,"y":3,"width":100,"height":20}]})",{200,100},&r,&error));
         QCOMPARE(r.lines.size(),1);QVERIFY(!r.lines.first().recognitionConfidence);QCOMPARE(r.lines.first().rect,QRectF(2,3,100,20));
         OcrResult invalid;QVERIFY(!Translation::Ocr::decode(R"({"ok":true,"lines":[{"text":"x","x":-1,"y":0,"width":10,"height":10}]})",{200,100},&invalid,&error));
+    }
+    void paddleOcrPreservesModelConfidence() {
+        OcrResult r;QString error;
+        QVERIFY(Translation::Ocr::decode(R"({"ok":true,"engine":"PaddleOCR PP-OCRv5","language":"zh+en","modelVersion":"PP-OCRv5","lines":[{"text":"inner_circle","x":3,"y":4,"width":150,"height":22,"confidence":0.9375}]})",{200,100},&r,&error));
+        QCOMPARE(r.lines.size(),1);QVERIFY(r.lines[0].recognitionConfidence.has_value());
+        QCOMPARE(*r.lines[0].recognitionConfidence,.9375);
     }
     void localAndUnconsentedNeverRequest() {
         FixtureServer server;Client client;client.allowLoopbackForTests(true);QSignalSpy failed(&client,&Client::failed);
@@ -293,10 +378,11 @@ private slots:
         TranslationWindow window;window.setAttribute(Qt::WA_DeleteOnClose,false);
         QImage img(80,30,QImage::Format_RGB32);img.fill(Qt::white);window.setCapture(img,{0,0,80,30});auto id=window.taskId();window.cancel();
         OcrResult r;r.lines={{"line","old text",{0,0,30,20},{}}};window.presentOcr(id,r);
-        auto *source=window.findChild<QPlainTextEdit *>("translationSource");QVERIFY(source);QVERIFY(source->toPlainText().isEmpty());QCOMPARE(window.state(),QString("CANCELLED"));
+        QVERIFY(window.sourceText().isEmpty());QCOMPARE(window.state(),QString("CANCELLED"));
     }
     void resultIsPlainTextAndCopyIsExplicit() {
         TranslationWindow window;window.setAttribute(Qt::WA_DeleteOnClose,false);
+        QVERIFY(!window.findChild<QPlainTextEdit *>("translationSource"));window.showComparison();
         auto *source=window.findChild<QPlainTextEdit *>("translationSource");auto *target=window.findChild<QPlainTextEdit *>("translationTarget");
         QVERIFY(source&&target);source->setPlainText("<script>never execute</script> https://example.invalid");
         QApplication::clipboard()->setText("original");QCOMPARE(QApplication::clipboard()->text(),QString("original"));
@@ -309,11 +395,7 @@ private slots:
     }
     void settingsCancelActiveTranslationBeforeDialog() {
         QFETCH(bool,globalSettings);
-        AppHost host;host.start();host.startTranslation();
-        TranslationOverlay *overlay=nullptr;
-        QTRY_VERIFY(([&] { for(auto *w:QApplication::topLevelWidgets())if(auto *t=qobject_cast<TranslationOverlay *>(w))overlay=t;return overlay; })());
-        QTest::mousePress(overlay,Qt::LeftButton,Qt::NoModifier,{20,20});
-        QTest::mouseRelease(overlay,Qt::LeftButton,Qt::NoModifier,{180,90});
+        AppHost host;host.start();QImage image(320,140,QImage::Format_RGB32);image.fill(Qt::white);host.translateImage(image,{20,20,160,70});
         TranslationWindow *window=nullptr;
         for(auto *w:QApplication::topLevelWidgets())if(auto *t=qobject_cast<TranslationWindow *>(w))window=t;
         QVERIFY(window);QVERIFY(window->busy());
@@ -331,22 +413,21 @@ private slots:
         QCoreApplication::processEvents();
         QVERIFY(cancelledBeforeDialog);QVERIFY(!window->busy());
     }
-    void hostEntryIsSeparateFromSnipAndNotes() {
-        AppHost host;host.start();const auto before=host.dumpState();
-        host.startTranslation();QTRY_VERIFY(host.dumpState()["translation"].toObject()["selecting"].toBool());
-        QTRY_VERIFY([] { for(auto *w:QApplication::topLevelWidgets())if(qobject_cast<TranslationOverlay *>(w))return true;return false; }());
-        TranslationOverlay *overlay=nullptr;for(auto *w:QApplication::topLevelWidgets())if(auto *t=qobject_cast<TranslationOverlay *>(w))overlay=t;
-        QVERIFY(overlay);host.startSnip();QVERIFY(!host.dumpState()["snip"].toObject()["active"].toBool());
-        QTest::keyClick(overlay,Qt::Key_Escape);QTRY_VERIFY(!host.dumpState()["translation"].toObject()["selecting"].toBool());
+    void regionEditorTranslationCreatesPinWithoutNotesOrHistory() {
+        AppHost host;host.start();const auto before=host.dumpState();host.startSnip();
+        SnipOverlay *overlay=nullptr;for(auto *w:QApplication::topLevelWidgets())if(auto *t=qobject_cast<SnipOverlay *>(w))overlay=t;
+        QVERIFY(overlay);overlay->setPreselect({40,40,160,80});QTest::keyClick(overlay,Qt::Key_T,Qt::ControlModifier);
+        QCoreApplication::sendPostedEvents(nullptr,QEvent::DeferredDelete);
+        QCOMPARE(PinWindow::all().size(),1);auto *pin=qobject_cast<TranslationWindow *>(PinWindow::all().first());QVERIFY(pin);
+        QCOMPARE(pin->contentGeometry().size(),QSize(160,80));
         QCOMPARE(host.dumpState()["tasks"].toObject(),before["tasks"].toObject());
+        QCOMPARE(host.dumpState()["history"].toObject(),before["history"].toObject());
         QCOMPARE(host.dumpState()["settings"].toObject()["lastRegion"],before["settings"].toObject()["lastRegion"]);
-        host.startSnip();QTRY_VERIFY(host.dumpState()["snip"].toObject()["active"].toBool());
-        host.startTranslation();QVERIFY(!host.dumpState()["translation"].toObject()["selecting"].toBool());
+        QVERIFY(!host.dumpState()["snip"].toObject()["active"].toBool());
+        for(const auto &h:host.dumpState()["hotkeys"].toArray())QVERIFY(h.toObject()["action"]!="translate");
     }
     void topmostTranslationDoesNotCoverSettings() {
-        AppHost host;host.start();host.startTranslation();TranslationOverlay *overlay=nullptr;
-        QTRY_VERIFY(([&] {for(auto *w:QApplication::topLevelWidgets())if(auto *t=qobject_cast<TranslationOverlay *>(w))overlay=t;return overlay;})());
-        QTest::mousePress(overlay,Qt::LeftButton,Qt::NoModifier,{20,20});QTest::mouseRelease(overlay,Qt::LeftButton,Qt::NoModifier,{180,90});
+        AppHost host;host.start();QImage image(320,140,QImage::Format_RGB32);image.fill(Qt::white);host.translateImage(image,{20,20,160,70});
         TranslationWindow *window=nullptr;for(auto *w:QApplication::topLevelWidgets())if(auto *t=qobject_cast<TranslationWindow *>(w))window=t;
         QVERIFY(window);window->setWindowFlag(Qt::WindowStaysOnTopHint,true);window->show();
         host.showTranslationSettings();

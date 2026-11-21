@@ -14,6 +14,8 @@ public:
     void recognize(const QString &taskId, const QImage &image);
     void cancel();
     bool busy() const { return !m_process.isNull(); }
+    static bool available();
+    static QString runtimeDirectory();
     static bool decode(const QByteArray &json, const QSize &imageSize, OcrResult *result, QString *error);
 signals:
     void finished(const QString &taskId, const Translation::OcrResult &result);

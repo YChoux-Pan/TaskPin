@@ -8,6 +8,7 @@
 #include <QString>
 #include <QStringList>
 #include <QWidget>
+#include <QTransform>
 
 class QMenu;
 
@@ -61,6 +62,9 @@ protected:
     void wheelEvent(QWheelEvent *e) override;
     void keyPressEvent(QKeyEvent *e) override;
     void contextMenuEvent(QContextMenuEvent *e) override;
+    virtual void extendMenu(QMenu *) {}
+    virtual bool allowsClipboardReplacement() const { return true; }
+    void replaceFrame(const QImage &image, const QSize &logicalSize, bool resetView = false);
 
 private:
     void relayout();
@@ -80,6 +84,7 @@ private:
     static QImage renderTextImage(const QString &text);
 
     QImage m_image;
+    QTransform m_frameTransform;
     QSize m_logicalImageSize;
     QString m_group;
     qreal m_zoom = 1.0;

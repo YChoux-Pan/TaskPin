@@ -23,7 +23,6 @@
 #include "ui/WhiteboardWindow.h"
 #include "ui/TaskDialogs.h"
 #include "ui/AppIcon.h"
-#include "ui/TranslationOverlay.h"
 #include "ui/TranslationWindow.h"
 
 #include <QAction>
@@ -71,7 +70,6 @@ const QList<QPair<QString, int>> &hotkeyActions()
         {QStringLiteral("last"), Hotkeys::Last},     {QStringLiteral("pin"), Hotkeys::Pin},
         {QStringLiteral("pins"), Hotkeys::Pins},     {QStringLiteral("quick"), Hotkeys::QuickAdd},
         {QStringLiteral("toggle"), Hotkeys::ToggleCard}, {QStringLiteral("history"), Hotkeys::History},
-        {QStringLiteral("translate"), Hotkeys::Translate},
     };
     return list;
 }
@@ -143,11 +141,8 @@ AppHost::AppHost(QObject *parent) : QObject(parent) {}
 
 AppHost::~AppHost()
 {
-    if (m_translationOverlay) {
-        disconnect(m_translationOverlay,nullptr,this,nullptr);
-        delete m_translationOverlay.data();
-    }
-    delete m_translationWindow.data();
+    const auto translations=m_translationPins;
+    for(const auto &pin:translations)if(pin){disconnect(pin,nullptr,this,nullptr);pin->cancel();delete pin.data();}
     // Top-level widgets must go before QObject destroys their Store and signal targets.
     delete m_snip;
     delete m_settings.data();
@@ -235,7 +230,7 @@ void AppHost::start(const QString &initialCommand)
 void AppHost::handleCommand(const QString &command)
 {
     if (command == QLatin1String("snip")) startSnip();
-    else if (command == QLatin1String("translate")) startTranslation();
+    else if (command == QLatin1String("translate")) startSnip(); // compatibility: same F1 editor
     else if (command == QLatin1String("translation-settings")) showTranslationSettings();
     else if (command == QLatin1String("full")) captureFull();
     else if (command == QLatin1String("last")) startLastRegion();
@@ -276,9 +271,6 @@ void AppHost::buildTray()
     addItem(QStringLiteral("区域截图"), QStringLiteral("snip"), &AppHost::startSnip);
     addItem(QStringLiteral("全屏截图并复制"), QStringLiteral("full"), &AppHost::captureFull);
     addItem(QStringLiteral("上一次区域"), QStringLiteral("last"), &AppHost::startLastRegion);
-    menu->addSeparator();
-    addItem(QStringLiteral("截图翻译…"), QStringLiteral("translate"), &AppHost::startTranslation);
-    menu->addAction(QStringLiteral("截图翻译设置…"),this,&AppHost::showTranslationSettings);
     menu->addSeparator();
     addItem(QStringLiteral("新建任务"), QStringLiteral("quick"), &AppHost::quickAdd);
     addItem(QStringLiteral("贴住剪贴板内容"), QStringLiteral("pin"), &AppHost::pinFromClipboard);
@@ -350,9 +342,6 @@ void AppHost::registerHotkeys()
             }
         }
         if (ok) ++registered;
-        if (!ok && pair.second == Hotkeys::Translate) {
-            QTimer::singleShot(0,this,[this] { toast(QStringLiteral("截图翻译快捷键被占用，请在设置 → 热键中修改；仍可从托盘进入。")); });
-        }
         qInfo("hotkey %s = %s %s%s", qUtf8Printable(pair.first), qUtf8Printable(actual),
               ok ? "(registered)" : "(FAILED)", ok && actual != wanted ? " [degraded]" : "");
     }
@@ -371,7 +360,6 @@ void AppHost::onHotkey(int id)
     case Hotkeys::QuickAdd: quickAdd(); break;
     case Hotkeys::ToggleCard: toggleCard(); break;
     case Hotkeys::History: showHistory(); break;
-    case Hotkeys::Translate: startTranslation(); break;
     default: break;
     }
 }
@@ -401,7 +389,6 @@ void AppHost::restoreAfterCapture()
 
 void AppHost::startSnip()
 {
-    if (m_translationSelecting) { toast(QStringLiteral("请先完成或取消截图翻译选区。")); return; }
     if (m_snip) {
         m_snip->raise();
         m_snip->activateWindow();
@@ -419,7 +406,6 @@ void AppHost::startSnip()
 
 void AppHost::startLastRegion()
 {
-    if (m_translationSelecting) return;
     if (m_snip) {
         m_snip->raise();
         return;
@@ -435,7 +421,7 @@ void AppHost::startLastRegion()
 
 void AppHost::captureAndEdit(bool preselectLast)
 {
-    if (m_snip || m_translationSelecting) return;
+    if (m_snip) return;
 
     hideOverlaysForCapture();
     const ScreenCapture shot = captureScreenForCursor();
@@ -464,6 +450,7 @@ void AppHost::captureAndEdit(bool preselectLast)
         pinImage(image, overlay->selection().translated(origin));
     });
     connect(overlay, &SnipOverlay::recognizeRequested, this, &AppHost::recognizeImage);
+    connect(overlay, &SnipOverlay::translationRequested, this, &AppHost::translateImage);
     connect(overlay, &SnipOverlay::printed, this, &AppHost::printImage);
     connect(overlay, &QObject::destroyed, this, [this] {
         m_snip = nullptr;
@@ -484,46 +471,24 @@ void AppHost::showTranslationSettings()
     if(m_settings)m_settings->showTranslationPage();
 }
 
-void AppHost::startTranslation()
+void AppHost::translateImage(const QImage &image,const QRect &sourceRegion)
 {
-    if (m_snip) { toast(QStringLiteral("请先完成或取消当前区域截图。")); return; }
-    if (m_translationSelecting) return;
-    if (m_translationWindow && m_translationWindow->busy()) {
-        m_translationWindow->show(); m_translationWindow->raise();
-        toast(QStringLiteral("截图翻译正在处理，请先取消或等待完成。")); return;
-    }
-    m_translationSelecting = true;
-    QList<QPointer<QWidget>> hidden;
-    auto hideVisible = [&hidden](QWidget *widget) { if (widget && widget->isVisible()) { hidden.append(widget); widget->hide(); } };
-    hideVisible(m_card); hideVisible(m_translationWindow);
-    for (auto *pin : PinWindow::all()) hideVisible(pin);
-    QTimer::singleShot(80,this,[this,hidden] {
-        const ScreenCapture shot = captureScreenForCursor();
-        if (!shot.isValid()) {
-            m_translationSelecting = false;
-            for (const auto &widget : hidden) if (widget) widget->show();
-            toast(QStringLiteral("截图翻译无法捕获当前显示器。")); return;
-        }
-        auto *overlay = new TranslationOverlay(shot); m_translationOverlay = overlay;
-        connect(overlay,&TranslationOverlay::selected,this,[this](const QImage &image,const QRect &region) {
-            if (!m_translationWindow) {
-                m_translationWindow = new TranslationWindow;
-                connect(m_translationWindow,&TranslationWindow::recaptureRequested,this,&AppHost::startTranslation);
-                connect(m_translationWindow,&TranslationWindow::settingsRequested,this,&AppHost::showTranslationSettings);
-            }
-            m_translationWindow->setCapture(image,region);
-        });
-        connect(overlay,&QObject::destroyed,this,[this,hidden] {
-            m_translationOverlay.clear(); m_translationSelecting = false;
-            for (const auto &widget : hidden) if (widget) widget->show();
-        });
-        overlay->show(); overlay->raise(); overlay->activateWindow(); overlay->setFocus(); WindowFx::forceForeground(overlay);
+    if(image.isNull())return;
+    auto *pin=new TranslationWindow;
+    m_translationPins.append(pin);
+    connect(pin,&TranslationWindow::processingRequested,this,[this](TranslationWindow *requested){
+        for(const auto &other:m_translationPins)if(other && other!=requested && other->busy())other->cancel();
+        m_translationWindow=requested;
     });
+    connect(pin,&TranslationWindow::settingsRequested,this,[this,pin]{m_translationWindow=pin;showTranslationSettings();});
+    connect(pin,&TranslationWindow::recaptureRequested,this,&AppHost::startSnip);
+    connect(pin,&PinWindow::recognizeRequested,this,&AppHost::recognizeImage);
+    pin->setCapture(image,sourceRegion);
 }
 
 void AppHost::captureFull()
 {
-    if (m_snip || m_translationSelecting) return;
+    if (m_snip) return;
     hideOverlaysForCapture();
     const ScreenCapture shot = captureScreenForCursor();
     if (!shot.isValid()) {
@@ -604,7 +569,7 @@ void AppHost::togglePins()
 
 void AppHost::pickColor()
 {
-    if (m_snip || m_translationSelecting) return;
+    if (m_snip) return;
     hideOverlaysForCapture();
     const ScreenCapture shot = captureScreenForCursor();
     if (!shot.isValid()) {
@@ -633,7 +598,7 @@ void AppHost::showTransparentBoard() { captureWhiteboard(true); }
 
 void AppHost::captureWhiteboard(bool transparent)
 {
-    if (m_snip || m_translationSelecting) return;
+    if (m_snip) return;
     hideOverlaysForCapture();
     const ScreenCapture shot = captureScreenForCursor();
     if (!shot.isValid()) {
@@ -805,10 +770,12 @@ void AppHost::showCalendar()
 
 void AppHost::showSettings()
 {
-    if(m_translationWindow && m_translationWindow->busy())m_translationWindow->cancel();
-    if(m_translationWindow && m_translationWindow->isVisible()) {
-        m_translationHiddenForSettings=m_translationWindow;
-        m_translationWindow->hide();
+    for(const auto &pin:m_translationPins)if(pin){
+        if(pin->busy())pin->cancel();
+        if(pin->isVisible()){
+            if(!m_translationsHiddenForSettings.contains(pin))m_translationsHiddenForSettings.append(pin);
+            pin->hide();
+        }
     }
     if (m_settings) {
         m_settings->raise();
@@ -818,8 +785,8 @@ void AppHost::showSettings()
     auto *dlg = new SettingsDialog();
     // An owned TOPMOST result must not obscure a normal settings window.
     connect(dlg,&QDialog::finished,this,[this] {
-        const auto translation=m_translationHiddenForSettings;m_translationHiddenForSettings.clear();
-        if(translation)translation->show();
+        const auto translations=m_translationsHiddenForSettings;m_translationsHiddenForSettings.clear();
+        for(const auto &pin:translations)if(pin)pin->show();
     });
     m_settings = dlg;
     dlg->setAttribute(Qt::WA_DeleteOnClose, true);
@@ -964,7 +931,7 @@ QJsonObject AppHost::dumpState() const
     cfg["aiModel"] = s.aiModel;
     cfg["autostart"] = Autostart::isEnabled();
     o["settings"] = cfg;
-    o["translation"] = QJsonObject{{"selecting",m_translationSelecting},
+    o["translation"] = QJsonObject{{"selecting",false},
         {"window",!m_translationWindow.isNull()},
         {"state",m_translationWindow ? m_translationWindow->state() : QStringLiteral("IDLE")},
         {"busy",m_translationWindow && m_translationWindow->busy()}};
@@ -1035,7 +1002,7 @@ QJsonObject AppHost::dumpState() const
     ocr["busy"] = m_captureBusy;
     ocr["queued"] = m_captureQueue.size();
     ocr["aiPending"] = !m_pendingTaskId.isEmpty();
-    ocr["engine"] = QStringLiteral("Windows.Media.Ocr");
+    ocr["engine"] = QStringLiteral("PaddleOCR PP-OCRv5");
     o["ocr"] = ocr;
 
     syncTrayHints();   // the dump reflects the chords the tray menu would show

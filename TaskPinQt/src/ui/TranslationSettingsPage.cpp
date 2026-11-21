@@ -30,7 +30,7 @@ TranslationSettingsPage::TranslationSettingsPage(QWidget *parent):QWidget(parent
     connect(edit,&QPushButton::clicked,this,&TranslationSettingsPage::editAiRequested);box->addWidget(edit);
     m_consent=new QCheckBox(QStringLiteral("允许主动截图后，将识别文字发送到上述接口翻译（不发送图片）"),this);
     m_consent->setObjectName("translationConsent");box->addWidget(m_consent);
-    auto *hint=new QLabel(QStringLiteral("结果默认在原图文字位置显示，可切换原图或对照。复杂背景使用译文底板；代码与公式保留。取消设置不会保存更改，取消请求不能撤回已发送文字。"),this);
+    auto *hint=new QLabel(QStringLiteral("在 F1 框选工具栏点击“翻译”，结果直接贴到桌面。拖动移动、滚轮缩放，右键可切换原图或查看文字对照。复杂背景使用译文底板；代码与公式保留。取消设置不会保存更改，取消请求不能撤回已发送文字。"),this);
     hint->setWordWrap(true);box->addWidget(hint);
     auto *row=new QHBoxLayout;
     m_test=new QPushButton(QStringLiteral("测试连接 · 仅发送测试短句"),this);m_test->setObjectName("translationTestConnection");

@@ -18,6 +18,12 @@ try {
     $env:QT_QPA_PLATFORM = 'offscreen'
     $env:TASKPIN_AUTOMATION = '1'
     New-Item -ItemType Directory -Path $env:TASKPIN_DATA | Out-Null
+    $ocrRuntime = if ($env:TASKPIN_OCR_RUNTIME) { $env:TASKPIN_OCR_RUNTIME } else { Join-Path $build 'ocr' }
+    $ocrTest = Join-Path $PSScriptRoot '../ocr/test_helper.py'
+    $ocrArgs = @('-I', '-B', $ocrTest, '--runtime', $ocrRuntime)
+    if ($env:TASKPIN_TEST_FONT) { $ocrArgs += @('--font', $env:TASKPIN_TEST_FONT) }
+    & (Join-Path $ocrRuntime 'python.exe') @ocrArgs *> (Join-Path $reports 'ocr-runtime.txt')
+    if ($LASTEXITCODE -ne 0) { throw "PaddleOCR behavior tests failed. See $reports/ocr-runtime.txt" }
     try {
         Invoke-Checked $ctest @('--test-dir', $build, '--build-config', 'Release', '--output-on-failure', '--no-tests=error',
             '--verbose', '--output-log', (Join-Path $reports 'ctest.log'), '--output-junit', (Join-Path $reports 'ctest.xml'))
