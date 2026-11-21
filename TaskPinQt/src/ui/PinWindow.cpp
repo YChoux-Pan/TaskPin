@@ -15,6 +15,8 @@
 #include <QDateTime>
 #include <QDebug>
 #include <QFileDialog>
+#include <QDir>
+#include <QFileInfo>
 #include <QFont>
 #include <QFontMetrics>
 #include <QGuiApplication>
@@ -23,6 +25,7 @@
 #include <QMenu>
 #include <QMouseEvent>
 #include <QPainter>
+#include <QPointer>
 #include <QScreen>
 #include <QTextDocument>
 #include <QTimer>
@@ -189,6 +192,17 @@ void PinWindow::rebuildPreview()
     m_preview = m_image.width() > 2000 || m_image.height() > 2000
         ? m_image.scaled(QSize(2000, 2000), Qt::KeepAspectRatio, Qt::FastTransformation) : m_image;
 }
+void PinWindow::replaceFrame(const QImage &image, const QSize &logicalSize, bool resetView)
+{
+    if(image.isNull() || logicalSize.isEmpty())return;
+    const QPoint origin=contentGeometry().topLeft();
+    m_zoomAnimation.stop();
+    if(resetView){m_frameTransform.reset();m_zoom=1.;}
+    m_targetZoom=m_zoom;
+    m_image=m_frameTransform.isIdentity()?image:image.transformed(m_frameTransform);
+    m_logicalImageSize=m_frameTransform.mapRect(QRectF(QPointF(),logicalSize)).size().toSize();
+    rebuildPreview();relayout();move(origin-QPoint(padding(),padding()));m_qualityTimer.start();
+}
 
 QRect PinWindow::contentGeometry() const
 {
@@ -336,18 +350,19 @@ void PinWindow::contextMenuEvent(QContextMenuEvent *e)
     if (m_menuOpen) return;   // nested popup loops used to overflow the stack
     m_menuOpen = true;
 
-    QMenu menu(this);
-    buildMenu(&menu);
+    auto *menu=new QMenu(this);
+    buildMenu(menu);
+    connect(menu,&QMenu::aboutToHide,this,[this,menu] {m_menuOpen=false;menu->deleteLater();});
 
     // a non-activatable window cannot host a usable popup: make this one activatable for the duration
     WindowFx::setNoActivate(this, false);
     WindowFx::keepOnTop(this);
-    menu.exec(e->globalPos());
-    m_menuOpen = false;
+    menu->popup(e->globalPos());
 }
 
 void PinWindow::buildMenu(QMenu *menu)
 {
+    extendMenu(menu);
     menu->addAction(QStringLiteral("识别为任务\tCtrl+R"), this, [this] { emit recognizeRequested(m_image); });
     menu->addSeparator();
 
@@ -368,8 +383,9 @@ void PinWindow::buildMenu(QMenu *menu)
         connect(a, &QAction::triggered, this, [this, value] { applyAppearance(m_shadowStrength, value, m_borderColor); });
     }
     appearance->addAction(QStringLiteral("边框颜色…"), this, [this] {
+        const QPointer<PinWindow> alive=this;
         const auto c = QColorDialog::getColor(m_borderColor, this, QStringLiteral("贴图边框颜色"));
-        if (c.isValid()) applyAppearance(m_shadowStrength, m_borderWidth, c);
+        if (alive && c.isValid()) applyAppearance(m_shadowStrength, m_borderWidth, c);
     });
     appearance->addAction(QStringLiteral("恢复设置中的外观"), this, [this] {
         const auto &s = Settings::instance();
@@ -378,7 +394,7 @@ void PinWindow::buildMenu(QMenu *menu)
     menu->addAction(QStringLiteral("复制图像\tCtrl+C"), this,
                     [this] { QApplication::clipboard()->setImage(m_image); });
     menu->addAction(QStringLiteral("保存图片…\tCtrl+S"), this, [this] { saveImage(); });
-    menu->addAction(QStringLiteral("以剪贴板内容替换"), this, [this] { replaceFromClipboard(); });
+    if(allowsClipboardReplacement())menu->addAction(QStringLiteral("以剪贴板内容替换"), this, [this] { replaceFromClipboard(); });
     menu->addSeparator();
 
     QMenu *opacity = menu->addMenu(QStringLiteral("不透明度"));
@@ -413,18 +429,21 @@ void PinWindow::buildMenu(QMenu *menu)
     QMenu *rotate = menu->addMenu(QStringLiteral("旋转 / 翻转"));
     rotate->addAction(QStringLiteral("顺时针 90°"), this, [this] {
         m_image = m_image.transformed(QTransform().rotate(90));
+        m_frameTransform *= QTransform().rotate(90);
         m_logicalImageSize.transpose();
         rebuildPreview();
         relayout();
     });
     rotate->addAction(QStringLiteral("逆时针 90°"), this, [this] {
         m_image = m_image.transformed(QTransform().rotate(-90));
+        m_frameTransform *= QTransform().rotate(-90);
         m_logicalImageSize.transpose();
         rebuildPreview();
         relayout();
     });
     rotate->addAction(QStringLiteral("水平翻转"), this, [this] {
         m_image = m_image.mirrored(true, false);
+        m_frameTransform *= QTransform().scale(-1,1);
         rebuildPreview();
         relayout();
     });
@@ -444,12 +463,13 @@ void PinWindow::buildMenu(QMenu *menu)
     }
     groups->addSeparator();
     groups->addAction(QStringLiteral("新建分组…"), this, [this] {
+        const QPointer<PinWindow> alive=this;
         bool ok = false;
         const QString name = QInputDialog::getText(this, QStringLiteral("新建分组"), QStringLiteral("分组名称："),
                                                    QLineEdit::Normal,
                                                    QStringLiteral("分组%1").arg(groupList().size() + 1), &ok)
                                  .trimmed();
-        if (ok && !name.isEmpty()) {
+        if (alive && ok && !name.isEmpty()) {
             ensureGroup(name);
             applyGroup(name);
         }
@@ -478,6 +498,7 @@ void PinWindow::replaceFromClipboard()
     const QImage img = QApplication::clipboard()->image();
     if (img.isNull()) return;
     m_image = img;
+    m_frameTransform.reset();
     m_logicalImageSize = img.size();
     rebuildPreview();
     relayout();
@@ -485,12 +506,15 @@ void PinWindow::replaceFromClipboard()
 
 void PinWindow::saveImage()
 {
+    const QPointer<PinWindow> alive=this;
+    const QImage snapshot=m_image;
     const QString def = Settings::instance().resolveAutoSaveDir() + QStringLiteral("/") +
                         FileNaming::expand(Settings::instance().namePattern, QDateTime::currentDateTime());
     const QString path = QFileDialog::getSaveFileName(this, QStringLiteral("保存贴图"), def,
                                                       QStringLiteral("PNG 图片 (*.png)"));
-    if (path.isEmpty()) return;
-    if (!m_image.save(path, "PNG")) qWarning() << "pin save failed:" << path;
+    if (!alive || path.isEmpty()) return;
+    if (!snapshot.save(path, "PNG")) {setToolTip(QStringLiteral("图片保存失败，请检查目录权限。"));return;}
+    QApplication::clipboard()->setText(QDir::toNativeSeparators(QFileInfo(path).absoluteFilePath()));
 }
 
 void PinWindow::applyGroup(const QString &group)

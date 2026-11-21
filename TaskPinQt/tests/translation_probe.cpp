@@ -2,7 +2,7 @@
 #include "translation/TranslationText.h"
 #include "translation/TranslationClient.h"
 #include "ui/TranslationWindow.h"
-#include "ui/TranslationCanvas.h"
+#include "ui/SnipOverlay.h"
 #include "core/Settings.h"
 #include <QApplication>
 #include <QClipboard>
@@ -42,20 +42,29 @@ int main(int argc,char **argv)
     painter.drawText(24,120,QStringLiteral("inner_circle (Region, Row, Column, Radius)"));
     painter.drawText(24,185,QStringLiteral("max(W-B1, W-B2) < Threshold"));painter.end();
     TranslationWindow window;window.setAttribute(Qt::WA_DeleteOnClose,false);
-    window.setCapture(image,{0,0,image.width(),image.height()});
+    Translation::OcrResult observedOcr;
+    QObject::connect(window.findChild<Translation::Ocr *>(),&Translation::Ocr::finished,&app,[&](const QString &,const Translation::OcrResult &result){observedOcr=result;});
+    const QRect sourceRegion(200,200,880,224);
+    SnipOverlay editor({QPixmap::fromImage(image),sourceRegion,1.25,"fixture"});editor.setAttribute(Qt::WA_DeleteOnClose,false);
+    QObject::connect(&editor,&SnipOverlay::translationRequested,&window,&TranslationWindow::setCapture);
+    editor.setPreselect(sourceRegion);editor.show();QTest::keyClick(&editor,Qt::Key_T,Qt::ControlModifier);
+    QTest::keyClick(&window,Qt::Key_Plus);window.move(180,120);
+    const QPoint expectedOrigin=window.contentGeometry().topLeft();const qreal expectedZoom=window.zoom();
     QElapsedTimer elapsed;elapsed.start();
     QTimer poll;
     QObject::connect(&poll,&QTimer::timeout,&app,[&] {
-        auto *source=window.findChild<QPlainTextEdit *>("translationSource");auto *target=window.findChild<QPlainTextEdit *>("translationTarget");
+
         if(window.state()=="FAILED" || elapsed.elapsed()>35000){app.exit(5);return;}
-        if(window.state()!="PRESENTING" || !source || source->toPlainText().isEmpty() || target->toPlainText().isEmpty())return;
-        poll.stop();window.resize(1100,700);window.grab().save(output+(cloud?"/translation-window-cloud.png":"/translation-window-mock.png"));
-        auto *canvas=window.findChild<TranslationCanvas *>("translationCanvas");if(!canvas){app.exit(10);return;}
-        canvas->setOriginal(false);canvas->renderedImage().save(output+"/translated-image.png");image.save(output+"/original-fixture.png");
+        if(window.state()!="PRESENTING" || window.sourceText().isEmpty() || window.targetText().isEmpty())return;
+        poll.stop();
+        if(window.contentGeometry().topLeft()!=expectedOrigin || window.zoom()!=expectedZoom || !window.windowFlags().testFlag(Qt::FramelessWindowHint)) {app.exit(11);return;}
+        window.grab().save(output+(cloud?"/translation-pin-cloud.png":"/translation-pin-mock.png"));
+        window.translatedImage().save(output+"/translated-image.png");image.save(output+"/original-fixture.png");
         QFile report(output+"/native-probe.json");if(!report.open(QIODevice::WriteOnly)){app.exit(6);return;}
+        QJsonArray confidences;for(const auto &line:observedOcr.lines)confidences.append(line.recognitionConfidence?QJsonValue(*line.recognitionConfidence):QJsonValue());
         report.write(QJsonDocument(QJsonObject{{"fixtureOnly",true},{"cloudCalled",cloud},{"elapsedMs",double(elapsed.elapsed())},
-            {"ocr",source->toPlainText()},{"result",target->toPlainText()},{"state",window.state()},
-            {"systemOcrConfidence","unavailable"}}).toJson(QJsonDocument::Indented));report.close();
+            {"ocr",window.sourceText()},{"result",window.targetText()},{"state",window.state()},
+            {"ocrEngine",observedOcr.engine},{"ocrModelVersion",observedOcr.modelVersion},{"recognitionScores",confidences},{"editorEntry","F1 toolbar translation"},{"framelessPin",true},{"positionAndZoomPreserved",true},{"comparisonCreated",bool(window.findChild<QPlainTextEdit *>("translationSource"))}}).toJson(QJsonDocument::Indented));report.close();
         if(!hold){window.cancel();window.close();app.exit(0);}
     });poll.start(50);
     return app.exec();

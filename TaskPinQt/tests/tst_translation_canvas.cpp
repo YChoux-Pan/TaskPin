@@ -150,6 +150,17 @@ private slots:
         QCOMPARE(canvas.renderedImage(), input);
     }
 
+    void unchangedTranslationKeepsOriginalPixels()
+    {
+        auto input=fixture();QPainter painter(&input);
+        painter.setPen(Qt::black);painter.drawText(30,60,"max(W-B1, W-B2) < Threshold");painter.end();
+        auto block=paragraph("a",{20,30,280,45});
+        // OCR missed '<'; a service echo must not replace the correct source pixels.
+        block.source="max(W-B1, W-B2) Threshold";
+        TranslationCanvas canvas;canvas.setContent(input,{block},{{"a",block.source,"ok",{}}});
+        QCOMPARE(canvas.renderedImage(),input);
+    }
+
     void resultsUseIdsAndClampPhysicalCoordinates()
     {
         auto input = fixture();

@@ -70,6 +70,8 @@ void inspectMenu(PinWindow &pin, const std::function<void(QMenu *)> &inspect)
     });
     QContextMenuEvent event(QContextMenuEvent::Mouse, {10, 10}, pin.mapToGlobal(QPoint(10, 10)));
     QApplication::sendEvent(&pin, &event);
+    QCoreApplication::processEvents();
+    QCoreApplication::sendPostedEvents(nullptr,QEvent::DeferredDelete);
 }
 QAction *named(QMenu *menu, const QString &text)
 {

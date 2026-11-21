@@ -24,6 +24,7 @@ const Definition definitions[] = {
     { "redo", "重做", "Ctrl+Y" },
     { "pin", "贴到桌面", "Ctrl+P" },
     { "ocr", "识别为任务", "Ctrl+R" },
+    { "translate", "翻译", "Ctrl+T" },
     { "save", "保存", "Ctrl+S" },
     { "copy", "复制", "Enter" },
     { "close", "取消截图", "Esc" },

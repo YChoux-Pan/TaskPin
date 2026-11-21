@@ -98,6 +98,32 @@ private slots:
         drag(w, { 200, 180 }, { 230, 200 });
         QCOMPARE(w.selection(), QRect(70, 60, 300, 200));
     }
+    void translationActionIsAlongsideTaskRecognition() {
+        SnipOverlay w(fixture());ready(w);
+        const auto translate=action(w,"translate"),ocr=action(w,"ocr");
+        QVERIFY(!translate.rect.isEmpty());QCOMPARE(translate.label,QStringLiteral("翻译"));
+        QCOMPARE(translate.group,ocr.group);QCOMPARE(translate.shortcut,QString("Ctrl+T"));
+    }
+    void translationExportsCurrentSelection_data() {
+        QTest::addColumn<bool>("toolbar");QTest::addColumn<double>("dpr");
+        QTest::newRow("button-100")<<true<<1.;QTest::newRow("shortcut-100")<<false<<1.;
+        QTest::newRow("button-125")<<true<<1.25;QTest::newRow("shortcut-125")<<false<<1.25;
+        QTest::newRow("button-150")<<true<<1.5;QTest::newRow("shortcut-150")<<false<<1.5;
+        QTest::newRow("button-200")<<true<<2.;QTest::newRow("shortcut-200")<<false<<2.;
+    }
+    void translationExportsCurrentSelection() {
+        QFETCH(bool,toolbar);QFETCH(double,dpr);
+        SnipOverlay w(fixture(dpr,{-800,100}));ready(w,{-760,140,300,200});rectangle(w);
+        QSignalSpy translated(&w,&SnipOverlay::translationRequested),captured(&w,&SnipOverlay::captured),ocr(&w,&SnipOverlay::recognizeRequested);
+        QApplication::clipboard()->setText("translation-does-not-copy");
+        if(toolbar)clickAction(w,"translate");else QTest::keyClick(&w,Qt::Key_T,Qt::ControlModifier);
+        QCOMPARE(translated.size(),1);QCOMPARE(captured.size(),0);QCOMPARE(ocr.size(),0);
+        const auto image=qvariant_cast<QImage>(translated[0][0]);QCOMPARE(image.size(),QSize(qRound(300*dpr),qRound(200*dpr)));
+        QCOMPARE(translated[0][1].toRect(),QRect(-760,140,300,200));
+        QVERIFY(image.pixelColor(qRound(60*dpr),qRound(40*dpr))!=QColor(Qt::red));
+        QCOMPARE(QApplication::clipboard()->text(),QString("translation-does-not-copy"));
+        QTest::keyClick(&w,Qt::Key_T,Qt::ControlModifier);QCOMPARE(translated.size(),1);
+    }
     void doubleClickCompletesOnce()
     {
         SnipOverlay w(fixture());

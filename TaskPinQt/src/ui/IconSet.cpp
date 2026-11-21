@@ -14,6 +14,7 @@ struct Entry {
 
 // Iconify "lucide" 2px-rounded line icons (ISC). "number" is mdi:numeric-1-circle-outline.
 const Entry kIcons[] = {
+    {"translate", R"SVG(<g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5h12M7 2h1M5 8l6 6M11 5c-1 5-4 8-8 10m11 6 4-11 4 11m-6.5-4h5"/></g>)SVG"},
     {"select", R"SVG(<path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.037 4.688a.495.495 0 0 1 .651-.651l16 6.5a.5.5 0 0 1-.063.947l-6.124 1.58a2 2 0 0 0-1.438 1.435l-1.579 6.126a.5.5 0 0 1-.947.063z"/>)SVG"},
     {"rect", R"SVG(<rect width="18" height="18" x="3" y="3" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" rx="2"/>)SVG"},
     {"ellipse", R"SVG(<circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>)SVG"},

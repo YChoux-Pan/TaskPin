@@ -45,12 +45,21 @@ powershell -NoProfile -ExecutionPolicy Bypass -File TaskPinQt/scripts/test.ps1
 powershell -NoProfile -ExecutionPolicy Bypass -File TaskPinQt/scripts/package.ps1 -QtKit 'C:/Qt/6.4.3/mingw_64'
 ```
 
-`test.ps1` also accepts `BuildDir`, `ReportDir` and `CMake`. `package.ps1` accepts the build toolchain parameters and `BuildDir` / `OutputDir` (default `dist`). It requires a CMake Release build, creates a unique fresh staging directory, copies only the application executable, and runs `windeployqt --compiler-runtime` using that kit's explicit `qtpaths.exe`. Deployment detects the Release executable rather than forcing a plugin build-type filter (Qt 6.4 MinGW kits can share plugin filenames). It adds the end-user README and license notices. Staging remains for inspection; only final named assets are published. It never copies the developer build tree, database, logs, QtTest executables, CMake caches or import libraries.
+`test.ps1` also accepts `BuildDir`, `ReportDir` and `CMake`. `package.ps1` accepts the build toolchain parameters and `BuildDir` / `OutputDir` (default `dist`). It requires a CMake Release build, creates a unique fresh staging directory, copies the application executable and complete prepared `ocr/` runtime, and runs `windeployqt --compiler-runtime` using that kit's explicit `qtpaths.exe`. Deployment detects the Release executable rather than forcing a plugin build-type filter (Qt 6.4 MinGW kits can share plugin filenames). It adds the end-user README and license notices. Staging remains for inspection; only final named assets are published. It never copies the developer build tree, database, logs, QtTest executables, CMake caches or import libraries.
 
 Outputs:
 
-- `TaskPin-0.3.0-windows-x64.zip`
-- `TaskPin-0.3.0-source.zip`
+- `TaskPin-0.4.2-windows-x64.zip`
+- `TaskPin-0.4.2-source.zip`
 - `SHA256SUMS.txt` (SHA-256 of the completed archives)
 
 The source ZIP uses `git archive HEAD`, **not uncommitted edits**. Commit reviewed release changes before generating the source archive. `.gitattributes` excludes internal implementation work records. Run build/test against that same committed state. See [RELEASING.md](RELEASING.md) for release gates, download verification and licensing obligations.
+
+
+## PaddleOCR runtime (0.4.2)
+
+The Qt application remains C++17. Both note recognition and the F1 editor Translate action use bundled PaddleOCR PP-OCRv5 models through a local Python/ONNX CPU helper. `build.ps1` prepares `build/ocr` by default; pass `-BootstrapPython` with an available Python 3.11/3.12 path when `python` is only a Windows Store alias. The bootstrap interpreter downloads pinned assets at build time and is not a user runtime dependency. `-SkipOcrRuntime` is available for Qt-only incremental builds; full tests/selftest and packaging require the prepared runtime.
+
+For manual CMake builds, run `scripts/prepare-ocr-runtime.ps1 -OutputDir <build>/ocr -BootstrapPython <python.exe>` after compiling. `TASKPIN_OCR_RUNTIME` may select an absolute development runtime path. Portable releases always contain the complete `ocr/` folder and work without system Python, CUDA or Windows OCR language packs. Model and wheel URLs/hashes are locked under `TaskPinQt/ocr/`; never replace files in a published release without recomputing its checksums.
+
+The preparation script and model probe must run successfully before distribution. Unit fixtures do not substitute for loading the actual bundled model. Do not package development caches, fixture databases, API keys or personal screenshots.

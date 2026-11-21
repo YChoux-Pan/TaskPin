@@ -3,6 +3,7 @@
 #include <QJsonArray>
 
 namespace Translation {
+QList<Line> readingLines(const QList<Line> &fragments);
 QList<Block> buildBlocks(const OcrResult &ocr, QStringList *warnings = nullptr);
 Block protect(Block block, const QString &nonce);
 bool restore(const Block &block, const QString &translated, QString *text);

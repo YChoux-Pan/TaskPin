@@ -23,6 +23,15 @@ $stage = Join-Path $output ('stage-' + [guid]::NewGuid().ToString('N'))
 $appDir = Join-Path $stage "TaskPin-$version"
 New-Item -ItemType Directory -Path $appDir | Out-Null
 Copy-Item -LiteralPath (Join-Path $build 'TaskPinQt.exe') -Destination $appDir
+$ocrRuntime=Join-Path $build 'ocr'
+if (!(Test-Path -LiteralPath (Join-Path $ocrRuntime 'python.exe')) -or !(Test-Path -LiteralPath (Join-Path $ocrRuntime 'helper.py'))) {
+    throw 'Build the local PaddleOCR runtime with prepare-ocr-runtime.ps1 before packaging.'
+}
+$ocrCheck = & (Join-Path $ocrRuntime 'python.exe') -I -B (Join-Path $ocrRuntime 'helper.py') --self-check
+if ($LASTEXITCODE -ne 0 -or !(($ocrCheck | ConvertFrom-Json).runtimeReady)) {
+    throw 'PaddleOCR model/runtime self-check failed before packaging.'
+}
+Copy-Item -LiteralPath $ocrRuntime -Destination (Join-Path $appDir 'ocr') -Recurse
 Invoke-Checked (Join-Path $toolchain.Kit 'bin/windeployqt.exe') @('--qtpaths', (Join-Path $toolchain.Kit 'bin/qtpaths.exe'),
     '--compiler-runtime', '--no-translations',
     '--no-system-d3d-compiler', '--no-opengl-sw', (Join-Path $appDir 'TaskPinQt.exe'))

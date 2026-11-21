@@ -383,7 +383,7 @@ void SnipOverlay::drawToolbar(QPainter &p)
         add("tool:" + id, 0);
     add("undo", 1, m_history.canUndo());
     add("redo", 1, m_history.canRedo());
-    for (const auto &id : QStringList { "pin", "ocr", "save", "more", "copy", "close" })
+    for (const auto &id : QStringList { "pin", "ocr", "translate", "save", "more", "copy", "close" })
         add(id, 2);
     const bool text = m_tool == Tool::Text;
     const bool pixels = m_tool == Tool::Mosaic || m_tool == Tool::Blur;
@@ -787,6 +787,7 @@ void SnipOverlay::keyPressEvent(QKeyEvent *e)
         setTool(Tool::Highlighter);
         return;
     case Qt::Key_T:
+        if(e->modifiers() & Qt::ControlModifier){handleAction(QStringLiteral("translate"));return;}
         setTool(Tool::Text);
         return;
     case Qt::Key_N:
@@ -1078,6 +1079,12 @@ void SnipOverlay::handleAction(const QString &id)
         emit pinned(img);
         close();
         return;
+    }
+    if (id == QStringLiteral("translate")) {
+        const QImage img=compose();if(img.isNull())return;
+        m_completed=true;
+        emit translationRequested(img,selection().translated(m_shot.logicalRect.topLeft()));
+        close();return;
     }
     if (id == QStringLiteral("ocr")) {
         const QImage img = compose();

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(TaskPinQt VERSION 0.4.1 LANGUAGES CXX)
+project(TaskPinQt VERSION 0.4.2 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -49,7 +49,6 @@ qt_add_executable(TaskPinQt WIN32
     src/translation/TranslationConfig.h src/translation/TranslationConfig.cpp
     src/translation/TranslationClient.h src/translation/TranslationClient.cpp
     src/translation/TranslationOcr.h src/translation/TranslationOcr.cpp
-    src/ui/TranslationOverlay.h src/ui/TranslationOverlay.cpp
     src/ui/TranslationWindow.h src/ui/TranslationWindow.cpp
     src/ui/TranslationCanvas.h src/ui/TranslationCanvas.cpp
     src/ui/TranslationSettingsPage.h src/ui/TranslationSettingsPage.cpp
@@ -137,8 +136,8 @@ if(BUILD_TESTING)
         -o "${CMAKE_BINARY_DIR}/TaskPinTranslationCanvasTests.txt,txt"
         -o "${CMAKE_BINARY_DIR}/TaskPinTranslationCanvasTests.xml,junitxml")
     set_tests_properties(TaskPinTranslationCanvasTests PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
-    # Explicit local-only probe, excluded from CI/default build: exercises installed Windows OCR
-    # with synthetic text and the real result window, never a user's desktop or API key.
+    # Explicit fixture probe, excluded from the default build: exercises bundled PaddleOCR
+    # through the editor and pin; --cloud opts into shared AI credentials in memory only.
     qt_add_executable(TaskPinTranslationProbe EXCLUDE_FROM_ALL tests/translation_probe.cpp ${TASKPIN_APP_SOURCES})
     target_include_directories(TaskPinTranslationProbe PRIVATE src)
     target_compile_definitions(TaskPinTranslationProbe PRIVATE TASKPIN_VERSION="${PROJECT_VERSION}")

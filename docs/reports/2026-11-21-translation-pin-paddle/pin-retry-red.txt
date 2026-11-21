@@ -1,0 +1,20 @@
+********* Start testing of TranslationTests *********
+Config: Using QtTest library 6.4.3, Qt 6.4.3 (x86_64-little_endian-llp64 shared (dynamic) release build; by GCC 11.2.0), windows 11
+PASS   : TranslationTests::initTestCase()
+QINFO  : TranslationTests::retryCancelledOcrPinPreservesViewAndCancelsOtherTask() TaskPin Qt 0.4.2 started, rolled over 0 task(s)
+QINFO  : TranslationTests::retryCancelledOcrPinPreservesViewAndCancelsOtherTask() card z-order: topmost (native topmost=0)
+QINFO  : TranslationTests::retryCancelledOcrPinPreservesViewAndCancelsOtherTask() pin created 0x0 group=默认
+QWARN  : TranslationTests::retryCancelledOcrPinPreservesViewAndCancelsOtherTask() This plugin does not support raise()
+QINFO  : TranslationTests::retryCancelledOcrPinPreservesViewAndCancelsOtherTask() pin created 0x0 group=默认
+QWARN  : TranslationTests::retryCancelledOcrPinPreservesViewAndCancelsOtherTask() This plugin does not support raise()
+QWARN  : TranslationTests::retryCancelledOcrPinPreservesViewAndCancelsOtherTask() QFontDatabase: Cannot find font directory [development]/pin-build/lib/fonts.
+Note that Qt no longer ships fonts. Deploy some (from https://dejavu-fonts.github.io/ for example) or switch to fontconfig.
+QWARN  : TranslationTests::retryCancelledOcrPinPreservesViewAndCancelsOtherTask() This plugin does not support raise()
+QWARN  : TranslationTests::retryCancelledOcrPinPreservesViewAndCancelsOtherTask() This plugin does not support grabbing the keyboard
+FAIL!  : TranslationTests::retryCancelledOcrPinPreservesViewAndCancelsOtherTask() 'first->busy()' returned FALSE. ()
+[development]/pin-source/TaskPinQt/tests/tst_translation.cpp(158) : failure location
+QINFO  : TranslationTests::retryCancelledOcrPinPreservesViewAndCancelsOtherTask() pin closed, 1 remaining
+QINFO  : TranslationTests::retryCancelledOcrPinPreservesViewAndCancelsOtherTask() pin closed, 0 remaining
+PASS   : TranslationTests::cleanupTestCase()
+Totals: 2 passed, 1 failed, 0 skipped, 0 blacklisted, 80ms
+********* Finished testing of TranslationTests *********

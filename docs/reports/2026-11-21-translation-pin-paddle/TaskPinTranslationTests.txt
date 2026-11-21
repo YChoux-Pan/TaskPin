@@ -1,0 +1,148 @@
+********* Start testing of TranslationTests *********
+Config: Using QtTest library 6.4.3, Qt 6.4.3 (x86_64-little_endian-llp64 shared (dynamic) release build; by GCC 11.2.0), windows 11
+PASS   : TranslationTests::initTestCase()
+PASS   : TranslationTests::onlyRegionScreenshotEntryRemains()
+QINFO  : TranslationTests::translationResultUsesPinAtCaptureOrigin() pin created 0x0 group=默认
+QWARN  : TranslationTests::translationResultUsesPinAtCaptureOrigin() This plugin does not support raise()
+QINFO  : TranslationTests::translationResultUsesPinAtCaptureOrigin() pin closed, 0 remaining
+PASS   : TranslationTests::translationResultUsesPinAtCaptureOrigin()
+QINFO  : TranslationTests::translatedFramePreservesMovedZoomedHiddenPin() pin created 0x0 group=默认
+QWARN  : TranslationTests::translatedFramePreservesMovedZoomedHiddenPin() This plugin does not support raise()
+QWARN  : TranslationTests::translatedFramePreservesMovedZoomedHiddenPin() QFontDatabase: Cannot find font directory [development]/pin-build/lib/fonts.
+Note that Qt no longer ships fonts. Deploy some (from https://dejavu-fonts.github.io/ for example) or switch to fontconfig.
+QWARN  : TranslationTests::translatedFramePreservesMovedZoomedHiddenPin() This plugin does not support raise()
+QWARN  : TranslationTests::translatedFramePreservesMovedZoomedHiddenPin() This plugin does not support grabbing the keyboard
+QWARN  : TranslationTests::translatedFramePreservesMovedZoomedHiddenPin() This plugin does not support raise()
+QWARN  : TranslationTests::translatedFramePreservesMovedZoomedHiddenPin() This plugin does not support grabbing the keyboard
+QWARN  : TranslationTests::translatedFramePreservesMovedZoomedHiddenPin() This plugin does not support raise()
+QWARN  : TranslationTests::translatedFramePreservesMovedZoomedHiddenPin() This plugin does not support grabbing the keyboard
+QINFO  : TranslationTests::translatedFramePreservesMovedZoomedHiddenPin() pin closed, 0 remaining
+PASS   : TranslationTests::translatedFramePreservesMovedZoomedHiddenPin()
+QINFO  : TranslationTests::closingPinWithOpenMenuCleansBoth() pin created 0x0 group=默认
+QWARN  : TranslationTests::closingPinWithOpenMenuCleansBoth() This plugin does not support raise()
+QWARN  : TranslationTests::closingPinWithOpenMenuCleansBoth() This plugin does not support grabbing the keyboard
+QINFO  : TranslationTests::closingPinWithOpenMenuCleansBoth() pin closed, 0 remaining
+PASS   : TranslationTests::closingPinWithOpenMenuCleansBoth()
+QINFO  : TranslationTests::multipleTranslationPinsHaveOneActiveTaskAndHostOwnership() TaskPin Qt 0.4.2 started, rolled over 0 task(s)
+QINFO  : TranslationTests::multipleTranslationPinsHaveOneActiveTaskAndHostOwnership() card z-order: topmost (native topmost=0)
+QINFO  : TranslationTests::multipleTranslationPinsHaveOneActiveTaskAndHostOwnership() pin created 0x0 group=默认
+QWARN  : TranslationTests::multipleTranslationPinsHaveOneActiveTaskAndHostOwnership() This plugin does not support raise()
+QINFO  : TranslationTests::multipleTranslationPinsHaveOneActiveTaskAndHostOwnership() pin created 0x0 group=默认
+QWARN  : TranslationTests::multipleTranslationPinsHaveOneActiveTaskAndHostOwnership() This plugin does not support raise()
+QINFO  : TranslationTests::multipleTranslationPinsHaveOneActiveTaskAndHostOwnership() pin closed, 1 remaining
+QINFO  : TranslationTests::multipleTranslationPinsHaveOneActiveTaskAndHostOwnership() pin closed, 0 remaining
+PASS   : TranslationTests::multipleTranslationPinsHaveOneActiveTaskAndHostOwnership()
+QWARN  : TranslationTests::retryCancelledOcrPinPreservesViewAndCancelsOtherTask() QSqlDatabasePrivate::addDatabase: duplicate connection name 'taskpin', old connection removed.
+QINFO  : TranslationTests::retryCancelledOcrPinPreservesViewAndCancelsOtherTask() TaskPin Qt 0.4.2 started, rolled over 0 task(s)
+QINFO  : TranslationTests::retryCancelledOcrPinPreservesViewAndCancelsOtherTask() card z-order: topmost (native topmost=0)
+QINFO  : TranslationTests::retryCancelledOcrPinPreservesViewAndCancelsOtherTask() pin created 0x0 group=默认
+QWARN  : TranslationTests::retryCancelledOcrPinPreservesViewAndCancelsOtherTask() This plugin does not support raise()
+QINFO  : TranslationTests::retryCancelledOcrPinPreservesViewAndCancelsOtherTask() pin created 0x0 group=默认
+QWARN  : TranslationTests::retryCancelledOcrPinPreservesViewAndCancelsOtherTask() This plugin does not support raise()
+QWARN  : TranslationTests::retryCancelledOcrPinPreservesViewAndCancelsOtherTask() This plugin does not support raise()
+QWARN  : TranslationTests::retryCancelledOcrPinPreservesViewAndCancelsOtherTask() This plugin does not support grabbing the keyboard
+QINFO  : TranslationTests::retryCancelledOcrPinPreservesViewAndCancelsOtherTask() pin closed, 1 remaining
+QINFO  : TranslationTests::retryCancelledOcrPinPreservesViewAndCancelsOtherTask() pin closed, 0 remaining
+PASS   : TranslationTests::retryCancelledOcrPinPreservesViewAndCancelsOtherTask()
+QWARN  : TranslationTests::settingsHidesAndRestoresAllTranslationPins() QSqlDatabasePrivate::addDatabase: duplicate connection name 'taskpin', old connection removed.
+QINFO  : TranslationTests::settingsHidesAndRestoresAllTranslationPins() TaskPin Qt 0.4.2 started, rolled over 0 task(s)
+QINFO  : TranslationTests::settingsHidesAndRestoresAllTranslationPins() card z-order: topmost (native topmost=0)
+QINFO  : TranslationTests::settingsHidesAndRestoresAllTranslationPins() pin created 0x0 group=默认
+QWARN  : TranslationTests::settingsHidesAndRestoresAllTranslationPins() This plugin does not support raise()
+QINFO  : TranslationTests::settingsHidesAndRestoresAllTranslationPins() pin created 0x0 group=默认
+QWARN  : TranslationTests::settingsHidesAndRestoresAllTranslationPins() This plugin does not support raise()
+QWARN  : TranslationTests::settingsHidesAndRestoresAllTranslationPins() This plugin does not support propagateSizeHints()
+QWARN  : TranslationTests::settingsHidesAndRestoresAllTranslationPins() This plugin does not support raise()
+QINFO  : TranslationTests::settingsHidesAndRestoresAllTranslationPins() pin closed, 1 remaining
+QINFO  : TranslationTests::settingsHidesAndRestoresAllTranslationPins() pin closed, 0 remaining
+PASS   : TranslationTests::settingsHidesAndRestoresAllTranslationPins()
+PASS   : TranslationTests::sharedAiConfigurationIgnoresLegacyTranslationConnection()
+QWARN  : TranslationTests::translationSettingsIsOneNonmodalPage() QSqlDatabasePrivate::addDatabase: duplicate connection name 'taskpin', old connection removed.
+QINFO  : TranslationTests::translationSettingsIsOneNonmodalPage() TaskPin Qt 0.4.2 started, rolled over 0 task(s)
+QINFO  : TranslationTests::translationSettingsIsOneNonmodalPage() card z-order: topmost (native topmost=0)
+QWARN  : TranslationTests::translationSettingsIsOneNonmodalPage() This plugin does not support propagateSizeHints()
+QWARN  : TranslationTests::translationSettingsIsOneNonmodalPage() This plugin does not support raise()
+QWARN  : TranslationTests::translationSettingsIsOneNonmodalPage() This plugin does not support raise()
+PASS   : TranslationTests::translationSettingsIsOneNonmodalPage()
+PASS   : TranslationTests::sharedKeySaveReloadAndCancel()
+PASS   : TranslationTests::revokedConsentSurvivesDraftKeyAndModelEdits()
+QWARN  : TranslationTests::failedKeySaveDoesNotClaimSuccessOrChangeSettings() settings save failed: "Filename refers to a directory"
+PASS   : TranslationTests::failedKeySaveDoesNotClaimSuccessOrChangeSettings()
+PASS   : TranslationTests::protectionPreservesTechnicalText()
+PASS   : TranslationTests::placeholderCollisionAndFormula()
+PASS   : TranslationTests::scientificNumbersKeepSignsAndExponent()
+PASS   : TranslationTests::quotedEnumLiteralsRemainExact()
+PASS   : TranslationTests::paragraphsAndCode()
+PASS   : TranslationTests::uncertainLayoutKeepsAllLines()
+PASS   : TranslationTests::paddleFragmentsKeepSentenceReadingOrder()
+PASS   : TranslationTests::jitteredWordsDoNotBridgeColumnGap()
+PASS   : TranslationTests::strictResponseValidation()
+PASS   : TranslationTests::ocrContracts()
+PASS   : TranslationTests::paddleOcrPreservesModelConfidence()
+PASS   : TranslationTests::localAndUnconsentedNeverRequest()
+PASS   : TranslationTests::mockOfflineDoesNotPretendTranslation()
+PASS   : TranslationTests::realHttpBoundaryAndCache()
+PASS   : TranslationTests::connectionTestBypassesPriorSuccessfulCache()
+PASS   : TranslationTests::responseFailures(missing)
+PASS   : TranslationTests::responseFailures(placeholder)
+PASS   : TranslationTests::responseFailures(duplicate)
+PASS   : TranslationTests::responseFailures(json)
+PASS   : TranslationTests::responseFailures(truncated)
+PASS   : TranslationTests::responseFailures(unauthorized)
+PASS   : TranslationTests::responseFailures(rate-limit)
+PASS   : TranslationTests::cancellationAndLateReply()
+PASS   : TranslationTests::timeoutOnlyFailsOnce()
+PASS   : TranslationTests::cancelFromProgressDoesNotSendRequest()
+PASS   : TranslationTests::configNoPlaintextAndEndpointScope()
+QINFO  : TranslationTests::cancelledWindowRejectsOldOcr() pin created 0x0 group=默认
+QWARN  : TranslationTests::cancelledWindowRejectsOldOcr() This plugin does not support raise()
+QINFO  : TranslationTests::cancelledWindowRejectsOldOcr() pin closed, 0 remaining
+PASS   : TranslationTests::cancelledWindowRejectsOldOcr()
+QINFO  : TranslationTests::resultIsPlainTextAndCopyIsExplicit() pin created 0x0 group=默认
+QWARN  : TranslationTests::resultIsPlainTextAndCopyIsExplicit() This plugin does not support propagateSizeHints()
+QINFO  : TranslationTests::resultIsPlainTextAndCopyIsExplicit() pin closed, 0 remaining
+PASS   : TranslationTests::resultIsPlainTextAndCopyIsExplicit()
+QWARN  : TranslationTests::settingsCancelActiveTranslationBeforeDialog(tray) QSqlDatabasePrivate::addDatabase: duplicate connection name 'taskpin', old connection removed.
+QINFO  : TranslationTests::settingsCancelActiveTranslationBeforeDialog(tray) TaskPin Qt 0.4.2 started, rolled over 0 task(s)
+QINFO  : TranslationTests::settingsCancelActiveTranslationBeforeDialog(tray) card z-order: topmost (native topmost=0)
+QINFO  : TranslationTests::settingsCancelActiveTranslationBeforeDialog(tray) pin created 0x0 group=默认
+QWARN  : TranslationTests::settingsCancelActiveTranslationBeforeDialog(tray) This plugin does not support raise()
+QWARN  : TranslationTests::settingsCancelActiveTranslationBeforeDialog(tray) This plugin does not support propagateSizeHints()
+QWARN  : TranslationTests::settingsCancelActiveTranslationBeforeDialog(tray) This plugin does not support raise()
+QINFO  : TranslationTests::settingsCancelActiveTranslationBeforeDialog(tray) card z-order retry: topmost=0
+QINFO  : TranslationTests::settingsCancelActiveTranslationBeforeDialog(tray) pin closed, 0 remaining
+PASS   : TranslationTests::settingsCancelActiveTranslationBeforeDialog(tray)
+QWARN  : TranslationTests::settingsCancelActiveTranslationBeforeDialog(global-settings) QSqlDatabasePrivate::addDatabase: duplicate connection name 'taskpin', old connection removed.
+QINFO  : TranslationTests::settingsCancelActiveTranslationBeforeDialog(global-settings) TaskPin Qt 0.4.2 started, rolled over 0 task(s)
+QINFO  : TranslationTests::settingsCancelActiveTranslationBeforeDialog(global-settings) card z-order: topmost (native topmost=0)
+QINFO  : TranslationTests::settingsCancelActiveTranslationBeforeDialog(global-settings) pin created 0x0 group=默认
+QWARN  : TranslationTests::settingsCancelActiveTranslationBeforeDialog(global-settings) This plugin does not support raise()
+QWARN  : TranslationTests::settingsCancelActiveTranslationBeforeDialog(global-settings) This plugin does not support propagateSizeHints()
+QWARN  : TranslationTests::settingsCancelActiveTranslationBeforeDialog(global-settings) This plugin does not support raise()
+QINFO  : TranslationTests::settingsCancelActiveTranslationBeforeDialog(global-settings) card z-order retry: topmost=0
+QINFO  : TranslationTests::settingsCancelActiveTranslationBeforeDialog(global-settings) pin closed, 0 remaining
+PASS   : TranslationTests::settingsCancelActiveTranslationBeforeDialog(global-settings)
+QWARN  : TranslationTests::regionEditorTranslationCreatesPinWithoutNotesOrHistory() QSqlDatabasePrivate::addDatabase: duplicate connection name 'taskpin', old connection removed.
+QINFO  : TranslationTests::regionEditorTranslationCreatesPinWithoutNotesOrHistory() TaskPin Qt 0.4.2 started, rolled over 0 task(s)
+QINFO  : TranslationTests::regionEditorTranslationCreatesPinWithoutNotesOrHistory() card z-order: topmost (native topmost=0)
+QINFO  : TranslationTests::regionEditorTranslationCreatesPinWithoutNotesOrHistory() card z-order retry: topmost=0
+QINFO  : TranslationTests::regionEditorTranslationCreatesPinWithoutNotesOrHistory() startSnip: capture ok 800x800 dpr=1.00
+QWARN  : TranslationTests::regionEditorTranslationCreatesPinWithoutNotesOrHistory() This plugin does not support raise()
+QINFO  : TranslationTests::regionEditorTranslationCreatesPinWithoutNotesOrHistory() pin created 0x0 group=默认
+QWARN  : TranslationTests::regionEditorTranslationCreatesPinWithoutNotesOrHistory() This plugin does not support raise()
+QINFO  : TranslationTests::regionEditorTranslationCreatesPinWithoutNotesOrHistory() card z-order: topmost (native topmost=0)
+QINFO  : TranslationTests::regionEditorTranslationCreatesPinWithoutNotesOrHistory() pin closed, 0 remaining
+PASS   : TranslationTests::regionEditorTranslationCreatesPinWithoutNotesOrHistory()
+QWARN  : TranslationTests::topmostTranslationDoesNotCoverSettings() QSqlDatabasePrivate::addDatabase: duplicate connection name 'taskpin', old connection removed.
+QINFO  : TranslationTests::topmostTranslationDoesNotCoverSettings() TaskPin Qt 0.4.2 started, rolled over 0 task(s)
+QINFO  : TranslationTests::topmostTranslationDoesNotCoverSettings() card z-order: topmost (native topmost=0)
+QINFO  : TranslationTests::topmostTranslationDoesNotCoverSettings() pin created 0x0 group=默认
+QWARN  : TranslationTests::topmostTranslationDoesNotCoverSettings() This plugin does not support raise()
+QWARN  : TranslationTests::topmostTranslationDoesNotCoverSettings() This plugin does not support propagateSizeHints()
+QWARN  : TranslationTests::topmostTranslationDoesNotCoverSettings() This plugin does not support raise()
+QWARN  : TranslationTests::topmostTranslationDoesNotCoverSettings() This plugin does not support raise()
+QINFO  : TranslationTests::topmostTranslationDoesNotCoverSettings() pin closed, 0 remaining
+PASS   : TranslationTests::topmostTranslationDoesNotCoverSettings()
+PASS   : TranslationTests::cleanupTestCase()
+Totals: 46 passed, 0 failed, 0 skipped, 0 blacklisted, 1972ms
+********* Finished testing of TranslationTests *********

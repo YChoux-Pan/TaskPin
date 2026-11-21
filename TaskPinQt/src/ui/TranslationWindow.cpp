@@ -4,169 +4,138 @@
 #include "translation/TranslationClient.h"
 #include "translation/TranslationOcr.h"
 #include "translation/TranslationText.h"
-#include <QComboBox>
-#include <QStackedWidget>
-#include <QFileDialog>
-#include <QFileInfo>
-#include <QDir>
-#include <QScreen>
 #include <QApplication>
-#include <QCheckBox>
 #include <QClipboard>
 #include <QCloseEvent>
-#include <QHBoxLayout>
+#include <QDialog>
+#include <QHideEvent>
 #include <QLabel>
+#include <QMenu>
+#include <QPainter>
 #include <QPlainTextEdit>
 #include <QPushButton>
 #include <QSplitter>
-#include <QScrollArea>
 #include <QTimer>
 #include <QUuid>
 #include <QVBoxLayout>
 
-TranslationWindow::TranslationWindow(QWidget *parent) : QWidget(parent)
+TranslationWindow::TranslationWindow(QWidget *parent):PinWindow(QImage(),QString(),parent)
 {
-    setWindowTitle(QStringLiteral("TaskPin 截图翻译")); setObjectName("translationWindow"); setWindowIcon(taskpinIcon());
-    setAttribute(Qt::WA_DeleteOnClose); resize(980,680); setMinimumSize(700,480);
-    auto *layout = new QVBoxLayout(this); auto *toolbar = new QHBoxLayout;
-    auto *title = new QLabel(QStringLiteral("截图翻译"),this); title->setStyleSheet("font-size:20px;font-weight:600"); toolbar->addWidget(title);
-    toolbar->addStretch();
-    auto *configure = new QPushButton(QStringLiteral("翻译设置"),this); configure->setObjectName("translationSettings");
-    connect(configure,&QPushButton::clicked,this,&TranslationWindow::settings); toolbar->addWidget(configure);
-    auto *pin = new QCheckBox(QStringLiteral("置顶"),this);
-    connect(pin,&QCheckBox::toggled,this,[this](bool enabled) { setWindowFlag(Qt::WindowStaysOnTopHint,enabled); show(); }); toolbar->addWidget(pin);
-    auto *recapture = new QPushButton(QStringLiteral("重新截图"),this); recapture->setObjectName("translationRecapture");
-    connect(recapture,&QPushButton::clicked,this,[this] { cancel(); emit recaptureRequested(); }); toolbar->addWidget(recapture); layout->addLayout(toolbar);
-    m_status = new QLabel(QStringLiteral("Ctrl+Alt+T 框选屏幕，截图只在本机识别。"),this); m_status->setObjectName("translationStatus");
-    m_status->setTextFormat(Qt::PlainText); m_status->setWordWrap(true); layout->addWidget(m_status);
-    m_warning = new QLabel(this); m_warning->setTextFormat(Qt::PlainText); m_warning->setWordWrap(true); m_warning->setStyleSheet("color:#a77827"); layout->addWidget(m_warning);
-    m_view=new QComboBox(this);m_view->setObjectName("translationView");
-    m_view->addItems({QStringLiteral("译图 · 原位覆盖"),QStringLiteral("原图"),QStringLiteral("文字对照")});toolbar->insertWidget(1,m_view);
-    m_stack=new QStackedWidget(this);m_scroll=new QScrollArea(this);m_scroll->setAlignment(Qt::AlignCenter);
-    m_canvas=new TranslationCanvas;m_canvas->setObjectName("translationCanvas");m_scroll->setWidget(m_canvas);m_stack->addWidget(m_scroll);
-    connect(m_view,qOverload<int>(&QComboBox::currentIndexChanged),this,[this](int index) {m_stack->setCurrentIndex(index==2?1:0);m_canvas->setOriginal(index==1);});
-    auto *splitter = new QSplitter(this);
-    auto pane = [this,splitter](const QString &label,const QString &name,QPlainTextEdit **editor) {
-        auto *panel = new QWidget(splitter); auto *box = new QVBoxLayout(panel); auto *row = new QHBoxLayout;
-        row->addWidget(new QLabel(label,panel)); row->addStretch();
-        auto *copy = new QPushButton(QStringLiteral("复制"),panel); copy->setObjectName(name+"Copy"); row->addWidget(copy);
-        *editor = new QPlainTextEdit(panel); (*editor)->setReadOnly(true); (*editor)->setObjectName(name);
-        (*editor)->setLineWrapMode(QPlainTextEdit::WidgetWidth); box->addLayout(row); box->addWidget(*editor);
-        connect(copy,&QPushButton::clicked,this,[this,editor] {
-            const QString text = (*editor)->toPlainText();
-            QApplication::clipboard()->setText(text);
-            m_status->setText(QApplication::clipboard()->text() == text ? QStringLiteral("已复制文本。") :
-                QStringLiteral("剪贴板被其他程序占用，复制未完成，请稍后重试。"));
-        });
-    };
-    pane(QStringLiteral("OCR 原文"),"translationSource",&m_source); pane(QStringLiteral("简体中文"),"translationTarget",&m_target);
-    m_stack->addWidget(splitter);layout->addWidget(m_stack,1);
-    auto *bottom = new QHBoxLayout;
-    auto *zoom=new QComboBox(this);zoom->setObjectName("translationZoom");
-    for(int value:{50,75,100,125,150,200})zoom->addItem(QString::number(value)+"%",value);
-    zoom->setCurrentIndex(2);connect(zoom,qOverload<int>(&QComboBox::currentIndexChanged),this,[this,zoom](int) {m_canvas->setZoom(zoom->currentData().toDouble()/100.);});bottom->addWidget(zoom);
-    auto *copyText=new QPushButton(QStringLiteral("复制译文"),this);copyText->setObjectName("translationCopyText");
-    connect(copyText,&QPushButton::clicked,this,[this] {const auto text=m_target->toPlainText();QApplication::clipboard()->setText(text);
-        m_status->setText(QApplication::clipboard()->text()==text?QStringLiteral("译文已复制。"):QStringLiteral("剪贴板被占用，复制未完成。"));});bottom->addWidget(copyText);
-    auto *save=new QPushButton(QStringLiteral("保存译图"),this);save->setObjectName("translationSaveImage");
-    connect(save,&QPushButton::clicked,this,&TranslationWindow::saveTranslatedImage);bottom->addWidget(save);bottom->addStretch();
-    m_cancel = new QPushButton(QStringLiteral("取消处理"),this); m_cancel->setObjectName("translationCancel");
-    connect(m_cancel,&QPushButton::clicked,this,&TranslationWindow::cancel); bottom->addWidget(m_cancel);
-    m_retry = new QPushButton(QStringLiteral("翻译 / 重试"),this); m_retry->setObjectName("translationRetry");
-    connect(m_retry,&QPushButton::clicked,this,&TranslationWindow::translate); bottom->addWidget(m_retry);
-    auto *close = new QPushButton(QStringLiteral("关闭"),this); connect(close,&QPushButton::clicked,this,&QWidget::close); bottom->addWidget(close);
-    layout->addLayout(bottom);
-    m_ocr = new Translation::Ocr(this); m_client = new Translation::Client(this);
+    setWindowTitle(QStringLiteral("TaskPin 翻译贴图"));setObjectName("translationPin");setWindowIcon(taskpinIcon());
+    m_renderer=new TranslationCanvas(this);m_renderer->hide();
+    m_ocr=new Translation::Ocr(this);m_client=new Translation::Client(this);
     connect(m_ocr,&Translation::Ocr::finished,this,&TranslationWindow::presentOcr);
-    connect(m_ocr,&Translation::Ocr::failed,this,[this](const QString &id,const QString &error) { if (id == m_taskId) setStatus("FAILED",error); });
-    connect(m_client,&Translation::Client::updated,this,[this](const QString &id,const QList<Translation::Result> &results,int done,int total) {
-        if (id != m_taskId) return;
-        presentResults(results);
-        setStatus("TRANSLATING",QStringLiteral("正在翻译… %1 / %2 块；截图未上传").arg(done).arg(total));
+    connect(m_ocr,&Translation::Ocr::failed,this,[this](const QString &id,const QString &error){if(id==m_taskId)setStatus("FAILED",error);});
+    connect(m_client,&Translation::Client::updated,this,[this](const QString &id,const QList<Translation::Result> &results,int done,int total){
+        if(id!=m_taskId)return;presentResults(results);setStatus("TRANSLATING",QStringLiteral("翻译中… %1/%2 · 右键可取消").arg(done).arg(total));
     });
-    connect(m_client,&Translation::Client::finished,this,[this](const QString &id,const QList<Translation::Result> &results) {
-        if (id != m_taskId) return;
-        presentResults(results);
-        bool failed = false, mock = false;
-        for (const auto &result : results) { failed |= result.status == "failed"; mock |= result.status == "mock"; }
-        setStatus("PRESENTING",mock ? QStringLiteral("离线 Mock 已完成 · 仅测试流程，不是真实译文。") :
-            failed ? QStringLiteral("部分文本未通过校验，已标记并保留原文。") : QStringLiteral("翻译完成 · 代码、参数和公式请对照原图核对。"));
+    connect(m_client,&Translation::Client::finished,this,[this](const QString &id,const QList<Translation::Result> &results){
+        if(id!=m_taskId)return;presentResults(results);bool failed=false,mock=false;
+        for(const auto &r:results){failed|=r.status=="failed";mock|=r.status=="mock";}
+        setStatus("PRESENTING",mock?QStringLiteral("Mock 测试 · 非真实译文 · 右键查看对照"):failed?QStringLiteral("部分未译，保留原图 · 右键查看对照"):QStringLiteral("翻译完成 · 拖动移动，滚轮缩放，右键更多"));
     });
-    connect(m_client,&Translation::Client::failed,this,[this](const QString &id,const QString &error) { if (id == m_taskId) setStatus("FAILED",error); });
-    setStatus("IDLE",m_status->text());
+    connect(m_client,&Translation::Client::failed,this,[this](const QString &id,const QString &error){if(id==m_taskId)setStatus("FAILED",error);});
 }
-TranslationWindow::~TranslationWindow() { m_ocr->cancel(); m_client->cancel(); }
-bool TranslationWindow::busy() const { return m_ocr->busy() || m_client->busy(); }
+TranslationWindow::~TranslationWindow(){m_ocr->cancel();m_client->cancel();}
+bool TranslationWindow::busy() const{return m_ocr->busy()||m_client->busy();}
 void TranslationWindow::setStatus(const QString &state,const QString &label)
 {
-    m_state = state; m_status->setText(label);
-    m_retry->setEnabled(!busy() && !m_blocks.isEmpty()); m_cancel->setEnabled(busy());
+    m_state=state;m_message=label;m_statusVisible=true;const auto revision=++m_statusRevision;
+    setToolTip((m_warning.isEmpty()?QString():m_warning+"\n")+label);update();
+    if(state=="PRESENTING")QTimer::singleShot(3000,this,[this,revision]{if(revision==m_statusRevision){m_statusVisible=false;update();}});
 }
 void TranslationWindow::setCapture(const QImage &image,const QRect &region)
 {
-    cancel(); m_taskId = QUuid::createUuid().toString(QUuid::WithoutBraces);
-    m_image = image; m_blocks.clear(); m_source->clear(); m_target->clear(); m_warning->clear();
-    m_canvas->setContent(image,{},{});m_view->setCurrentIndex(0);
-    if(!region.isEmpty()) {
-        auto *targetScreen=QApplication::screenAt(region.center());
-        if(!targetScreen)targetScreen=screen();
-        const auto available=targetScreen->availableGeometry();
-        const int wantedWidth=qMin(available.width(),qMax(900,region.width()+30));
-        const int wantedHeight=qMin(available.height(),qMax(560,region.height()+200));
-        resize(wantedWidth,wantedHeight);
-        move(qBound(available.left(),region.left(),qMax(available.left(),available.right()-width()+1)),qBound(available.top(),region.top(),qMax(available.top(),available.bottom()-height()+1)));
-    }
-    QTimer::singleShot(0,this,[this] {if(!m_image.isNull())m_canvas->setZoom(qMin(1.,double(m_scroll->viewport()->width()-20)/m_image.width()));});
-    show(); raise(); activateWindow();
-    m_ocr->recognize(m_taskId,image);
-    if (m_ocr->busy()) setStatus("OCR_RUNNING",QStringLiteral("本地 OCR 识别中… 图片不上传，不写入截图历史。"));
+    cancel();m_closing=false;m_taskId=QUuid::createUuid().toString(QUuid::WithoutBraces);
+    m_originalImage=image;m_originalImage.setDevicePixelRatio(1);m_translatedImage=m_originalImage;
+    m_sourceLogicalSize=region.isValid()?region.size():image.size();m_original=false;
+    m_blocks.clear();m_sourceText.clear();m_targetText.clear();m_warning.clear();
+    replaceFrame(m_originalImage,m_sourceLogicalSize,true);
+    if(region.isValid())move(pos()+region.topLeft()-contentGeometry().topLeft());
+    if(m_source)m_source->clear();if(m_target)m_target->clear();
+    emit processingRequested(this);
+    show();raise();m_ocr->recognize(m_taskId,m_originalImage);
+    if(m_ocr->busy())setStatus("OCR_RUNNING",QStringLiteral("识别并翻译中… · 可拖动，右键可取消"));
 }
-void TranslationWindow::presentOcr(const QString &taskId,const Translation::OcrResult &result)
+void TranslationWindow::presentOcr(const QString &id,const Translation::OcrResult &result)
 {
-    if (taskId != m_taskId || m_state == "CANCELLED") return;
-    QStringList warnings; m_blocks = Translation::buildBlocks(result,&warnings);
-    if (!result.language.startsWith("en",Qt::CaseInsensitive))
-        warnings.append(QStringLiteral("本次 OCR 语言为 %1；英文技术文档的下划线、l/I、数字与比较符需核对原图。").arg(result.language));
-    if (m_blocks.isEmpty()) { setStatus("PRESENTING",QStringLiteral("选区未识别到文字，请重新截图。")); return; }
-    for (auto &block : m_blocks) block = Translation::protect(block,m_taskId.left(8));
-    m_source->setPlainText(Translation::sourceText(m_blocks)); m_warning->setText(warnings.join('\n'));
-    presentResults({});
-    setStatus("PRESENTING",QStringLiteral("本地识别完成（%1）").arg(result.language));
-    translate();
+    if(id!=m_taskId||m_state=="CANCELLED"||m_closing)return;
+    QStringList warnings;m_blocks=Translation::buildBlocks(result,&warnings);
+    warnings.append(QStringLiteral("%1 本地识别；技术符号请切换原图核对。").arg(result.engine.isEmpty()?QStringLiteral("OCR"):result.engine));
+    m_warning=warnings.join('\n');
+    if(m_blocks.isEmpty()){setStatus("PRESENTING",QStringLiteral("未识别到文字 · 右键重新截图"));return;}
+    for(auto &block:m_blocks)block=Translation::protect(block,m_taskId.left(8));
+    m_sourceText=Translation::sourceText(m_blocks);presentResults({});translate();
 }
 void TranslationWindow::translate()
 {
-    if (busy() || m_blocks.isEmpty()) return;
-    const auto config = Translation::Config::load();
-    if (config.mode == "local") { setStatus("PRESENTING",QStringLiteral("纯本地 OCR · 未联网。需要译文时打开“翻译设置”选择服务并授权。")); return; }
-    const QString key = config.mode == "cloud" ? config.apiKey() : QString();
-    m_client->start(m_taskId,m_blocks,config,key);
-    if (m_client->busy()) setStatus("TRANSLATING",config.mode == "mock" ? QStringLiteral("离线 Mock 测试中…") : QStringLiteral("正在发送已授权的 OCR 文字，截图不上传…"));
+    if(busy()||m_closing)return;
+    if(m_blocks.isEmpty()){
+        if(m_originalImage.isNull())return;
+        m_taskId=QUuid::createUuid().toString(QUuid::WithoutBraces);
+        emit processingRequested(this);m_ocr->recognize(m_taskId,m_originalImage);
+        if(m_ocr->busy())setStatus("OCR_RUNNING",QStringLiteral("重新识别并翻译中… · 右键可取消"));
+        return;
+    }
+    const auto config=Translation::Config::load();
+    if(config.mode=="local"){setStatus("PRESENTING",QStringLiteral("仅本地OCR · 右键查看文字或打开翻译设置"));return;}
+    emit processingRequested(this);
+    m_client->start(m_taskId,m_blocks,config,config.mode=="cloud"?config.apiKey():QString());
+    if(m_client->busy())setStatus("TRANSLATING",config.mode=="mock"?QStringLiteral("Mock流程测试中…"):QStringLiteral("翻译中… · 仅发送已授权文字"));
 }
 void TranslationWindow::cancel()
 {
-    m_taskId = QUuid::createUuid().toString(QUuid::WithoutBraces);
-    m_ocr->cancel(); m_client->cancel();
-    setStatus("CANCELLED",QStringLiteral("已取消。已发出的文字和费用无法撤回；原文仍可复制。"));
-}
-void TranslationWindow::settings()
-{
-    if (busy()) cancel();
-    emit settingsRequested();
+    m_taskId=QUuid::createUuid().toString(QUuid::WithoutBraces);m_ocr->cancel();m_client->cancel();
+    setStatus("CANCELLED",QStringLiteral("已取消处理 · 右键可重试；已发送文字无法撤回"));
 }
 void TranslationWindow::presentResults(const QList<Translation::Result> &results)
 {
-    m_target->setPlainText(Translation::resultText(m_blocks,results));
-    m_canvas->setContent(m_image,m_blocks,results);
+    m_targetText=Translation::resultText(m_blocks,results);m_renderer->setContent(m_originalImage,m_blocks,results);
+    m_renderer->setOriginal(false);m_translatedImage=m_renderer->renderedImage();refreshFrame();
+    if(m_source)m_source->setPlainText(m_sourceText);if(m_target)m_target->setPlainText(m_targetText);
 }
-void TranslationWindow::saveTranslatedImage()
+void TranslationWindow::refreshFrame()
 {
-    if(m_image.isNull()){m_status->setText(QStringLiteral("请先截图。"));return;}
-    const QString path=QFileDialog::getSaveFileName(this,QStringLiteral("保存译图"),"TaskPin-translation.png","PNG (*.png)");
-    if(path.isEmpty())return;
-    const bool original=m_canvas->original();m_canvas->setOriginal(false);const QImage output=m_canvas->renderedImage();m_canvas->setOriginal(original);
-    if(!output.save(path,"PNG")){m_status->setText(QStringLiteral("译图保存失败，请检查目录权限。"));return;}
-    QApplication::clipboard()->setText(QDir::toNativeSeparators(QFileInfo(path).absoluteFilePath()));
-    m_status->setText(QApplication::clipboard()->text()==QDir::toNativeSeparators(QFileInfo(path).absoluteFilePath())?QStringLiteral("译图已保存，文件路径已复制。"):QStringLiteral("译图已保存；剪贴板被占用，路径未复制。"));
+    const QImage frame=m_original?m_originalImage:m_translatedImage;if(frame.isNull()||m_originalImage.isNull())return;
+    const QSize logical(qMax(1,qRound(double(frame.width())*m_sourceLogicalSize.width()/m_originalImage.width())),
+                        qMax(1,qRound(double(frame.height())*m_sourceLogicalSize.height()/m_originalImage.height())));
+    replaceFrame(frame,logical);
 }
-void TranslationWindow::closeEvent(QCloseEvent *event) { cancel(); QWidget::closeEvent(event); }
+void TranslationWindow::toggleOriginal(){m_original=!m_original;refreshFrame();}
+void TranslationWindow::paintEvent(QPaintEvent *event)
+{
+    PinWindow::paintEvent(event);if(!m_statusVisible||width()<50||height()<25)return;
+    QPainter p(this);const QRect box(5,qMax(4,height()-48),qMax(1,width()-10),qMin(42,height()-8));
+    p.setPen(Qt::NoPen);p.setBrush(QColor(18,23,31,225));p.drawRoundedRect(box,5,5);
+    QFont font=p.font();font.setPixelSize(12);p.setFont(font);p.setPen(Qt::white);
+    p.drawText(box.adjusted(5,2,-5,-2),Qt::AlignVCenter|Qt::TextWordWrap,m_message);
+}
+void TranslationWindow::extendMenu(QMenu *menu)
+{
+    auto *status=menu->addAction(m_message.isEmpty()?QStringLiteral("翻译贴图"):m_message);status->setEnabled(false);
+    menu->addAction(m_original?QStringLiteral("显示中文译图"):QStringLiteral("查看原图"),this,&TranslationWindow::toggleOriginal);
+    menu->addAction(QStringLiteral("查看文字对照…"),this,&TranslationWindow::showComparison);
+    auto *copy=menu->addAction(QStringLiteral("复制译文"),this,[this]{QApplication::clipboard()->setText(m_targetText);});copy->setEnabled(!m_targetText.isEmpty());
+    auto *retry=menu->addAction(QStringLiteral("重新翻译"),this,&TranslationWindow::translate);retry->setEnabled(!busy()&&!m_originalImage.isNull());
+    if(busy())menu->addAction(QStringLiteral("取消翻译"),this,&TranslationWindow::cancel);
+    menu->addAction(QStringLiteral("翻译设置…"),this,[this]{if(busy())cancel();emit settingsRequested();});
+    menu->addAction(QStringLiteral("重新截图…"),this,[this]{cancel();emit recaptureRequested();});menu->addSeparator();
+}
+void TranslationWindow::showComparison()
+{
+    if(m_comparison){m_comparison->show();m_comparison->raise();return;}
+    auto *dialog=new QDialog(this);dialog->setAttribute(Qt::WA_DeleteOnClose);dialog->setWindowTitle(QStringLiteral("TaskPin 翻译文字对照"));
+    dialog->setWindowFlag(Qt::WindowStaysOnTopHint,true);dialog->resize(840,480);m_comparison=dialog;
+    auto *layout=new QVBoxLayout(dialog);auto *warning=new QLabel(m_warning,dialog);warning->setTextFormat(Qt::PlainText);warning->setWordWrap(true);layout->addWidget(warning);
+    auto *splitter=new QSplitter(dialog);layout->addWidget(splitter);
+    auto pane=[this,splitter](const QString &title,const QString &name,const QString &text,QPlainTextEdit **editor){
+        auto *panel=new QWidget(splitter);auto *box=new QVBoxLayout(panel);box->addWidget(new QLabel(title,panel));
+        *editor=new QPlainTextEdit(text,panel);(*editor)->setReadOnly(true);(*editor)->setObjectName(name);box->addWidget(*editor);
+        auto *copy=new QPushButton(QStringLiteral("复制"),panel);copy->setObjectName(name+"Copy");box->addWidget(copy);
+        connect(copy,&QPushButton::clicked,this,[this,editor]{const auto text=(*editor)->toPlainText();QApplication::clipboard()->setText(text);if(QApplication::clipboard()->text()!=text)setStatus(m_state,QStringLiteral("剪贴板被占用，复制未完成。"));});
+    };
+    pane(QStringLiteral("OCR 原文"),"translationSource",m_sourceText,&m_source);pane(QStringLiteral("中文译文"),"translationTarget",m_targetText,&m_target);
+    connect(dialog,&QObject::destroyed,this,[this]{m_source=nullptr;m_target=nullptr;});dialog->show();
+}
+void TranslationWindow::hideEvent(QHideEvent *event){if(m_comparison)m_comparison->hide();PinWindow::hideEvent(event);}
+void TranslationWindow::closeEvent(QCloseEvent *event){m_closing=true;cancel();if(m_comparison)m_comparison->close();PinWindow::closeEvent(event);}

@@ -1,9 +1,9 @@
-# 截图翻译实现记录
+# 截图翻译实现记录 · 0.4.2
 
-当前版本 0.4.1，维护 C++17 / Qt 6.4.3 / MinGW 11.2.0。原需求 [SCREEN-TRANSLATION-SPEC.md](SCREEN-TRANSLATION-SPEC.md)；用户后续明确要求复用现有 AI 并提供原图译文覆盖，设计见 superpowers/specs/2026-11-21-translation-repair.md。
+用户最新要求覆盖原先独立入口设计：翻译集成进F1截图工具栏；不再保留独立截图翻译按钮/全局快捷键/专用遮罩。结果直接作为桌面贴图，OCR明确使用PaddleOCR系列模型。
 
-TranslationConfig 只保存模式、超时和接口授权，连接与 Key 均来自 Settings 的既有 AI 配置。TranslationSettingsPage 是 SettingsDialog 中的页面，主机拥有唯一非模态设置窗口；没有独立密钥库与模态翻译设置。连接测试使用生产 Client、固定虚构短句并明确跳过缓存。
+SnipOverlay 的翻译操作输出当前合成选区和全局逻辑矩形；AppHost 创建继承PinWindow的TranslationWindow。沿用贴图移动、缩放、旋转、透明度、边框、穿透、分组与显隐，异步replaceFrame保留视图。文字对照仅由右键主动打开。AppHost拥有全部结果贴图，主要任务串行；取消OCR后的贴图可以原图重试。
 
-TranslationWindow 默认展示 TranslationCanvas，原始截图与带几何 Block/Result 分开。Canvas 以局部采样背景遮盖对应文字框并排版译文；代码/公式/失败块保留原图，长文图下注释，输出上限 32MP。原图切换、文字对照、PNG 保存、缩放与复制复用同一份结果。
+本地识别改用PaddleOCR PP-OCRv5 Det/Rec模型，RapidOCR执行封装、ONNX Runtime CPU及独立Python运行时。翻译和便签识别共享该适配器。运行时使用本地模型与固定hash，输入PNG经stdin，输出含坐标/真实分数/引擎元数据，不写截图或识别结果文件，不自动联网下载。
 
-OCR 使用本地 Windows.Media.Ocr，图像经 stdin 内存流，不写识别内容文件；没有迁移 Python或集成有道模型/私有接口。英文技术字符在本机 zh-Hans-CN 语言包下仍有误识别，需核对原图。真实接口固定样本和原图覆盖已实测，细节/限制见专项报告。
+共享AI连接、endpoint授权、取消与迟到隔离、技术token保护、原图渲染和单一设置页继承0.4.1。模型/依赖体积、版本/许可、生成图片实测及测试计数按本轮报告记录，不将旧Windows OCR样本冒充PaddleOCR结果。

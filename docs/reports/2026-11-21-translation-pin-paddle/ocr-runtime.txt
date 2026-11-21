@@ -1,0 +1,35 @@
+{
+  "ok": true,
+  "fixtures": [
+    {
+      "fixture": "english",
+      "regions": 7,
+      "matched": true,
+      "minimumConfidence": 0.90127,
+      "processSeconds": 2.603
+    },
+    {
+      "fixture": "chinese",
+      "regions": 2,
+      "matched": true,
+      "minimumConfidence": 0.99819,
+      "processSeconds": 2.482
+    },
+    {
+      "fixture": "dark-technical",
+      "regions": 3,
+      "matched": true,
+      "minimumConfidence": 0.95493,
+      "processSeconds": 2.215
+    },
+    {
+      "fixture": "16-million-pixel-blank",
+      "matched": true,
+      "processSeconds": 3.197
+    }
+  ],
+  "invalidInputCases": 4,
+  "tamperAndMissingModelRejected": true,
+  "networkInference": false,
+  "imageOrTranscriptFilesWritten": false
+}

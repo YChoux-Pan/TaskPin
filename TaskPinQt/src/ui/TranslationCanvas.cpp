@@ -150,6 +150,9 @@ QImage translatedImage(const QImage &original, const QList<Translation::Block> &
         if (block.bypass() || rectangles[i].isEmpty() || found == byId.cend() ||
             (found->status != "ok" && found->status != "mock") || found->text.trimmed().isEmpty())
             continue;
+        // A service echo adds no translation; preserve source glyphs OCR may have missed.
+        if (found->status=="ok" && found->text.trimmed()==block.source.trimmed())
+            continue;
         Overlay overlay;
         overlay.rect = rectangles[i];
         overlay.safeRegion = QRegion(overlay.rect);

@@ -1,4 +1,4 @@
-# Architecture — TaskPin 0.4.1
+# Architecture — TaskPin 0.4.2
 
 The maintained application is C++17 / Qt Widgets for Windows 10/11 x64. CMake requires Qt >= 6.4. The reference release kit is Qt 6.4.3 / MinGW 11.2 x64. The repository contains one active implementation under `TaskPinQt/`; older C# documents in `docs/legacy/` are historical references, not current contracts.
 
@@ -20,7 +20,7 @@ UI uses core/platform services; core and platform must not depend on UI. App orc
 
 Supported command entry points include `--snip`, `--full`, `--last`, `--pin`, `--pins`, `--color`, `--board`, `--board-transparent`, `--quick`, `--toggle`, `--card-top`, `--card-desktop`, `--card-layer`, `--recycle`, `--history`, `--calendar`, `--settings`, `--translate`, `--translation-settings`, `--quit`, `--dump [path]` and `--selftest [dir]`. Preserve their meaning when changing UI actions.
 
-UI and native event callbacks run on the Qt main thread. OCR runs a PowerShell/WinRT helper through `QProcess`; AI uses `QNetworkAccessManager` and a timeout. Results return through signals. Do not block interactive rendering with new synchronous work.
+UI and native event callbacks run on the Qt main thread. Both note and translation OCR run the bundled PaddleOCR PP-OCRv5 helper through `QProcess`; AI uses `QNetworkAccessManager` and a timeout. Results return through signals. Do not block interactive rendering with new synchronous work.
 
 ## Capture and editor coordinates
 
@@ -38,14 +38,20 @@ Pin menus group copy/save/OCR, appearance/zoom, transforms, click-through/groups
 
 `Settings::dataDir()` uses `TASKPIN_DATA` when set, otherwise Qt's AppLocalDataLocation (`%LOCALAPPDATA%\TaskPin\TaskPinQt\`). Settings use atomic JSON writes and back up malformed JSON. History and OCR files stay under the selected data directory; saved user exports use their configured destination. Logging may contain OCR/AI content and service URLs, so it is not a safe public fixture.
 
-AI is optional and off by default. If enabled, the configured OpenAI-compatible service receives recognized text (up to 4000 characters) for a title summary; failures fall back to recognized text. Credentials currently reside in plaintext settings. Windows OCR depends on installed OS components/languages. Never package application data with source or binaries.
+AI is optional and off by default. If enabled, the configured OpenAI-compatible service receives recognized text (up to 4000 characters) for a title summary; failures fall back to recognized text. Credentials currently reside in plaintext settings. PaddleOCR CPU inference uses the bundled offline models and isolated Python runtime; it does not require OS OCR language packs. Never package application data with source or binaries.
 
-## Independent screen translation
+## Translation inside region capture
 
-Ctrl+Alt+T uses a separate TranslationOverlay and TranslationWindow. It does not modify the screenshot history, last region or task store. TranslationOcr passes image bytes through stdin to a Windows.Media.Ocr helper without content files. OCR lines retain geometry and unknown confidence; technical characters need comparison with the original image. TranslationClient uses a separate network manager, endpoint-scoped consent, the shared AI Settings connection, a single task generation, bounded sequential batches, strict block/token validation and a 64-block memory cache. Closing cancels work and invalidates late results. TranslationCanvas renders successful blocks over their original image rectangles, preserves original pixels separately and provides bounded callout fallback. A single nonmodal SettingsDialog contains TranslationSettingsPage; all entries reuse that window. Default mode is local OCR; no genuine offline translation model is bundled. See [SCREEN-TRANSLATION](SCREEN-TRANSLATION.md) for behavior and limits.
+F1 SnipOverlay exposes translationRequested(image, globalLogicalRect) next to task OCR. The Ctrl+T shortcut acts only in the editor. The separate TranslationOverlay, tray capture action and global Ctrl+Alt+T registration were removed; legacy --translate enters the same region editor. Translation itself does not write screenshot history, last region or task data.
+
+TranslationWindow now derives from PinWindow: it is a frameless desktop pin, not a default result dialog. replaceFrame preserves content origin, zoom and transforms as OCR/translation updates arrive. All pins share hide/group/close/appearance controls. AppHost owns a QPointer list of translation pins and separately tracks the active task; a new task cancels other busy pins, retaining their images and retry paths. Optional plain-text comparison is created only on request. Context menus are heap-owned popup menus; modal-return paths guard owner lifetime. Hidden pins remain hidden on async completion.
+
+TranslationOcr exchanges PNG bytes through stdin and line JSON through stdout with the bundled PaddleOCR helper. PP-OCRv5 model output retains physical geometry, actual recognition score and engine/model version. core/Ocr wraps the same adapter for notes; no recognized content files or PowerShell/Windows OCR are used. Runtime/model/wheel identities and licenses are locked under TaskPinQt/ocr and prepare-ocr-runtime.ps1. Inference is local CPU and never downloads models.
+
+TranslationClient keeps a separate network manager, endpoint-scoped consent, shared AI settings, generation isolation, bounded sequential batches, strict block/token validation and a 64-block memory cache. Canvas renders successful blocks, preserving originals and bounded long-text fallback. One nonmodal SettingsDialog contains TranslationSettingsPage. Local OCR mode does not contain an offline translation model. See [SCREEN-TRANSLATION](SCREEN-TRANSLATION.md).
 
 ## Build and verification
 
-`TaskPinQt/build.cmd` delegates to `scripts/build.ps1`. CMake registers `TaskPinScreenshotTests`, `TaskPinIntegrationTests`, `TaskPinExperienceTests` and `TaskPinTranslationTests`, runs them offscreen via CTest and writes QtTest text/JUnit reports. `scripts/test.ps1` uses separate data and also waits for `--selftest`. `scripts/package.ps1` deploys Release runtime into a fresh staging directory and archives committed source. Development-tool absolute paths are supplied by parameters/environment, not stored in scripts.
+`TaskPinQt/build.cmd` delegates to `scripts/build.ps1`. CMake registers `TaskPinScreenshotTests`, `TaskPinIntegrationTests`, `TaskPinExperienceTests` `TaskPinTranslationTests` and `TaskPinTranslationCanvasTests`, runs them offscreen via CTest and writes QtTest text/JUnit reports. `scripts/test.ps1` uses separate data and also waits for `--selftest`. `scripts/package.ps1` deploys Release runtime into a fresh staging directory and archives committed source. Development-tool absolute paths are supplied by parameters/environment, not stored in scripts.
 
 Automated DPI fixtures and physical desktop checks answer different questions. `TASKPIN_AUTOMATION=1` changes top-level window flags for testing; see [TESTING](TESTING.md). Build, release and provenance instructions are in [BUILDING](BUILDING.md), [RELEASING](RELEASING.md) and [HANDOVER](HANDOVER.md).

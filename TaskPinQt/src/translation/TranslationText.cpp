@@ -6,8 +6,51 @@
 #include <QSet>
 #include <algorithm>
 #include <cmath>
+#include <limits>
 
 namespace Translation {
+QList<Line> readingLines(const QList<Line> &fragments)
+{
+    QList<Line> sorted;
+    for (const auto &line : fragments) if (!line.text.trimmed().isEmpty()) sorted.append(line);
+    std::stable_sort(sorted.begin(), sorted.end(), [](const Line &a, const Line &b) {
+        return a.rect.top() == b.rect.top() ? a.rect.left() < b.rect.left() : a.rect.top() < b.rect.top();
+    });
+    // Detection may split a visual line into words with slightly different tops.
+    // Cluster baselines before sorting horizontally, without bridging column gaps.
+    QList<QList<Line>> rows;
+    for (const auto &line : sorted) {
+        int best=-1;double distance=std::numeric_limits<double>::max();
+        for (int i=0;i<rows.size();++i) {
+            const auto &anchor=rows[i].first().rect;
+            const double delta=std::abs(line.rect.center().y()-anchor.center().y());
+            if (delta<=qMin(line.rect.height(),anchor.height())*.5 && delta<distance) {best=i;distance=delta;}
+        }
+        if(best<0)rows.append(QList<Line>{line});else rows[best].append(line);
+    }
+    QList<Line> out;
+    auto cjk=[](QChar c){const auto u=c.unicode();return (u>=0x2e80&&u<=0x9fff)||(u>=0xf900&&u<=0xfaff)||(u>=0xff00&&u<=0xffef);};
+    for (auto &row : rows) {
+        std::stable_sort(row.begin(),row.end(),[](const Line &a,const Line &b){return a.rect.left()<b.rect.left();});
+        Line combined=row.first();combined.text=combined.text.trimmed();
+        for(int i=1;i<row.size();++i) {
+            const auto &next=row[i];const QString text=next.text.trimmed();
+            const double fragmentHeight=qMax(row[i-1].rect.height(),next.rect.height());
+            if(next.rect.left()-combined.rect.right()>fragmentHeight*1.5) {
+                out.append(combined);combined=next;combined.text=text;continue;
+            }
+            const bool noSpace=cjk(combined.text.back())&&cjk(text.front());
+            combined.text+=(noSpace?QString():QStringLiteral(" "))+text;
+            combined.id+='+'+next.id;combined.rect=combined.rect.united(next.rect);
+            // Keep an actual constituent score, never manufacture a probability.
+            if(combined.recognitionConfidence&&next.recognitionConfidence)
+                combined.recognitionConfidence=qMin(*combined.recognitionConfidence,*next.recognitionConfidence);
+            else combined.recognitionConfidence.reset();
+        }
+        out.append(combined);
+    }
+    return out;
+}
 static QString classify(const QString &text)
 {
     static const QRegularExpression call(R"(^\s*(?:[A-Za-z_]\w*\s*:=|[a-z]\w*_[\w]+\s*\(|(?:inner_circle|smallest_circle)\s*\())");
@@ -21,11 +64,7 @@ static QString classify(const QString &text)
 }
 QList<Block> buildBlocks(const OcrResult &ocr, QStringList *warnings)
 {
-    QList<Line> lines;
-    for (const auto &line : ocr.lines) if (!line.text.trimmed().isEmpty()) lines.append(line);
-    std::stable_sort(lines.begin(), lines.end(), [](const Line &a, const Line &b) {
-        return a.rect.top() == b.rect.top() ? a.rect.left() < b.rect.left() : a.rect.top() < b.rect.top();
-    });
+    const auto lines=readingLines(ocr.lines);
     QList<double> heights;
     for (const auto &line : lines) if (line.rect.height() > 0) heights.append(line.rect.height());
     std::sort(heights.begin(), heights.end());
@@ -57,7 +96,7 @@ QList<Block> buildBlocks(const OcrResult &ocr, QStringList *warnings)
     }
     if (warnings) {
         if (complex) warnings->append(QStringLiteral("疑似双栏或表格，阅读顺序可能不完整，请核对原图。"));
-        if (unknown) warnings->append(QStringLiteral("系统 OCR 不提供置信度；代码、数字和公式请对照原图核对。"));
+        if (unknown) warnings->append(QStringLiteral("部分 OCR 文字缺少置信度；代码、数字和公式请对照原图核对。"));
         if (low) warnings->append(QStringLiteral("存在低置信度文字，已保留，请核对原图。"));
     }
     return out;

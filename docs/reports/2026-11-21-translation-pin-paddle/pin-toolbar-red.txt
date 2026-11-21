@@ -1,0 +1,10 @@
+********* Start testing of ScreenshotTests *********
+Config: Using QtTest library 6.4.3, Qt 6.4.3 (x86_64-little_endian-llp64 shared (dynamic) release build; by GCC 11.2.0), windows 11
+PASS   : ScreenshotTests::initTestCase()
+QWARN  : ScreenshotTests::translationActionIsAlongsideTaskRecognition() QFontDatabase: Cannot find font directory [development]/pin-build/lib/fonts.
+Note that Qt no longer ships fonts. Deploy some (from https://dejavu-fonts.github.io/ for example) or switch to fontconfig.
+FAIL!  : ScreenshotTests::translationActionIsAlongsideTaskRecognition() '!translate.rect.isEmpty()' returned FALSE. ()
+[development]/pin-source/TaskPinQt/tests/tst_screenshot.cpp(104) : failure location
+PASS   : ScreenshotTests::cleanupTestCase()
+Totals: 2 passed, 1 failed, 0 skipped, 0 blacklisted, 13ms
+********* Finished testing of ScreenshotTests *********

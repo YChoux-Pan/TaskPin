@@ -1,0 +1,220 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuite name="TranslationTests" timestamp="2026&#x002D;11&#x002D;21T15:36:28" hostname="XYC&#x002D;PYC" tests="46" failures="0" errors="0" skipped="0" time="1.972">
+  <properties>
+    <property name="QTestVersion" value="6.4.3"/>
+    <property name="QtVersion" value="6.4.3"/>
+    <property name="QtBuild" value="Qt 6.4.3 (x86_64&#x002D;little_endian&#x002D;llp64 shared (dynamic) release build; by GCC 11.2.0)"/>
+  </properties>
+  <testcase name="initTestCase" classname="TranslationTests" time="0.003"/>
+  <testcase name="onlyRegionScreenshotEntryRemains" classname="TranslationTests" time="0.000"/>
+  <testcase name="translationResultUsesPinAtCaptureOrigin" classname="TranslationTests" time="0.019">
+    <system-out>
+      <![CDATA[pin created 0x0 group=默认]]>
+      <![CDATA[pin closed, 0 remaining]]>
+    </system-out>
+    <system-err>
+      <![CDATA[This plugin does not support raise()]]>
+    </system-err>
+  </testcase>
+  <testcase name="translatedFramePreservesMovedZoomedHiddenPin" classname="TranslationTests" time="0.087">
+    <system-out>
+      <![CDATA[pin created 0x0 group=默认]]>
+      <![CDATA[pin closed, 0 remaining]]>
+    </system-out>
+    <system-err>
+      <![CDATA[This plugin does not support raise()]]>
+      <![CDATA[QFontDatabase: Cannot find font directory [development]/pin-build/lib/fonts.
+Note that Qt no longer ships fonts. Deploy some (from https://dejavu-fonts.github.io/ for example) or switch to fontconfig.]]>
+      <![CDATA[This plugin does not support raise()]]>
+      <![CDATA[This plugin does not support grabbing the keyboard]]>
+      <![CDATA[This plugin does not support raise()]]>
+      <![CDATA[This plugin does not support grabbing the keyboard]]>
+      <![CDATA[This plugin does not support raise()]]>
+      <![CDATA[This plugin does not support grabbing the keyboard]]>
+    </system-err>
+  </testcase>
+  <testcase name="closingPinWithOpenMenuCleansBoth" classname="TranslationTests" time="0.001">
+    <system-out>
+      <![CDATA[pin created 0x0 group=默认]]>
+      <![CDATA[pin closed, 0 remaining]]>
+    </system-out>
+    <system-err>
+      <![CDATA[This plugin does not support raise()]]>
+      <![CDATA[This plugin does not support grabbing the keyboard]]>
+    </system-err>
+  </testcase>
+  <testcase name="multipleTranslationPinsHaveOneActiveTaskAndHostOwnership" classname="TranslationTests" time="0.026">
+    <system-out>
+      <![CDATA[TaskPin Qt 0.4.2 started, rolled over 0 task(s)]]>
+      <![CDATA[card z-order: topmost (native topmost=0)]]>
+      <![CDATA[pin created 0x0 group=默认]]>
+      <![CDATA[pin created 0x0 group=默认]]>
+      <![CDATA[pin closed, 1 remaining]]>
+      <![CDATA[pin closed, 0 remaining]]>
+    </system-out>
+    <system-err>
+      <![CDATA[This plugin does not support raise()]]>
+      <![CDATA[This plugin does not support raise()]]>
+    </system-err>
+  </testcase>
+  <testcase name="retryCancelledOcrPinPreservesViewAndCancelsOtherTask" classname="TranslationTests" time="0.021">
+    <system-out>
+      <![CDATA[TaskPin Qt 0.4.2 started, rolled over 0 task(s)]]>
+      <![CDATA[card z-order: topmost (native topmost=0)]]>
+      <![CDATA[pin created 0x0 group=默认]]>
+      <![CDATA[pin created 0x0 group=默认]]>
+      <![CDATA[pin closed, 1 remaining]]>
+      <![CDATA[pin closed, 0 remaining]]>
+    </system-out>
+    <system-err>
+      <![CDATA[QSqlDatabasePrivate::addDatabase: duplicate connection name 'taskpin', old connection removed.]]>
+      <![CDATA[This plugin does not support raise()]]>
+      <![CDATA[This plugin does not support raise()]]>
+      <![CDATA[This plugin does not support raise()]]>
+      <![CDATA[This plugin does not support grabbing the keyboard]]>
+    </system-err>
+  </testcase>
+  <testcase name="settingsHidesAndRestoresAllTranslationPins" classname="TranslationTests" time="0.026">
+    <system-out>
+      <![CDATA[TaskPin Qt 0.4.2 started, rolled over 0 task(s)]]>
+      <![CDATA[card z-order: topmost (native topmost=0)]]>
+      <![CDATA[pin created 0x0 group=默认]]>
+      <![CDATA[pin created 0x0 group=默认]]>
+      <![CDATA[pin closed, 1 remaining]]>
+      <![CDATA[pin closed, 0 remaining]]>
+    </system-out>
+    <system-err>
+      <![CDATA[QSqlDatabasePrivate::addDatabase: duplicate connection name 'taskpin', old connection removed.]]>
+      <![CDATA[This plugin does not support raise()]]>
+      <![CDATA[This plugin does not support raise()]]>
+      <![CDATA[This plugin does not support propagateSizeHints()]]>
+      <![CDATA[This plugin does not support raise()]]>
+    </system-err>
+  </testcase>
+  <testcase name="sharedAiConfigurationIgnoresLegacyTranslationConnection" classname="TranslationTests" time="0.003"/>
+  <testcase name="translationSettingsIsOneNonmodalPage" classname="TranslationTests" time="0.013">
+    <system-out>
+      <![CDATA[TaskPin Qt 0.4.2 started, rolled over 0 task(s)]]>
+      <![CDATA[card z-order: topmost (native topmost=0)]]>
+    </system-out>
+    <system-err>
+      <![CDATA[QSqlDatabasePrivate::addDatabase: duplicate connection name 'taskpin', old connection removed.]]>
+      <![CDATA[This plugin does not support propagateSizeHints()]]>
+      <![CDATA[This plugin does not support raise()]]>
+      <![CDATA[This plugin does not support raise()]]>
+    </system-err>
+  </testcase>
+  <testcase name="sharedKeySaveReloadAndCancel" classname="TranslationTests" time="0.013"/>
+  <testcase name="revokedConsentSurvivesDraftKeyAndModelEdits" classname="TranslationTests" time="0.003"/>
+  <testcase name="failedKeySaveDoesNotClaimSuccessOrChangeSettings" classname="TranslationTests" time="0.012">
+    <system-err>
+      <![CDATA[settings save failed: "Filename refers to a directory"]]>
+    </system-err>
+  </testcase>
+  <testcase name="protectionPreservesTechnicalText" classname="TranslationTests" time="0.000"/>
+  <testcase name="placeholderCollisionAndFormula" classname="TranslationTests" time="0.000"/>
+  <testcase name="scientificNumbersKeepSignsAndExponent" classname="TranslationTests" time="0.000"/>
+  <testcase name="quotedEnumLiteralsRemainExact" classname="TranslationTests" time="0.000"/>
+  <testcase name="paragraphsAndCode" classname="TranslationTests" time="0.000"/>
+  <testcase name="uncertainLayoutKeepsAllLines" classname="TranslationTests" time="0.000"/>
+  <testcase name="paddleFragmentsKeepSentenceReadingOrder" classname="TranslationTests" time="0.000"/>
+  <testcase name="jitteredWordsDoNotBridgeColumnGap" classname="TranslationTests" time="0.000"/>
+  <testcase name="strictResponseValidation" classname="TranslationTests" time="0.000"/>
+  <testcase name="ocrContracts" classname="TranslationTests" time="0.000"/>
+  <testcase name="paddleOcrPreservesModelConfidence" classname="TranslationTests" time="0.000"/>
+  <testcase name="localAndUnconsentedNeverRequest" classname="TranslationTests" time="0.001"/>
+  <testcase name="mockOfflineDoesNotPretendTranslation" classname="TranslationTests" time="0.056"/>
+  <testcase name="realHttpBoundaryAndCache" classname="TranslationTests" time="0.065"/>
+  <testcase name="connectionTestBypassesPriorSuccessfulCache" classname="TranslationTests" time="0.125"/>
+  <testcase name="responseFailures(missing)" classname="TranslationTests" time="0.124"/>
+  <testcase name="responseFailures(placeholder)" classname="TranslationTests" time="0.125"/>
+  <testcase name="responseFailures(duplicate)" classname="TranslationTests" time="0.065"/>
+  <testcase name="responseFailures(json)" classname="TranslationTests" time="0.061"/>
+  <testcase name="responseFailures(truncated)" classname="TranslationTests" time="0.062"/>
+  <testcase name="responseFailures(unauthorized)" classname="TranslationTests" time="0.061"/>
+  <testcase name="responseFailures(rate&#x002D;limit)" classname="TranslationTests" time="0.062"/>
+  <testcase name="cancellationAndLateReply" classname="TranslationTests" time="0.344"/>
+  <testcase name="timeoutOnlyFailsOnce" classname="TranslationTests" time="0.404"/>
+  <testcase name="cancelFromProgressDoesNotSendRequest" classname="TranslationTests" time="0.092"/>
+  <testcase name="configNoPlaintextAndEndpointScope" classname="TranslationTests" time="0.005"/>
+  <testcase name="cancelledWindowRejectsOldOcr" classname="TranslationTests" time="0.003">
+    <system-out>
+      <![CDATA[pin created 0x0 group=默认]]>
+      <![CDATA[pin closed, 0 remaining]]>
+    </system-out>
+    <system-err>
+      <![CDATA[This plugin does not support raise()]]>
+    </system-err>
+  </testcase>
+  <testcase name="resultIsPlainTextAndCopyIsExplicit" classname="TranslationTests" time="0.001">
+    <system-out>
+      <![CDATA[pin created 0x0 group=默认]]>
+      <![CDATA[pin closed, 0 remaining]]>
+    </system-out>
+    <system-err>
+      <![CDATA[This plugin does not support propagateSizeHints()]]>
+    </system-err>
+  </testcase>
+  <testcase name="settingsCancelActiveTranslationBeforeDialog(tray)" classname="TranslationTests" time="0.026">
+    <system-out>
+      <![CDATA[TaskPin Qt 0.4.2 started, rolled over 0 task(s)]]>
+      <![CDATA[card z-order: topmost (native topmost=0)]]>
+      <![CDATA[pin created 0x0 group=默认]]>
+      <![CDATA[card z-order retry: topmost=0]]>
+      <![CDATA[pin closed, 0 remaining]]>
+    </system-out>
+    <system-err>
+      <![CDATA[QSqlDatabasePrivate::addDatabase: duplicate connection name 'taskpin', old connection removed.]]>
+      <![CDATA[This plugin does not support raise()]]>
+      <![CDATA[This plugin does not support propagateSizeHints()]]>
+      <![CDATA[This plugin does not support raise()]]>
+    </system-err>
+  </testcase>
+  <testcase name="settingsCancelActiveTranslationBeforeDialog(global&#x002D;settings)" classname="TranslationTests" time="0.019">
+    <system-out>
+      <![CDATA[TaskPin Qt 0.4.2 started, rolled over 0 task(s)]]>
+      <![CDATA[card z-order: topmost (native topmost=0)]]>
+      <![CDATA[pin created 0x0 group=默认]]>
+      <![CDATA[card z-order retry: topmost=0]]>
+      <![CDATA[pin closed, 0 remaining]]>
+    </system-out>
+    <system-err>
+      <![CDATA[QSqlDatabasePrivate::addDatabase: duplicate connection name 'taskpin', old connection removed.]]>
+      <![CDATA[This plugin does not support raise()]]>
+      <![CDATA[This plugin does not support propagateSizeHints()]]>
+      <![CDATA[This plugin does not support raise()]]>
+    </system-err>
+  </testcase>
+  <testcase name="regionEditorTranslationCreatesPinWithoutNotesOrHistory" classname="TranslationTests" time="0.018">
+    <system-out>
+      <![CDATA[TaskPin Qt 0.4.2 started, rolled over 0 task(s)]]>
+      <![CDATA[card z-order: topmost (native topmost=0)]]>
+      <![CDATA[card z-order retry: topmost=0]]>
+      <![CDATA[startSnip: capture ok 800x800 dpr=1.00]]>
+      <![CDATA[pin created 0x0 group=默认]]>
+      <![CDATA[card z-order: topmost (native topmost=0)]]>
+      <![CDATA[pin closed, 0 remaining]]>
+    </system-out>
+    <system-err>
+      <![CDATA[QSqlDatabasePrivate::addDatabase: duplicate connection name 'taskpin', old connection removed.]]>
+      <![CDATA[This plugin does not support raise()]]>
+      <![CDATA[This plugin does not support raise()]]>
+    </system-err>
+  </testcase>
+  <testcase name="topmostTranslationDoesNotCoverSettings" classname="TranslationTests" time="0.018">
+    <system-out>
+      <![CDATA[TaskPin Qt 0.4.2 started, rolled over 0 task(s)]]>
+      <![CDATA[card z-order: topmost (native topmost=0)]]>
+      <![CDATA[pin created 0x0 group=默认]]>
+      <![CDATA[pin closed, 0 remaining]]>
+    </system-out>
+    <system-err>
+      <![CDATA[QSqlDatabasePrivate::addDatabase: duplicate connection name 'taskpin', old connection removed.]]>
+      <![CDATA[This plugin does not support raise()]]>
+      <![CDATA[This plugin does not support propagateSizeHints()]]>
+      <![CDATA[This plugin does not support raise()]]>
+      <![CDATA[This plugin does not support raise()]]>
+    </system-err>
+  </testcase>
+  <testcase name="cleanupTestCase" classname="TranslationTests" time="0.000"/>
+</testsuite>

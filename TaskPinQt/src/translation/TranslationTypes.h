@@ -18,6 +18,7 @@ struct OcrResult {
     QString language;
     QSize imageSize;
     QString warning;
+    QString engine,modelVersion;
 };
 struct Block {
     QString id, kind, source, protectedText;

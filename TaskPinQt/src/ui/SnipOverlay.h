@@ -39,6 +39,7 @@ signals:
     void saved(const QString &path);
     void pinned(const QImage &image);
     void recognizeRequested(const QImage &image);
+    void translationRequested(const QImage &image, const QRect &logicalRegion);
     void printed(const QImage &image);
     /// Emitted once for every successful output so the host can keep history + auto save.
     void captured(const QImage &image, const QRect &logicalRegion);

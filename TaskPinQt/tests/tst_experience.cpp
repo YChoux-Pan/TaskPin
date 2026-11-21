@@ -59,6 +59,8 @@ void menuAction(QWidget &widget, const QString &name, bool *found)
     });
     QContextMenuEvent event(QContextMenuEvent::Mouse, {15, 15}, widget.mapToGlobal(QPoint(15, 15)));
     QApplication::sendEvent(&widget, &event);
+    QCoreApplication::processEvents();
+    QCoreApplication::sendPostedEvents(nullptr,QEvent::DeferredDelete);
 }
 QPushButton *button(QWidget *widget, const QString &label)
 {

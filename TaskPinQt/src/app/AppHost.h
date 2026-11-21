@@ -25,7 +25,6 @@ class QSystemTrayIcon;
 class SettingsDialog;
 class SnipOverlay;
 class Store;
-class TranslationOverlay;
 class TranslationWindow;
 
 /// Owns the tray icon, global hotkeys, the desktop card and every editor/dialog it spawns.
@@ -46,7 +45,7 @@ public:
 public slots:
     void quickAdd();
     void startSnip();
-    void startTranslation();
+    void translateImage(const QImage &image,const QRect &sourceRegion);
     void showTranslationSettings();
     void startLastRegion();
     void captureFull();
@@ -115,10 +114,9 @@ private:
     QPointer<HistoryDialog> m_history;
     QPointer<CalendarWindow> m_calendar;
     QPointer<SettingsDialog> m_settings;
-    QPointer<TranslationOverlay> m_translationOverlay;
     QPointer<TranslationWindow> m_translationWindow;
-    QPointer<TranslationWindow> m_translationHiddenForSettings;
-    bool m_translationSelecting = false;
+    QList<QPointer<TranslationWindow>> m_translationPins;
+    QList<QPointer<TranslationWindow>> m_translationsHiddenForSettings;
 
     QList<QPointer<PinWindow>> m_hiddenPins;
 
