@@ -44,6 +44,7 @@ const QList<QPair<QString, QString>> &Settings::hotkeyActions()
         {QStringLiteral("quick"), QStringLiteral("速记")},
         {QStringLiteral("toggle"), QStringLiteral("显示 / 隐藏卡片")},
         {QStringLiteral("history"), QStringLiteral("截屏历史")},
+        {QStringLiteral("translate"), QStringLiteral("截图翻译（独立功能）")},
     };
     return list;
 }
@@ -59,6 +60,7 @@ QMap<QString, QString> Settings::defaultHotkeys()
         {QStringLiteral("quick"), QStringLiteral("Ctrl+Alt+Space")},
         {QStringLiteral("toggle"), QStringLiteral("Ctrl+Alt+D")},
         {QStringLiteral("history"), QStringLiteral("Ctrl+Alt+G")},
+        {QStringLiteral("translate"), QStringLiteral("Ctrl+Alt+T")},
     };
 }
 

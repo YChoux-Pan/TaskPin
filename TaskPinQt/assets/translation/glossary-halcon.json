@@ -1,0 +1,13 @@
+{
+  "version": "halcon-1",
+  "terms": [
+    {"source":"watershed","target":"分水岭"},
+    {"source":"basin","target":"盆地"},
+    {"source":"contour","target":"轮廓"},
+    {"source":"dilation","target":"膨胀"},
+    {"source":"erosion","target":"腐蚀"},
+    {"source":"inner circle","target":"最大内接圆"},
+    {"source":"smallest enclosing circle","target":"最小外接圆"}
+  ],
+  "protected_identifiers":["Image","Basins","Threshold","Row","Column","Radius","Region","XLD","HObject","HTuple"]
+}

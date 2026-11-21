@@ -345,6 +345,10 @@ QWidget *SettingsDialog::buildAiPage()
     form->addRow(QString(), hintLabel(QStringLiteral(
         "OpenAI 兼容接口（如 https://api.deepseek.com/v1）。关闭时一切都在本地完成；\n"
         "开启后只把每次识别出的文本发出去，不发截图。")));
+    auto *translation = new QPushButton(QStringLiteral("截图翻译 · 独立服务与隐私设置…"),page);
+    translation->setObjectName("openTranslationSettings");
+    connect(translation,&QPushButton::clicked,this,&SettingsDialog::translationSettingsRequested);
+    form->addRow(QStringLiteral("截图翻译"),translation);
     return page;
 }
 

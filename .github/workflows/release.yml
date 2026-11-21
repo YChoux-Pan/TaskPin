@@ -63,8 +63,9 @@ jobs:
         uses: softprops/action-gh-release@v3.0.4
         with:
           generate_release_notes: true
+          prerelease: true
           fail_on_unmatched_files: true
           files: |
-            dist/TaskPin-0.3.0-windows-x64.zip
-            dist/TaskPin-0.3.0-source.zip
+            dist/TaskPin-*-windows-x64.zip
+            dist/TaskPin-*-source.zip
             dist/SHA256SUMS.txt

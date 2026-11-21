@@ -1,0 +1,27 @@
+********* Start testing of TranslationTests *********
+Config: Using QtTest library 6.4.3, Qt 6.4.3 (x86_64-little_endian-llp64 shared (dynamic) release build; by GCC 11.2.0), windows 11
+PASS   : TranslationTests::initTestCase()
+QINFO  : TranslationTests::settingsCancelActiveTranslationBeforeDialog(tray) TaskPin Qt 0.4.0 started, rolled over 0 task(s)
+QINFO  : TranslationTests::settingsCancelActiveTranslationBeforeDialog(tray) card z-order: topmost (native topmost=0)
+QINFO  : TranslationTests::settingsCancelActiveTranslationBeforeDialog(tray) card z-order retry: topmost=0
+QWARN  : TranslationTests::settingsCancelActiveTranslationBeforeDialog(tray) This plugin does not support raise()
+QWARN  : TranslationTests::settingsCancelActiveTranslationBeforeDialog(tray) QFontDatabase: Cannot find font directory D:/CodexDocuments/2026-11-19/https-github-com-kael-odin-codex/work/TaskPin/translation-build-ascii/lib/fonts.
+Note that Qt no longer ships fonts. Deploy some (from https://dejavu-fonts.github.io/ for example) or switch to fontconfig.
+QWARN  : TranslationTests::settingsCancelActiveTranslationBeforeDialog(tray) This plugin does not support raise()
+QWARN  : TranslationTests::settingsCancelActiveTranslationBeforeDialog(tray) This plugin does not support propagateSizeHints()
+FAIL!  : TranslationTests::settingsCancelActiveTranslationBeforeDialog(tray) 'cancelledBeforeDialog' returned FALSE. ()
+D:/CodexDocuments/2026-11-19/https-github-com-kael-odin-codex/work/TaskPin/translation-source/TaskPinQt/tests/tst_translation.cpp(248) : failure location
+QWARN  : TranslationTests::settingsCancelActiveTranslationBeforeDialog(global-settings) QSqlDatabasePrivate::addDatabase: duplicate connection name 'taskpin', old connection removed.
+QINFO  : TranslationTests::settingsCancelActiveTranslationBeforeDialog(global-settings) TaskPin Qt 0.4.0 started, rolled over 0 task(s)
+QINFO  : TranslationTests::settingsCancelActiveTranslationBeforeDialog(global-settings) card z-order: topmost (native topmost=0)
+QINFO  : TranslationTests::settingsCancelActiveTranslationBeforeDialog(global-settings) card z-order retry: topmost=0
+QWARN  : TranslationTests::settingsCancelActiveTranslationBeforeDialog(global-settings) This plugin does not support raise()
+QWARN  : TranslationTests::settingsCancelActiveTranslationBeforeDialog(global-settings) This plugin does not support raise()
+QWARN  : TranslationTests::settingsCancelActiveTranslationBeforeDialog(global-settings) This plugin does not support propagateSizeHints()
+QWARN  : TranslationTests::settingsCancelActiveTranslationBeforeDialog(global-settings) This plugin does not support raise()
+QWARN  : TranslationTests::settingsCancelActiveTranslationBeforeDialog(global-settings) This plugin does not support propagateSizeHints()
+FAIL!  : TranslationTests::settingsCancelActiveTranslationBeforeDialog(global-settings) 'cancelledBeforeDialog' returned FALSE. ()
+D:/CodexDocuments/2026-11-19/https-github-com-kael-odin-codex/work/TaskPin/translation-source/TaskPinQt/tests/tst_translation.cpp(248) : failure location
+PASS   : TranslationTests::cleanupTestCase()
+Totals: 2 passed, 2 failed, 0 skipped, 0 blacklisted, 277ms
+********* Finished testing of TranslationTests *********

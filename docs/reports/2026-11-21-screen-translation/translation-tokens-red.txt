@@ -1,0 +1,10 @@
+********* Start testing of TranslationTests *********
+Config: Using QtTest library 6.4.3, Qt 6.4.3 (x86_64-little_endian-llp64 shared (dynamic) release build; by GCC 11.2.0), windows 11
+PASS   : TranslationTests::initTestCase()
+FAIL!  : TranslationTests::scientificNumbersKeepSignsAndExponent() 'values.contains("-1.5e-3")' returned FALSE. ()
+D:/CodexDocuments/2026-11-19/https-github-com-kael-odin-codex/work/TaskPin/translation-source/TaskPinQt/tests/tst_translation.cpp(104) : failure location
+FAIL!  : TranslationTests::quotedEnumLiteralsRemainExact() 'b.tokens.values().contains("'geotukey'")' returned FALSE. ()
+D:/CodexDocuments/2026-11-19/https-github-com-kael-odin-codex/work/TaskPin/translation-source/TaskPinQt/tests/tst_translation.cpp(112) : failure location
+PASS   : TranslationTests::cleanupTestCase()
+Totals: 2 passed, 2 failed, 0 skipped, 0 blacklisted, 7ms
+********* Finished testing of TranslationTests *********

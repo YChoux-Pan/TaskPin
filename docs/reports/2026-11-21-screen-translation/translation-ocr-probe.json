@@ -1,0 +1,113 @@
+[
+  {
+    "fixture": "light-english",
+    "elapsedMs": 578,
+    "reference": [
+      "The operator segments regions by a watershed.",
+      "inner_circle (Region, Row, Column, Radius)",
+      "max(W-B1, W-B2) < Threshold"
+    ],
+    "result": {
+      "ok": true,
+      "language": "zh-Hans-CN",
+      "lines": [
+        {
+          "y": 33,
+          "height": 31,
+          "width": 680,
+          "text": "The operator segments regions by a watershed.",
+          "x": 24
+        },
+        {
+          "y": 101,
+          "height": 31,
+          "width": 603,
+          "text": "inner circle (Region, ROW, CoIumn, Radius)",
+          "x": 26
+        },
+        {
+          "y": 169,
+          "height": 29,
+          "width": 435,
+          "text": "max(W-B1, W-B2) < ThreshoId",
+          "x": 26
+        }
+      ]
+    },
+    "exitCode": 0
+  },
+  {
+    "fixture": "dark-english",
+    "elapsedMs": 406,
+    "reference": [
+      "The operator segments regions by a watershed.",
+      "inner_circle (Region, Row, Column, Radius)",
+      "max(W-B1, W-B2) < Threshold"
+    ],
+    "result": {
+      "ok": true,
+      "language": "zh-Hans-CN",
+      "lines": [
+        {
+          "y": 33,
+          "height": 31,
+          "width": 680,
+          "text": "The operator segments regions by a watershed.",
+          "x": 24
+        },
+        {
+          "y": 101,
+          "height": 31,
+          "width": 603,
+          "text": "inner circle (Region, ROW, CoIumn, Radius)",
+          "x": 26
+        },
+        {
+          "y": 169,
+          "height": 29,
+          "width": 435,
+          "text": "max(W-B1, W-B2) < ThreshoId",
+          "x": 26
+        }
+      ]
+    },
+    "exitCode": 0
+  },
+  {
+    "fixture": "light-mixed",
+    "elapsedMs": 406,
+    "reference": [
+      "截图翻译 The parameter Threshold controls merging.",
+      "inner_circle (Region, Row, Column, Radius)",
+      "max(W-B1, W-B2) < Threshold"
+    ],
+    "result": {
+      "ok": true,
+      "language": "zh-Hans-CN",
+      "lines": [
+        {
+          "y": 33,
+          "height": 31,
+          "width": 747,
+          "text": "截 图 翻 译 The parameter ThreshoId controls merging.",
+          "x": 24
+        },
+        {
+          "y": 101,
+          "height": 31,
+          "width": 603,
+          "text": "inner circle (Region, ROW, CoIumn, Radius)",
+          "x": 26
+        },
+        {
+          "y": 169,
+          "height": 29,
+          "width": 435,
+          "text": "max(W-B1, W-B2) < ThreshoId",
+          "x": 26
+        }
+      ]
+    },
+    "exitCode": 0
+  }
+]

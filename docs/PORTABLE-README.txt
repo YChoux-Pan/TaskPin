@@ -1,10 +1,11 @@
-TaskPin 0.3.0 - Windows 10/11 x64
+TaskPin 0.4.0 - Windows 10/11 x64
 
-Extract the whole TaskPin-0.3.0 folder and run TaskPinQt.exe.
+Extract the whole TaskPin-0.4.0 folder and run TaskPinQt.exe.
 Keep the DLLs and plugin folders beside the executable. No Qt SDK is required.
 Use the system tray menu for Settings and Exit.
 
 Default shortcuts:
+Ctrl+Alt+T independent screen translation (default: local OCR, no network)
 F1 region screenshot; Ctrl+Alt+F current monitor capture
 F3 pin clipboard image; Shift+F3 show/hide all pins; Ctrl+Alt+Space quick note
 Ctrl+Alt+D show/hide task card; Ctrl+Alt+G screenshot history
@@ -23,7 +24,11 @@ TASKPIN_DATA can select a separate directory.
 AI is disabled by default. Enabling a configured service sends OCR text to it.
 The API key is stored in settings.json without OS credential encryption.
 Do not share databases, settings, logs, screenshot history or OCR files.
+Screen translation has separate settings and opt-in text-only cloud requests.
+Its API key uses Windows Credential Manager; importing note AI settings is explicit.
+Mock mode is a workflow demonstration, not real translation.
 Windows OCR requires suitable installed OCR components and language packs.
+Verify technical identifiers and formulas against the original image.
 Capture is limited to the monitor under the cursor.
 
 TaskPin code: Unlicense (LICENSE). Third-party terms are separate:

@@ -1,0 +1,2 @@
+2026-11-21 12:31:32 [WARN] settings.json is unreadable: "unterminated object"
+2026-11-21 12:31:32 [WARN] settings.json backed up to "D:\\CodexDocuments\\2026-11-19\\https-github-com-kael-odin-codex\\work\\TaskPin\\translation-reports\\data-a96aabb8f9e64b96abfda5d2632aa4d8\\selftest/settings.json.broken"
