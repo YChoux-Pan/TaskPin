@@ -1,5 +1,7 @@
 # Testing and evidence
 
+Latest 0.4.1 repair: [2026-11-21 report](reports/2026-11-21-translation-repair.md). Five CTest targets cover screenshot, integration, experience, translation and image canvas. It adds shared-key save/reload/cancel, nonmodal settings/reentry, endpoint-consent draft preservation, uncached connection tests and a real DeepSeek synthetic OCR→translation→image run. Earlier records below retain their own scope and limitations.
+
 Latest screen-translation verification: [2026-11-21 report](reports/2026-11-21-screen-translation.md). Four CTest targets pass: screenshot 43/0, integration 35/0, experience 20/0, translation 49/0; selftest 53/0, zero skips. Controlled Windows OCR and result-window probes use generated fixtures only. Native clipboard access was unavailable; paid services, Windows 10 and physical mixed-DPI acceptance remain unverified. Historical reports retain their original scope.
 
 Latest Canva icon verification: [2026-11-20 brand update](reports/2026-11-20-canva-icon.md). The final icon build reran all three CTest targets and selftest successfully; source provenance, resource packaging, visual size checks and native-observation limits are recorded there.
@@ -13,7 +15,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File TaskPinQt/scripts/test.ps1 `
   -BuildDir TaskPinQt/build -ReportDir docs/artifacts/automated
 ```
 
-The script uses a new GUID-named `TASKPIN_DATA` directory for each run, sets `QT_QPA_PLATFORM=offscreen` and `TASKPIN_AUTOMATION=1`, executes all four CTest targets and then starts `TaskPinQt.exe --selftest` with `Start-Process -Wait -PassThru`. It checks exit status, saves CTest text/JUnit and selftest reports and restores its environment. CTest stops the sequence on failure; selftest failures also return nonzero. No command is sent to the normal user instance and no existing process is terminated. The selftest has its own disposable database and may deliberately exercise broken settings recovery.
+The script uses a new GUID-named `TASKPIN_DATA` directory for each run, sets `QT_QPA_PLATFORM=offscreen` and `TASKPIN_AUTOMATION=1`, executes all five CTest targets and then starts `TaskPinQt.exe --selftest` with `Start-Process -Wait -PassThru`. It checks exit status, saves CTest text/JUnit and selftest reports and restores its environment. CTest stops the sequence on failure; selftest failures also return nonzero. No command is sent to the normal user instance and no existing process is terminated. The selftest has its own disposable database and may deliberately exercise broken settings recovery.
 
 CI first runs `scripts/prepare-test-font.ps1` to fetch Noto Sans CJK SC Regular 2.004 (SIL OFL 1.1) from a pinned upstream commit and verify its Git blob hash. `TASKPIN_TEST_FONT` selects that font, avoiding optional YaHei installation assumptions. Local tests default to Windows YaHei; an explicit font path must load successfully or the Chinese tests fail rather than skip. For offline setup, pass `-FontPath` to prepare a previously downloaded pinned font. The font is test-only and never enters the portable archive; its full upstream license is retained in `TaskPinQt/tests/Noto-OFL.txt`.
 

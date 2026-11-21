@@ -4,20 +4,20 @@
   <p><strong>Keep the picture. Capture the thought.</strong></p>
   <p>Screenshots, desktop image pins and daily tasks in one compact Windows tool.</p>
   <p>
-    <a href="https://github.com/YChoux-Pan/TaskPin/releases/tag/v0.4.0"><img src="https://img.shields.io/badge/preview-v0.4.0-4C9AFF" alt="0.4.0 preview" /></a>
+    <a href="https://github.com/YChoux-Pan/TaskPin/releases/tag/v0.4.1"><img src="https://img.shields.io/badge/preview-v0.4.1-4C9AFF" alt="0.4.1 preview" /></a>
     <img src="https://img.shields.io/badge/platform-Windows%2010%20%2F%2011-0078D4" alt="Windows 10 / 11 x64" />
     <img src="https://img.shields.io/badge/C%2B%2B-17-00599C" alt="C++17" />
     <a href="https://github.com/YChoux-Pan/TaskPin/actions/workflows/windows.yml"><img src="https://github.com/YChoux-Pan/TaskPin/actions/workflows/windows.yml/badge.svg?branch=main" alt="Windows build and test" /></a>
     <a href="LICENSE"><img src="https://img.shields.io/badge/license-Unlicense-3EC46B" alt="Unlicense" /></a>
   </p>
-  <p><a href="https://github.com/YChoux-Pan/TaskPin/releases/tag/v0.4.0"><strong>Download for Windows</strong></a> · <a href="README.md">简体中文</a> · <a href="CHANGELOG.md">Changelog</a> · <a href="https://github.com/YChoux-Pan/TaskPin/issues">Report an issue</a></p>
+  <p><a href="https://github.com/YChoux-Pan/TaskPin/releases/tag/v0.4.1"><strong>Download for Windows</strong></a> · <a href="README.md">简体中文</a> · <a href="CHANGELOG.md">Changelog</a> · <a href="https://github.com/YChoux-Pan/TaskPin/issues">Report an issue</a></p>
 </div>
 
 ---
 
 TaskPin connects **capture → annotate or pin → recognize as a task → review on a card or calendar**. Use its screenshot tools on their own, or keep daily tasks within reach on the desktop. Screenshots, tasks and Windows OCR are processed locally; AI is optional.
 
-**New in 0.4.0: [independent screen translation](docs/SCREEN-TRANSLATION.md).** Press **Ctrl+Alt+T** for a separate selection and source/Chinese result window. F1 capture remains unchanged. Default mode is local OCR; cloud text translation needs its own configuration and consent.
+**0.4.1 screen translation repair: [usage](docs/SCREEN-TRANSLATION.md).** Press **Ctrl+Alt+T** for translated text on the original image, with Original and Text Comparison views. Translation shares the AI tab connection and key; configure its mode and run a real connection test in the new Screen Translation settings tab. F1 capture remains unchanged.
 
 ## Features
 
@@ -36,9 +36,9 @@ Successful save and quick-save copy the **absolute file path** to the clipboard.
 
 ## Preview
 
-![Independent translation window: Windows OCR and offline Mock fixture](docs/screenshots/taskpin-0.4.0-translation-mock.png)
+![Translated image overlay using Windows OCR and real DeepSeek fixture](docs/screenshots/taskpin-0.4.1-translation-cloud.png)
 
-<sub>Generated fixture and explicitly labeled offline Mock; this demonstrates layout, not real translation quality.</sub>
+<sub>Generated synthetic content only. Technical symbols still need comparison with the original; complex backgrounds use local covering panels.</sub>
 
 ![TaskPin screenshot editor with grouped tools and output actions](docs/screenshots/taskpin-0.3.0-editor.png)
 
@@ -56,14 +56,14 @@ Successful save and quick-save copy the **absolute file path** to the clipboard.
 
 **Windows 10 / 11 x64. The interface is primarily Chinese.**
 
-1. Download <code>TaskPin-0.4.0-windows-x64.zip</code> from the [0.4.0 release](https://github.com/YChoux-Pan/TaskPin/releases/tag/v0.4.0).
+1. Download <code>TaskPin-0.4.1-windows-x64.zip</code> from the [0.4.1 release](https://github.com/YChoux-Pan/TaskPin/releases/tag/v0.4.1).
 2. Extract the complete folder and run <code>TaskPinQt.exe</code>. Keep all DLLs and plugin directories. No Qt SDK is required.
 3. Press **F1** to capture or **F3** to pin a clipboard image. Open Settings, Calendar and other tools from the tray.
 
-Version 0.4.0 is a preview. The release also includes source, icons, change notes, test reports and SHA256SUMS.txt. Exit through the tray before replacing application files. User data stays in the local user profile.
+Version 0.4.1 is a preview. The release also includes source, icons, change notes, test reports and SHA256SUMS.txt. Exit through the tray before replacing application files. User data stays in the local user profile.
 
 ~~~powershell
-Get-FileHash -Algorithm SHA256 -LiteralPath .\TaskPin-0.4.0-windows-x64.zip
+Get-FileHash -Algorithm SHA256 -LiteralPath .\TaskPin-0.4.1-windows-x64.zip
 ~~~
 
 Compare the result with the matching checksum entry.
@@ -102,7 +102,7 @@ cmd /c TaskPinQt\build.cmd
 powershell -NoProfile -ExecutionPolicy Bypass -File TaskPinQt/scripts/test.ps1
 ~~~
 
-Recorded production-code checks: screenshot QtTest **43/0**, integration **35/0**, experience **20/0**, translation **49/0**, selftest **53/0**, zero skips. See [testing](docs/TESTING.md) for exact commits, raw reports and physical-device limits.
+Recorded production-code checks: screenshot QtTest **43/0**, integration **35/0**, experience **20/0**, translation **55/0**, image canvas **17/0**, selftest **53/0**, zero skips. See [testing](docs/TESTING.md) for exact commits, raw reports and physical-device limits.
 
 Read the [contributing guide](CONTRIBUTING.md) before submitting a focused improvement or reproducible issue.
 
@@ -111,7 +111,7 @@ Read the [contributing guide](CONTRIBUTING.md) before submitting a focused impro
 | Project and usage | Development and verification |
 |---|---|
 | [Changelog](CHANGELOG.md) | [Build and package](docs/BUILDING.md) |
-| [Screen translation](docs/SCREEN-TRANSLATION.md) | [Translation verification](docs/reports/2026-11-21-screen-translation.md) |
+| [Screen translation](docs/SCREEN-TRANSLATION.md) | [0.4.1 repair verification](docs/reports/2026-11-21-translation-repair.md) |
 | [Save paths and shortcuts](docs/SAVE-PATH-HOTKEYS.md) | [Architecture](docs/ARCHITECTURE.md) |
 | [Canva design provenance](docs/BRANDING.md) | [Testing and limitations](docs/TESTING.md) |
 | [Issue tracker](https://github.com/YChoux-Pan/TaskPin/issues) | [Release process](docs/RELEASING.md) |

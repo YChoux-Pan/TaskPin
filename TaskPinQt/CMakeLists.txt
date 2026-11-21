@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(TaskPinQt VERSION 0.4.0 LANGUAGES CXX)
+project(TaskPinQt VERSION 0.4.1 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -49,10 +49,10 @@ qt_add_executable(TaskPinQt WIN32
     src/translation/TranslationConfig.h src/translation/TranslationConfig.cpp
     src/translation/TranslationClient.h src/translation/TranslationClient.cpp
     src/translation/TranslationOcr.h src/translation/TranslationOcr.cpp
-    src/platform/TranslationCredentials.h src/platform/TranslationCredentials.cpp
     src/ui/TranslationOverlay.h src/ui/TranslationOverlay.cpp
     src/ui/TranslationWindow.h src/ui/TranslationWindow.cpp
-    src/ui/TranslationSettingsDialog.h src/ui/TranslationSettingsDialog.cpp
+    src/ui/TranslationCanvas.h src/ui/TranslationCanvas.cpp
+    src/ui/TranslationSettingsPage.h src/ui/TranslationSettingsPage.cpp
     src/ui/AppIcon.h assets/brand/brand.qrc
 
     src/core/Task.h
@@ -128,6 +128,15 @@ if(BUILD_TESTING)
         -o "${CMAKE_BINARY_DIR}/TaskPinTranslationTests.txt,txt"
         -o "${CMAKE_BINARY_DIR}/TaskPinTranslationTests.xml,junitxml")
     set_tests_properties(TaskPinTranslationTests PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+    qt_add_executable(TaskPinTranslationCanvasTests tests/tst_translation_canvas.cpp
+        src/ui/TranslationCanvas.h src/ui/TranslationCanvas.cpp)
+    target_include_directories(TaskPinTranslationCanvasTests PRIVATE src)
+    target_link_libraries(TaskPinTranslationCanvasTests PRIVATE Qt6::Test Qt6::Widgets)
+    add_dependencies(TaskPinTranslationCanvasTests TaskPinTranslationTests)
+    add_test(NAME TaskPinTranslationCanvasTests COMMAND TaskPinTranslationCanvasTests -o -,txt
+        -o "${CMAKE_BINARY_DIR}/TaskPinTranslationCanvasTests.txt,txt"
+        -o "${CMAKE_BINARY_DIR}/TaskPinTranslationCanvasTests.xml,junitxml")
+    set_tests_properties(TaskPinTranslationCanvasTests PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
     # Explicit local-only probe, excluded from CI/default build: exercises installed Windows OCR
     # with synthetic text and the real result window, never a user's desktop or API key.
     qt_add_executable(TaskPinTranslationProbe EXCLUDE_FROM_ALL tests/translation_probe.cpp ${TASKPIN_APP_SOURCES})
@@ -150,7 +159,7 @@ if(WIN32)
                     --no-opengl-sw "$<TARGET_FILE:TaskPinQt>"
             COMMENT "windeployqt")
         if(BUILD_TESTING)
-            foreach(test_target TaskPinScreenshotTests TaskPinIntegrationTests TaskPinExperienceTests TaskPinTranslationTests)
+            foreach(test_target TaskPinScreenshotTests TaskPinIntegrationTests TaskPinExperienceTests TaskPinTranslationTests TaskPinTranslationCanvasTests)
                 add_custom_command(TARGET ${test_target} POST_BUILD
                     COMMAND "${WINDEPLOYQT}" --no-translations --no-system-d3d-compiler
                             --no-opengl-sw "$<TARGET_FILE:${test_target}>"
@@ -160,7 +169,7 @@ if(WIN32)
     endif()
     if(BUILD_TESTING)
         find_file(QT_OFFSCREEN_PLUGIN qoffscreen.dll HINTS "${Qt6_DIR}/../../../plugins/platforms" NO_DEFAULT_PATH)
-        foreach(test_target TaskPinScreenshotTests TaskPinIntegrationTests TaskPinExperienceTests TaskPinTranslationTests)
+        foreach(test_target TaskPinScreenshotTests TaskPinIntegrationTests TaskPinExperienceTests TaskPinTranslationTests TaskPinTranslationCanvasTests)
             add_custom_command(TARGET ${test_target} POST_BUILD
                 COMMAND ${CMAKE_COMMAND} -E copy_if_different "$<TARGET_FILE:Qt6::Test>"
                         "$<TARGET_FILE_DIR:${test_target}>")

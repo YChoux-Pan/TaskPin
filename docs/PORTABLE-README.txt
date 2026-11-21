@@ -1,6 +1,6 @@
-TaskPin 0.4.0 - Windows 10/11 x64
+TaskPin 0.4.1 - Windows 10/11 x64
 
-Extract the whole TaskPin-0.4.0 folder and run TaskPinQt.exe.
+Extract the whole TaskPin-0.4.1 folder and run TaskPinQt.exe.
 Keep the DLLs and plugin folders beside the executable. No Qt SDK is required.
 Use the system tray menu for Settings and Exit.
 
@@ -24,8 +24,11 @@ TASKPIN_DATA can select a separate directory.
 AI is disabled by default. Enabling a configured service sends OCR text to it.
 The API key is stored in settings.json without OS credential encryption.
 Do not share databases, settings, logs, screenshot history or OCR files.
-Screen translation has separate settings and opt-in text-only cloud requests.
-Its API key uses Windows Credential Manager; importing note AI settings is explicit.
+Screen translation is configured on the Screen Translation settings tab.
+It shares the AI tab endpoint, model and API key; no second key is required.
+Cloud translation sends recognized text only. The test button uses a fixed sentence.
+Default result: translated image overlay; switch to Original or Text Comparison.
+Long translations use numbered annotations; Save Translated Image exports PNG.
 Mock mode is a workflow demonstration, not real translation.
 Windows OCR requires suitable installed OCR components and language packs.
 Verify technical identifiers and formulas against the original image.

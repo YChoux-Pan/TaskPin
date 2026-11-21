@@ -25,7 +25,6 @@
 #include "ui/AppIcon.h"
 #include "ui/TranslationOverlay.h"
 #include "ui/TranslationWindow.h"
-#include "ui/TranslationSettingsDialog.h"
 
 #include <QAction>
 #include <QApplication>
@@ -481,8 +480,8 @@ void AppHost::captureAndEdit(bool preselectLast)
 void AppHost::showTranslationSettings()
 {
     if (m_translationWindow && m_translationWindow->busy()) m_translationWindow->cancel();
-    TranslationSettingsDialog dialog(m_settings ? static_cast<QWidget *>(m_settings.data()) : m_translationWindow.data());
-    dialog.exec();
+    showSettings();
+    if(m_settings)m_settings->showTranslationPage();
 }
 
 void AppHost::startTranslation()
@@ -510,6 +509,7 @@ void AppHost::startTranslation()
             if (!m_translationWindow) {
                 m_translationWindow = new TranslationWindow;
                 connect(m_translationWindow,&TranslationWindow::recaptureRequested,this,&AppHost::startTranslation);
+                connect(m_translationWindow,&TranslationWindow::settingsRequested,this,&AppHost::showTranslationSettings);
             }
             m_translationWindow->setCapture(image,region);
         });
@@ -805,16 +805,25 @@ void AppHost::showCalendar()
 
 void AppHost::showSettings()
 {
+    if(m_translationWindow && m_translationWindow->busy())m_translationWindow->cancel();
+    if(m_translationWindow && m_translationWindow->isVisible()) {
+        m_translationHiddenForSettings=m_translationWindow;
+        m_translationWindow->hide();
+    }
     if (m_settings) {
         m_settings->raise();
         WindowFx::forceForeground(m_settings);
         return;
     }
     auto *dlg = new SettingsDialog();
+    // An owned TOPMOST result must not obscure a normal settings window.
+    connect(dlg,&QDialog::finished,this,[this] {
+        const auto translation=m_translationHiddenForSettings;m_translationHiddenForSettings.clear();
+        if(translation)translation->show();
+    });
     m_settings = dlg;
     dlg->setAttribute(Qt::WA_DeleteOnClose, true);
     connect(dlg, &SettingsDialog::saved, this, &AppHost::applySettings);
-    connect(dlg, &SettingsDialog::translationSettingsRequested, this, &AppHost::showTranslationSettings);
     connect(dlg, &SettingsDialog::cardPreviewChanged, m_card, &CardWindow::previewAppearance);
     connect(dlg, &QDialog::finished, m_card, [this] { m_card->clearAppearancePreview(); });
     connect(dlg, &QObject::destroyed, m_card, [this] { m_card->clearAppearancePreview(); });

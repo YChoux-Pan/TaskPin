@@ -9,10 +9,11 @@ struct Config {
     QString model = "deepseek-chat";
     QString consentEndpoint;
     int timeoutMs = 60000;
+    bool useCache = true; // transient request policy; connection tests always bypass it
     static Config load();
     bool save(QString *error) const;
     QUrl requestUrl() const;
     bool authorized() const;
-    QString credentialTarget() const;
+    QString apiKey() const;
 };
 }

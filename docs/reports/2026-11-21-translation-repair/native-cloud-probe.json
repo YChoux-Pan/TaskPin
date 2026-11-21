@@ -1,0 +1,9 @@
+{
+    "cloudCalled": true,
+    "elapsedMs": 1572,
+    "fixtureOnly": true,
+    "ocr": "The operator segments regions by a watershed.\n\ninner circle (Region, ROW, CoIumn, Radius)\n\nmax(W-B1, W-B2) < ThreshoId",
+    "result": "该算子通过分水岭对区域进行分割。\n\ninner circle (Region, ROW, CoIumn, Radius)\n\nmax(W-B1, W-B2) < ThreshoId",
+    "state": "PRESENTING",
+    "systemOcrConfidence": "unavailable"
+}

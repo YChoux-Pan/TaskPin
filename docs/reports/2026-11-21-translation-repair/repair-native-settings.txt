@@ -1,0 +1,24 @@
+********* Start testing of TranslationTests *********
+Config: Using QtTest library 6.4.3, Qt 6.4.3 (x86_64-little_endian-llp64 shared (dynamic) release build; by GCC 11.2.0), windows 11
+PASS   : TranslationTests::initTestCase()
+QINFO  : TranslationTests::translationSettingsIsOneNonmodalPage() TaskPin Qt 0.4.1 started, rolled over 0 task(s)
+QINFO  : TranslationTests::translationSettingsIsOneNonmodalPage() card z-order: topmost (native topmost=1)
+PASS   : TranslationTests::translationSettingsIsOneNonmodalPage()
+PASS   : TranslationTests::sharedKeySaveReloadAndCancel()
+QWARN  : TranslationTests::settingsCancelActiveTranslationBeforeDialog(tray) QSqlDatabasePrivate::addDatabase: duplicate connection name 'taskpin', old connection removed.
+QINFO  : TranslationTests::settingsCancelActiveTranslationBeforeDialog(tray) TaskPin Qt 0.4.1 started, rolled over 0 task(s)
+QINFO  : TranslationTests::settingsCancelActiveTranslationBeforeDialog(tray) card z-order: topmost (native topmost=1)
+QINFO  : TranslationTests::settingsCancelActiveTranslationBeforeDialog(tray) card z-order: topmost (native topmost=1)
+PASS   : TranslationTests::settingsCancelActiveTranslationBeforeDialog(tray)
+QWARN  : TranslationTests::settingsCancelActiveTranslationBeforeDialog(global-settings) QSqlDatabasePrivate::addDatabase: duplicate connection name 'taskpin', old connection removed.
+QINFO  : TranslationTests::settingsCancelActiveTranslationBeforeDialog(global-settings) TaskPin Qt 0.4.1 started, rolled over 0 task(s)
+QINFO  : TranslationTests::settingsCancelActiveTranslationBeforeDialog(global-settings) card z-order: topmost (native topmost=1)
+QINFO  : TranslationTests::settingsCancelActiveTranslationBeforeDialog(global-settings) card z-order: topmost (native topmost=1)
+PASS   : TranslationTests::settingsCancelActiveTranslationBeforeDialog(global-settings)
+QWARN  : TranslationTests::topmostTranslationDoesNotCoverSettings() QSqlDatabasePrivate::addDatabase: duplicate connection name 'taskpin', old connection removed.
+QINFO  : TranslationTests::topmostTranslationDoesNotCoverSettings() TaskPin Qt 0.4.1 started, rolled over 0 task(s)
+QINFO  : TranslationTests::topmostTranslationDoesNotCoverSettings() card z-order: topmost (native topmost=1)
+PASS   : TranslationTests::topmostTranslationDoesNotCoverSettings()
+PASS   : TranslationTests::cleanupTestCase()
+Totals: 7 passed, 0 failed, 0 skipped, 0 blacklisted, 2001ms
+********* Finished testing of TranslationTests *********

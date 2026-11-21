@@ -1,6 +1,6 @@
-# Releasing TaskPin 0.4.0
+# Releasing TaskPin 0.4.1
 
-The standard release artifacts are `TaskPin-0.4.0-windows-x64.zip`, `TaskPin-0.4.0-source.zip` and `SHA256SUMS.txt`. The portable ZIP contains the executable, Release runtime/plugins, end-user README, project license and third-party notices. Source is a `git archive` of the tagged commit; internal implementation work records are export-ignored.
+The standard release artifacts are `TaskPin-0.4.1-windows-x64.zip`, `TaskPin-0.4.1-source.zip` and `SHA256SUMS.txt`. The portable ZIP contains the executable, Release runtime/plugins, end-user README, project license and third-party notices. Source is a `git archive` of the tagged commit; internal implementation work records are export-ignored.
 
 ## Before tagging
 
@@ -12,7 +12,7 @@ The standard release artifacts are `TaskPin-0.4.0-windows-x64.zip`, `TaskPin-0.4
 
 ## Publish once
 
-After review and successful Windows branch CI, the maintainer/controller pushes tag `v0.4.0` at the approved commit. `.github/workflows/release.yml` independently checks the tag against CMake's version, builds Release, runs QtTest and selftest, packages both archives and computes SHA-256 only after tests succeed. Its final release step uploads the three exact files as a preview release. Failing tests or packaging prevent release upload; reports are retained even on failure.
+After review and successful Windows branch CI, the maintainer/controller pushes tag `v0.4.1` at the approved commit. `.github/workflows/release.yml` independently checks the tag against CMake's version, builds Release, runs QtTest and selftest, packages both archives and computes SHA-256 only after tests succeed. Its final release step uploads the three exact files as a preview release. Failing tests or packaging prevent release upload; reports are retained even on failure.
 
 The workflow is the publisher for the standard assets. The maintainer/controller waits for that tag workflow to finish before changing final release text or adding supplemental assets. Do not pre-create/upload a competing set of assets while it runs. GitHub's automatically generated source downloads are separate from the explicit, checksummed source ZIP.
 
@@ -21,8 +21,8 @@ The workflow is the publisher for the standard assets. The maintainer/controller
 Download both ZIPs and `SHA256SUMS.txt` from the actual GitHub release after upload. Recompute each checksum:
 
 ```powershell
-Get-FileHash -Algorithm SHA256 -LiteralPath .\TaskPin-0.4.0-windows-x64.zip
-Get-FileHash -Algorithm SHA256 -LiteralPath .\TaskPin-0.4.0-source.zip
+Get-FileHash -Algorithm SHA256 -LiteralPath .\TaskPin-0.4.1-windows-x64.zip
+Get-FileHash -Algorithm SHA256 -LiteralPath .\TaskPin-0.4.1-source.zip
 ```
 
 Compare both values with the downloaded manifest, inspect archive paths and extract into a fresh folder. Launch only an isolated `TASKPIN_DATA` session for smoke testing. Preserve a user's existing normal process until the coordinated upgrade. Rebuilding locally alone does not verify the uploaded bytes; ZIP timestamps may also make independently rebuilt archives differ.

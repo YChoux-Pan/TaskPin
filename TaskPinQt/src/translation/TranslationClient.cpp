@@ -45,12 +45,12 @@ void Client::start(const QString &taskId, const QList<Block> &blocks, const Conf
     if (blocks.isEmpty() || blocks.size() > 128 || chars > 32000) { fail(QStringLiteral("文本为空或超过单次限制，请缩小截图范围。")); return; }
     if (config.mode == "local") { fail(QStringLiteral("当前为纯本地 OCR 模式，未发送翻译请求。")); return; }
     if (config.mode != "mock" && (config.mode != "cloud" || !endpointAllowed() || key.trimmed().isEmpty() || config.model.trimmed().isEmpty())) {
-        fail(QStringLiteral("请先设置翻译服务、Windows 凭据和文本外发授权。")); return;
+        fail(QStringLiteral("请在设置 → AI 中配置连接，并在截图翻译页授权文字翻译。")); return;
     }
     QList<Block> batch; int batchChars = 0;
     for (const auto &block : blocks) {
         if (block.bypass()) { m_results.append({block.id,block.source,"untranslated",{}}); continue; }
-        if (config.mode == "cloud" && m_cache.contains(cacheKey(block))) {
+        if (config.mode == "cloud" && config.useCache && m_cache.contains(cacheKey(block))) {
             const QString key = cacheKey(block);
             m_cacheOrder.removeOne(key); m_cacheOrder.enqueue(key);
             m_results.append({block.id,m_cache.value(key),"ok",{}}); continue;
@@ -102,7 +102,7 @@ void Client::next()
         const QByteArray body = reply->read(1024*1024+1);
         m_reply.clear(); m_timer->stop(); reply->deleteLater();
         if (status != 200 || error != QNetworkReply::NoError) {
-            QString message = status == 401 || status == 403 ? QStringLiteral("翻译凭据无效或无权限，请检查配置。") :
+            QString message = status == 401 || status == 403 ? QStringLiteral("AI 页的 API Key 无效或无权限，请检查后重新测试连接。") :
                 status == 429 ? QStringLiteral("服务限流，请稍后手动重试。") : QStringLiteral("翻译网络请求失败（HTTP %1），已保留原文。").arg(status);
             fail(message); return;
         }
@@ -128,7 +128,7 @@ void Client::acceptResponse(const QByteArray &body)
     QList<Result> accepted; QStringList invalid; QString error;
     if (!validate(m_current,content.object().value("blocks").toArray(),&accepted,&invalid,&error)) { fail(error); return; }
     m_results.append(accepted);
-    for (const auto &result : accepted) {
+    if(m_config.useCache) for (const auto &result : accepted) {
         for (const auto &block : m_current) if (block.id == result.id) {
             const QString key = cacheKey(block);
             if (!m_cache.contains(key)) { m_cacheOrder.enqueue(key); while (m_cacheOrder.size()>64) m_cache.remove(m_cacheOrder.dequeue()); }

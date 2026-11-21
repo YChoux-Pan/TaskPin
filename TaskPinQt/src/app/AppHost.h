@@ -117,6 +117,7 @@ private:
     QPointer<SettingsDialog> m_settings;
     QPointer<TranslationOverlay> m_translationOverlay;
     QPointer<TranslationWindow> m_translationWindow;
+    QPointer<TranslationWindow> m_translationHiddenForSettings;
     bool m_translationSelecting = false;
 
     QList<QPointer<PinWindow>> m_hiddenPins;

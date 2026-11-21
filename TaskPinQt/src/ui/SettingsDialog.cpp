@@ -1,4 +1,5 @@
 #include "ui/SettingsDialog.h"
+#include "ui/TranslationSettingsPage.h"
 
 #include "core/Settings.h"
 #include "platform/Autostart.h"
@@ -25,6 +26,8 @@
 #include <QTabWidget>
 #include <QUrl>
 #include <QVBoxLayout>
+#include <QFile>
+#include <QSaveFile>
 
 #ifndef TASKPIN_VERSION
 #define TASKPIN_VERSION "0.2.0"
@@ -84,13 +87,19 @@ SettingsDialog::SettingsDialog(QWidget *parent) : QDialog(parent), m_ui(new Ui)
 
     setWindowTitle(QStringLiteral("TaskPin 设置"));
     resize(620, 600);
-    setWindowFlag(Qt::WindowStaysOnTopHint, true);
+    setWindowFlag(Qt::WindowStaysOnTopHint,true);
 
-    auto *tabs = new QTabWidget(this);
+    auto *tabs = new QTabWidget(this);m_tabs=tabs;
     tabs->addTab(buildCardPage(), QStringLiteral("卡片"));
     tabs->addTab(buildHotkeyPage(), QStringLiteral("热键"));
     tabs->addTab(buildSnipPage(), QStringLiteral("截图与贴图"));
     tabs->addTab(buildAiPage(), QStringLiteral("AI"));
+    m_translation=new TranslationSettingsPage(this);
+    tabs->addTab(m_translation, QStringLiteral("截图翻译"));
+    auto syncConnection=[this] {m_translation->setConnection(m_ui->aiBaseUrl->text(),m_ui->aiModel->text(),m_ui->aiKey->text());};
+    for(auto *field:{m_ui->aiBaseUrl,m_ui->aiModel,m_ui->aiKey})connect(field,&QLineEdit::textChanged,this,syncConnection);
+    syncConnection();
+    connect(m_translation,&TranslationSettingsPage::editAiRequested,this,[this] {m_tabs->setCurrentIndex(3);});
     tabs->addTab(buildMiscPage(), QStringLiteral("其它"));
 
     auto *buttons = new QDialogButtonBox(this);
@@ -99,18 +108,22 @@ SettingsDialog::SettingsDialog(QWidget *parent) : QDialog(parent), m_ui(new Ui)
 
     auto *layout = new QVBoxLayout(this);
     layout->addWidget(tabs);
+    m_saveError=new QLabel(this);m_saveError->setObjectName("settingsSaveError");
+    m_saveError->setWordWrap(true);m_saveError->setTextFormat(Qt::PlainText);m_saveError->setStyleSheet("color:#c74646");layout->addWidget(m_saveError);
     layout->addWidget(buttons);
 
     connect(save, &QPushButton::clicked, this, [this] {
-        apply();
-        accept();
+        if(apply())accept();
     });
     connect(buttons, &QDialogButtonBox::rejected, this, &QDialog::reject);
+    connect(this,&QDialog::finished,m_translation,&TranslationSettingsPage::cancelTest);
     connect(m_ui->cardWidth, qOverload<int>(&QSpinBox::valueChanged), this, &SettingsDialog::emitPreview);
     connect(m_ui->visibleRows, qOverload<int>(&QSpinBox::valueChanged), this, &SettingsDialog::emitPreview);
     connect(m_ui->cardOpacity, &QSlider::valueChanged, this, &SettingsDialog::emitPreview);
     connect(m_ui->showCarryMark, &QCheckBox::toggled, this, &SettingsDialog::emitPreview);
 }
+
+void SettingsDialog::showTranslationPage(){m_tabs->setCurrentWidget(m_translation);}
 
 SettingsDialog::~SettingsDialog() { delete m_ui; }
 
@@ -333,21 +346,24 @@ QWidget *SettingsDialog::buildAiPage()
     form->addRow(QString(), m_ui->aiEnabled);
 
     m_ui->aiBaseUrl = new QLineEdit(s.aiBaseUrl, page);
+    m_ui->aiBaseUrl->setObjectName("aiEndpoint");
     form->addRow(QStringLiteral("接口地址"), m_ui->aiBaseUrl);
 
     m_ui->aiKey = new QLineEdit(s.aiApiKey, page);
+    m_ui->aiKey->setObjectName("aiApiKey");
     m_ui->aiKey->setEchoMode(QLineEdit::Password);
     form->addRow(QStringLiteral("API Key"), m_ui->aiKey);
 
     m_ui->aiModel = new QLineEdit(s.aiModel, page);
+    m_ui->aiModel->setObjectName("aiModel");
     form->addRow(QStringLiteral("模型"), m_ui->aiModel);
 
     form->addRow(QString(), hintLabel(QStringLiteral(
-        "OpenAI 兼容接口（如 https://api.deepseek.com/v1）。关闭时一切都在本地完成；\n"
-        "开启后只把每次识别出的文本发出去，不发截图。")));
+        "便签归纳与截图翻译共用此连接。上方开关只控制便签标题归纳。\n"
+        "密码框圆点代表已填写，保存后重新打开仍保留。密钥沿用原 AI 模块的本机存储。")));
     auto *translation = new QPushButton(QStringLiteral("截图翻译 · 独立服务与隐私设置…"),page);
     translation->setObjectName("openTranslationSettings");
-    connect(translation,&QPushButton::clicked,this,&SettingsDialog::translationSettingsRequested);
+    connect(translation,&QPushButton::clicked,this,&SettingsDialog::showTranslationPage);
     form->addRow(QStringLiteral("截图翻译"),translation);
     return page;
 }
@@ -379,8 +395,13 @@ QWidget *SettingsDialog::buildMiscPage()
     return page;
 }
 
-void SettingsDialog::apply()
+bool SettingsDialog::apply()
 {
+    const auto previous=Settings::instance();
+    const QString translationPath=Settings::dataDir()+"/translation.json";
+    QFile priorFile(translationPath);const bool priorExists=priorFile.exists();QByteArray priorTranslation;
+    if(priorExists){if(!priorFile.open(QIODevice::ReadOnly)){m_saveError->setText(QStringLiteral("无法读取现有翻译设置，更改未保存。"));return false;}priorTranslation=priorFile.readAll();priorFile.close();}
+    if(!m_translation->save()){showTranslationPage();return false;}
     auto &s = Settings::instance();
     static const QStringList positions{QStringLiteral("TopRight"), QStringLiteral("TopLeft"),
                                        QStringLiteral("BottomRight"), QStringLiteral("BottomLeft")};
@@ -415,7 +436,15 @@ void SettingsDialog::apply()
 
     s.autostart = m_ui->autostart->isChecked();
 
-    s.save();
+    QString error;
+    if(!s.save(&error)) {
+        s=previous;bool restored=true;
+        if(priorExists){QSaveFile restore(translationPath);restored=restore.open(QIODevice::WriteOnly) && restore.write(priorTranslation)==priorTranslation.size() && restore.commit();}
+        else restored=QFile::remove(translationPath);
+        m_saveError->setText(error+(restored?QStringLiteral("；更改未保存，草稿仍保留，请修复目录权限后重试。"):QStringLiteral("；翻译设置回滚失败，请检查磁盘后重新确认翻译模式。")));
+        return false;
+    }
     // AppHost applies OS integration after saved(), including automation isolation.
     emit saved();
+    return true;
 }

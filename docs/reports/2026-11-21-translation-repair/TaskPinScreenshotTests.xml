@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuite name="ScreenshotTests" timestamp="2026&#x002D;11&#x002D;21T14:29:53" hostname="XYC&#x002D;PYC" tests="43" failures="0" errors="0" skipped="0" time="0.145">
+  <properties>
+    <property name="QTestVersion" value="6.4.3"/>
+    <property name="QtVersion" value="6.4.3"/>
+    <property name="QtBuild" value="Qt 6.4.3 (x86_64&#x002D;little_endian&#x002D;llp64 shared (dynamic) release build; by GCC 11.2.0)"/>
+  </properties>
+  <testcase name="initTestCase" classname="ScreenshotTests" time="0.002"/>
+  <testcase name="interiorMovesSelection" classname="ScreenshotTests" time="0.010">
+    <system-err>
+      <![CDATA[QFontDatabase: Cannot find font directory D:/CodexDocuments/2026-11-19/https-github-com-kael-odin-codex/work/TaskPin/repair-build/lib/fonts.
+Note that Qt no longer ships fonts. Deploy some (from https://dejavu-fonts.github.io/ for example) or switch to fontconfig.]]>
+    </system-err>
+  </testcase>
+  <testcase name="doubleClickCompletesOnce" classname="ScreenshotTests" time="0.003"/>
+  <testcase name="deleteUndoRestoresPixels" classname="ScreenshotTests" time="0.004"/>
+  <testcase name="moveUndoRestoresPixels" classname="ScreenshotTests" time="0.003"/>
+  <testcase name="narrowToolbarFits" classname="ScreenshotTests" time="0.001"/>
+  <testcase name="toolbarAbsentWhileSelecting" classname="ScreenshotTests" time="0.000"/>
+  <testcase name="outputCommitsChineseText" classname="ScreenshotTests" time="0.003"/>
+  <testcase name="undoInitiallyDisabled" classname="ScreenshotTests" time="0.003"/>
+  <testcase name="recolorUndoRestoresPixels" classname="ScreenshotTests" time="0.003"/>
+  <testcase name="recolorRedoRestoresPixels" classname="ScreenshotTests" time="0.004"/>
+  <testcase name="redoInvalidatedByDelete" classname="ScreenshotTests" time="0.003"/>
+  <testcase name="eraseGestureIsOneUndo" classname="ScreenshotTests" time="0.004"/>
+  <testcase name="moveRedoIsOneGesture" classname="ScreenshotTests" time="0.003"/>
+  <testcase name="newSelectionCannotActivateTool" classname="ScreenshotTests" time="0.004"/>
+  <testcase name="textEscapeCancelsOnlyInput" classname="ScreenshotTests" time="0.002"/>
+  <testcase name="textEnterCommitsWithoutOutput" classname="ScreenshotTests" time="0.003"/>
+  <testcase name="failedSaveKeepsEditorAndReportsReason" classname="ScreenshotTests" time="0.009"/>
+  <testcase name="successfulSaveCopiesAbsoluteNativePath" classname="ScreenshotTests" time="0.005"/>
+  <testcase name="quickSaveCopiesFinalUniquePath" classname="ScreenshotTests" time="0.007"/>
+  <testcase name="failedSaveReasonVisibleOnSmallFullScreenSelection" classname="ScreenshotTests" time="0.004"/>
+  <testcase name="ocrCapturesExactlyOnce" classname="ScreenshotTests" time="0.002"/>
+  <testcase name="toolbarAbsentDuringResize" classname="ScreenshotTests" time="0.003"/>
+  <testcase name="toolOutsideSelectionDoesNothing" classname="ScreenshotTests" time="0.004"/>
+  <testcase name="everyNarrowActionAccessible" classname="ScreenshotTests" time="0.003"/>
+  <testcase name="textBoundsFollowRenderedBaseline" classname="ScreenshotTests" time="0.004"/>
+  <testcase name="focusedTextOutputShortcut" classname="ScreenshotTests" time="0.003"/>
+  <testcase name="invalidSelectionClearsToolbar" classname="ScreenshotTests" time="0.002"/>
+  <testcase name="toolbarUsesFreeSideStrip" classname="ScreenshotTests" time="0.002"/>
+  <testcase name="disabledToolbarButtonDoesNotDragSelection" classname="ScreenshotTests" time="0.002"/>
+  <testcase name="frozenDisplay(100)" classname="ScreenshotTests" time="0.002"/>
+  <testcase name="frozenDisplay(125)" classname="ScreenshotTests" time="0.004"/>
+  <testcase name="frozenDisplay(150)" classname="ScreenshotTests" time="0.003"/>
+  <testcase name="frozenDisplay(200)" classname="ScreenshotTests" time="0.005"/>
+  <testcase name="edgeSelection(100)" classname="ScreenshotTests" time="0.002"/>
+  <testcase name="edgeSelection(125)" classname="ScreenshotTests" time="0.002"/>
+  <testcase name="edgeSelection(150)" classname="ScreenshotTests" time="0.003"/>
+  <testcase name="edgeSelection(200)" classname="ScreenshotTests" time="0.004"/>
+  <testcase name="dpiOutput(100)" classname="ScreenshotTests" time="0.002"/>
+  <testcase name="dpiOutput(125)" classname="ScreenshotTests" time="0.002"/>
+  <testcase name="dpiOutput(150)" classname="ScreenshotTests" time="0.003"/>
+  <testcase name="dpiOutput(200)" classname="ScreenshotTests" time="0.003"/>
+  <testcase name="cleanupTestCase" classname="ScreenshotTests" time="0.000"/>
+</testsuite>
