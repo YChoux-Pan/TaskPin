@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuite name="TranslationTests" timestamp="2026&#x002D;11&#x002D;21T12:31:30" hostname="XYC&#x002D;PYC" tests="49" failures="0" errors="0" skipped="0" time="1.971">
+  <properties>
+    <property name="QTestVersion" value="6.4.3"/>
+    <property name="QtVersion" value="6.4.3"/>
+    <property name="QtBuild" value="Qt 6.4.3 (x86_64&#x002D;little_endian&#x002D;llp64 shared (dynamic) release build; by GCC 11.2.0)"/>
+  </properties>
+  <testcase name="initTestCase" classname="TranslationTests" time="0.002"/>
+  <testcase name="independentDefaultHotkey" classname="TranslationTests" time="0.000"/>
+  <testcase name="protectionPreservesTechnicalText" classname="TranslationTests" time="0.000"/>
+  <testcase name="placeholderCollisionAndFormula" classname="TranslationTests" time="0.000"/>
+  <testcase name="scientificNumbersKeepSignsAndExponent" classname="TranslationTests" time="0.000"/>
+  <testcase name="quotedEnumLiteralsRemainExact" classname="TranslationTests" time="0.000"/>
+  <testcase name="paragraphsAndCode" classname="TranslationTests" time="0.000"/>
+  <testcase name="uncertainLayoutKeepsAllLines" classname="TranslationTests" time="0.000"/>
+  <testcase name="strictResponseValidation" classname="TranslationTests" time="0.000"/>
+  <testcase name="cropCoordinates(1&#x002D;0)" classname="TranslationTests" time="0.000"/>
+  <testcase name="cropCoordinates(1&#x002D;1)" classname="TranslationTests" time="0.000"/>
+  <testcase name="cropCoordinates(1&#x002D;2)" classname="TranslationTests" time="0.000"/>
+  <testcase name="cropCoordinates(1&#x002D;3)" classname="TranslationTests" time="0.000"/>
+  <testcase name="cropCoordinates(1.25&#x002D;0)" classname="TranslationTests" time="0.000"/>
+  <testcase name="cropCoordinates(1.25&#x002D;1)" classname="TranslationTests" time="0.000"/>
+  <testcase name="cropCoordinates(1.25&#x002D;2)" classname="TranslationTests" time="0.000"/>
+  <testcase name="cropCoordinates(1.25&#x002D;3)" classname="TranslationTests" time="0.000"/>
+  <testcase name="cropCoordinates(1.5&#x002D;0)" classname="TranslationTests" time="0.000"/>
+  <testcase name="cropCoordinates(1.5&#x002D;1)" classname="TranslationTests" time="0.000"/>
+  <testcase name="cropCoordinates(1.5&#x002D;2)" classname="TranslationTests" time="0.000"/>
+  <testcase name="cropCoordinates(1.5&#x002D;3)" classname="TranslationTests" time="0.000"/>
+  <testcase name="cropCoordinates(2&#x002D;0)" classname="TranslationTests" time="0.000"/>
+  <testcase name="cropCoordinates(2&#x002D;1)" classname="TranslationTests" time="0.000"/>
+  <testcase name="cropCoordinates(2&#x002D;2)" classname="TranslationTests" time="0.000"/>
+  <testcase name="cropCoordinates(2&#x002D;3)" classname="TranslationTests" time="0.000"/>
+  <testcase name="selectionNoClipboardOrHistory" classname="TranslationTests" time="0.001"/>
+  <testcase name="selectionEscape" classname="TranslationTests" time="0.000"/>
+  <testcase name="ocrContracts" classname="TranslationTests" time="0.000"/>
+  <testcase name="localAndUnconsentedNeverRequest" classname="TranslationTests" time="0.001"/>
+  <testcase name="mockOfflineDoesNotPretendTranslation" classname="TranslationTests" time="0.054"/>
+  <testcase name="realHttpBoundaryAndCache" classname="TranslationTests" time="0.064"/>
+  <testcase name="responseFailures(missing)" classname="TranslationTests" time="0.126"/>
+  <testcase name="responseFailures(placeholder)" classname="TranslationTests" time="0.127"/>
+  <testcase name="responseFailures(duplicate)" classname="TranslationTests" time="0.062"/>
+  <testcase name="responseFailures(json)" classname="TranslationTests" time="0.062"/>
+  <testcase name="responseFailures(truncated)" classname="TranslationTests" time="0.063"/>
+  <testcase name="responseFailures(unauthorized)" classname="TranslationTests" time="0.062"/>
+  <testcase name="responseFailures(rate&#x002D;limit)" classname="TranslationTests" time="0.064"/>
+  <testcase name="cancellationAndLateReply" classname="TranslationTests" time="0.348"/>
+  <testcase name="timeoutOnlyFailsOnce" classname="TranslationTests" time="0.411"/>
+  <testcase name="cancelFromProgressDoesNotSendRequest" classname="TranslationTests" time="0.094"/>
+  <testcase name="configNoPlaintextAndEndpointScope" classname="TranslationTests" time="0.004"/>
+  <testcase name="credentialVaultIsolatedRoundTrip" classname="TranslationTests" time="0.007"/>
+  <testcase name="cancelledWindowRejectsOldOcr" classname="TranslationTests" time="0.012">
+    <system-err>
+      <![CDATA[QFontDatabase: Cannot find font directory D:/CodexDocuments/2026-11-19/https-github-com-kael-odin-codex/work/TaskPin/translation-build-ascii/lib/fonts.
+Note that Qt no longer ships fonts. Deploy some (from https://dejavu-fonts.github.io/ for example) or switch to fontconfig.]]>
+      <![CDATA[This plugin does not support raise()]]>
+    </system-err>
+  </testcase>
+  <testcase name="resultIsPlainTextAndCopyIsExplicit" classname="TranslationTests" time="0.001"/>
+  <testcase name="settingsCancelActiveTranslationBeforeDialog(tray)" classname="TranslationTests" time="0.131">
+    <system-out>
+      <![CDATA[TaskPin Qt 0.4.0 started, rolled over 0 task(s)]]>
+      <![CDATA[card z-order: topmost (native topmost=0)]]>
+      <![CDATA[card z-order retry: topmost=0]]>
+    </system-out>
+    <system-err>
+      <![CDATA[This plugin does not support raise()]]>
+      <![CDATA[This plugin does not support raise()]]>
+      <![CDATA[This plugin does not support propagateSizeHints()]]>
+    </system-err>
+  </testcase>
+  <testcase name="settingsCancelActiveTranslationBeforeDialog(global&#x002D;settings)" classname="TranslationTests" time="0.130">
+    <system-out>
+      <![CDATA[TaskPin Qt 0.4.0 started, rolled over 0 task(s)]]>
+      <![CDATA[card z-order: topmost (native topmost=0)]]>
+      <![CDATA[card z-order retry: topmost=0]]>
+    </system-out>
+    <system-err>
+      <![CDATA[QSqlDatabasePrivate::addDatabase: duplicate connection name 'taskpin', old connection removed.]]>
+      <![CDATA[This plugin does not support raise()]]>
+      <![CDATA[This plugin does not support raise()]]>
+      <![CDATA[This plugin does not support propagateSizeHints()]]>
+      <![CDATA[This plugin does not support raise()]]>
+      <![CDATA[This plugin does not support propagateSizeHints()]]>
+    </system-err>
+  </testcase>
+  <testcase name="hostEntryIsSeparateFromSnipAndNotes" classname="TranslationTests" time="0.140">
+    <system-out>
+      <![CDATA[TaskPin Qt 0.4.0 started, rolled over 0 task(s)]]>
+      <![CDATA[card z-order: topmost (native topmost=0)]]>
+      <![CDATA[card z-order retry: topmost=0]]>
+      <![CDATA[toast: 请先完成或取消截图翻译选区。]]>
+      <![CDATA[card z-order: topmost (native topmost=0)]]>
+      <![CDATA[card z-order retry: topmost=0]]>
+      <![CDATA[startSnip: capture ok 800x800 dpr=1.00]]>
+      <![CDATA[toast: 请先完成或取消当前区域截图。]]>
+      <![CDATA[card z-order: topmost (native topmost=0)]]>
+    </system-out>
+    <system-err>
+      <![CDATA[QSqlDatabasePrivate::addDatabase: duplicate connection name 'taskpin', old connection removed.]]>
+      <![CDATA[This plugin does not support raise()]]>
+      <![CDATA[This plugin does not support raise()]]>
+    </system-err>
+  </testcase>
+  <testcase name="cleanupTestCase" classname="TranslationTests" time="0.000"/>
+</testsuite>

@@ -1,0 +1,27 @@
+********* Start testing of TranslationTests *********
+Config: Using QtTest library 6.4.3, Qt 6.4.3 (x86_64-little_endian-llp64 shared (dynamic) release build; by GCC 11.2.0), windows 11
+PASS   : TranslationTests::initTestCase()
+PASS   : TranslationTests::paragraphsAndCode()
+PASS   : TranslationTests::protectionPreservesTechnicalText()
+PASS   : TranslationTests::realHttpBoundaryAndCache()
+PASS   : TranslationTests::cancellationAndLateReply()
+PASS   : TranslationTests::timeoutOnlyFailsOnce()
+QCRITICAL: TranslationTests::selectionNoClipboardOrHistory() OleSetClipboard: Failed to set mime data (text/plain) on clipboard: COM error 0xffffffff800401d0  (OpenClipboard 失败) (操作成功完成。)
+QWARN  : TranslationTests::selectionNoClipboardOrHistory() qt.qpa.mime: Retrying to obtain clipboard.
+QWARN  : TranslationTests::selectionNoClipboardOrHistory() qt.qpa.mime: Retrying to obtain clipboard.
+QWARN  : TranslationTests::selectionNoClipboardOrHistory() qt.qpa.mime: Unable to obtain clipboard.
+QWARN  : TranslationTests::selectionNoClipboardOrHistory() qt.qpa.mime: Retrying to obtain clipboard.
+QWARN  : TranslationTests::selectionNoClipboardOrHistory() qt.qpa.mime: Retrying to obtain clipboard.
+QWARN  : TranslationTests::selectionNoClipboardOrHistory() qt.qpa.mime: Unable to obtain clipboard.
+QWARN  : TranslationTests::selectionNoClipboardOrHistory() qt.qpa.mime: Retrying to obtain clipboard.
+QWARN  : TranslationTests::selectionNoClipboardOrHistory() qt.qpa.mime: Retrying to obtain clipboard.
+QWARN  : TranslationTests::selectionNoClipboardOrHistory() qt.qpa.mime: Unable to obtain clipboard.
+FAIL!  : TranslationTests::selectionNoClipboardOrHistory() Compared values are not the same
+   Actual   (QApplication::clipboard()->text()): ""
+   Expected (QString("unchanged"))             : "unchanged"
+D:/CodexDocuments/2026-11-19/https-github-com-kael-odin-codex/work/TaskPin/translation-source/TaskPinQt/tests/tst_translation.cpp(138) : failure location
+PASS   : TranslationTests::selectionEscape()
+PASS   : TranslationTests::cancelledWindowRejectsOldOcr()
+PASS   : TranslationTests::cleanupTestCase()
+Totals: 9 passed, 1 failed, 0 skipped, 0 blacklisted, 2169ms
+********* Finished testing of TranslationTests *********

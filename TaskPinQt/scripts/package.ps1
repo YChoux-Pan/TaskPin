@@ -13,7 +13,7 @@ $build = Get-FullPath $BuildDir
 $output = Get-FullPath $OutputDir
 $versionLine = Select-String -LiteralPath (Join-Path $root 'TaskPinQt/CMakeLists.txt') -Pattern 'project\(TaskPinQt VERSION ([0-9.]+)'
 $version = $versionLine.Matches[0].Groups[1].Value
-if ($version -ne '0.3.0') { throw "Unexpected version: $version" }
+if ($version -notmatch '^\d+\.\d+\.\d+$') { throw "Unexpected version: $version" }
 if (!(Test-Path -LiteralPath (Join-Path $build 'TaskPinQt.exe'))) { throw 'Build the Release executable first.' }
 if (!(Select-String -LiteralPath (Join-Path $build 'CMakeCache.txt') -Pattern '^CMAKE_BUILD_TYPE:STRING=Release$' -Quiet)) {
     throw 'Packaging requires a CMake Release build.'

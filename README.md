@@ -4,18 +4,20 @@
   <p><strong>留住画面，记下灵感。</strong></p>
   <p>截图、桌面贴图与每日待办，放在同一个轻巧的 Windows 工具里。</p>
   <p>
-    <a href="https://github.com/YChoux-Pan/TaskPin/releases/tag/v0.3.0"><img src="https://img.shields.io/badge/preview-v0.3.0-4C9AFF" alt="0.3.0 预览版" /></a>
+    <a href="https://github.com/YChoux-Pan/TaskPin/releases/tag/v0.4.0"><img src="https://img.shields.io/badge/preview-v0.4.0-4C9AFF" alt="0.4.0 预览版" /></a>
     <img src="https://img.shields.io/badge/platform-Windows%2010%20%2F%2011-0078D4" alt="Windows 10 / 11 x64" />
     <img src="https://img.shields.io/badge/C%2B%2B-17-00599C" alt="C++17" />
     <a href="https://github.com/YChoux-Pan/TaskPin/actions/workflows/windows.yml"><img src="https://github.com/YChoux-Pan/TaskPin/actions/workflows/windows.yml/badge.svg?branch=main" alt="Windows 构建与测试" /></a>
     <a href="LICENSE"><img src="https://img.shields.io/badge/license-Unlicense-3EC46B" alt="Unlicense" /></a>
   </p>
-  <p><a href="https://github.com/YChoux-Pan/TaskPin/releases/tag/v0.3.0"><strong>下载 Windows 便携版</strong></a> · <a href="README.en.md">English</a> · <a href="CHANGELOG.md">更新日志</a> · <a href="https://github.com/YChoux-Pan/TaskPin/issues">反馈问题</a></p>
+  <p><a href="https://github.com/YChoux-Pan/TaskPin/releases/tag/v0.4.0"><strong>下载 Windows 便携版</strong></a> · <a href="README.en.md">English</a> · <a href="CHANGELOG.md">更新日志</a> · <a href="https://github.com/YChoux-Pan/TaskPin/issues">反馈问题</a></p>
 </div>
 
 ---
 
 TaskPin 把截图后的几个动作接在一起：**截取画面 → 标注或固定 → 识别为任务 → 在便签与日历中回看**。可以只用截图和贴图，也可以把桌面卡片作为每天的待办入口。截图、任务和 Windows OCR 在本地处理，AI 按需开启。
+
+**0.4.0 新功能：[独立截图翻译](docs/SCREEN-TRANSLATION.md)**。按 **Ctrl+Alt+T** 框选并查看原文/中文译文，原 F1 区域截图保持原样。默认本地 OCR，选择云端翻译需单独配置并确认文本外发。
 
 [功能](#功能一览) · [预览](#界面预览) · [开始使用](#开始使用) · [快捷键](#快捷键) · [开发](#构建与参与) · [文档](#文档导航)
 
@@ -23,6 +25,7 @@ TaskPin 把截图后的几个动作接在一起：**截取画面 → 标注或�
 
 | 功能 | 可以做什么 |
 |---|---|
+| **独立截图翻译** | 本地 OCR、原文/中文对照、HALCON 术语保护；主动配置后使用 DeepSeek / OpenAI 兼容服务 |
 | **截图与标注** | 区域、窗口、当前屏幕截图；箭头、文字、画笔、序号、马赛克、模糊；撤销与重做 |
 | **原位桌面贴图** | 保留选区位置与显示尺寸；连续滚轮缩放；透明度、旋转、翻转、穿透与分组 |
 | **可调外观** | 贴图边框、颜色和阴影可调，可全部关闭；便签颜色、宽度与透明度实时预览，取消即恢复 |
@@ -34,6 +37,10 @@ TaskPin 把截图后的几个动作接在一起：**截取画面 → 标注或�
 保存或快速保存成功后，**完整文件路径自动进入剪贴板**，方便粘贴到文件选择器或其他应用。取消、保存失败时保留原剪贴板。
 
 ## 界面预览
+
+![独立截图翻译窗口：Windows OCR 与离线 Mock 流程演示](docs/screenshots/taskpin-0.4.0-translation-mock.png)
+
+<sub>上图使用程序生成的虚构文本和明确标识的离线 Mock，展示结果布局，不代表真实翻译质量。</sub>
 
 ![TaskPin 截图编辑器：分组工具栏、标注与输出操作](docs/screenshots/taskpin-0.3.0-editor.png)
 
@@ -51,17 +58,17 @@ TaskPin 把截图后的几个动作接在一起：**截取画面 → 标注或�
 
 **系统：Windows 10 / 11 x64。当前界面主要为中文。**
 
-1. 在 [0.3.0 发行页](https://github.com/YChoux-Pan/TaskPin/releases/tag/v0.3.0) 下载 <code>TaskPin-0.3.0-windows-x64.zip</code>。
+1. 在 [0.4.0 发行页](https://github.com/YChoux-Pan/TaskPin/releases/tag/v0.4.0) 下载 <code>TaskPin-0.4.0-windows-x64.zip</code>。
 2. 完整解压，保留 DLL 和插件子目录，双击 <code>TaskPinQt.exe</code>。无需安装 Qt 或开发工具。
 3. 按 **F1** 开始截图，按 **F3** 贴住剪贴板图片，通过托盘打开设置、日历与其他工具。
 
-0.3.0 为预览版。[发行页](https://github.com/YChoux-Pan/TaskPin/releases)同时提供源码、图标包、改动记录、测试报告和 SHA256SUMS.txt。升级时先通过托盘退出程序，再替换程序文件。用户数据默认保存在本机用户目录。
+0.4.0 为预览版。[发行页](https://github.com/YChoux-Pan/TaskPin/releases)同时提供源码、图标包、改动记录、测试报告和 SHA256SUMS.txt。升级时先通过托盘退出程序，再替换程序文件。用户数据默认保存在本机用户目录。
 
 <details>
 <summary>校验下载文件</summary>
 
 ~~~powershell
-Get-FileHash -Algorithm SHA256 -LiteralPath .\TaskPin-0.3.0-windows-x64.zip
+Get-FileHash -Algorithm SHA256 -LiteralPath .\TaskPin-0.4.0-windows-x64.zip
 ~~~
 
 将结果与发行附件 SHA256SUMS.txt 中的同名条目比较。
@@ -73,6 +80,7 @@ Get-FileHash -Algorithm SHA256 -LiteralPath .\TaskPin-0.3.0-windows-x64.zip
 | 全局操作 | 默认快捷键 |
 |---|---|
 | 区域截图 | **F1** |
+| 截图翻译（独立功能） | **Ctrl+Alt+T** |
 | 贴住剪贴板图片 / 显隐全部贴图 | **F3** / **Shift+F3** |
 | 当前显示器全屏 / 上次区域 | Ctrl+Alt+F / Ctrl+Alt+R |
 | 速记 / 显隐任务卡片 / 截屏历史 | Ctrl+Alt+Space / Ctrl+Alt+D / Ctrl+Alt+G |
@@ -101,7 +109,7 @@ cmd /c TaskPinQt\build.cmd
 powershell -NoProfile -ExecutionPolicy Bypass -File TaskPinQt/scripts/test.ps1
 ~~~
 
-当前生产代码验证记录：截图 QtTest **43/0**、集成 **35/0**、体验 **20/0**、自检 **53/0**，零跳过；Windows 云端构建与测试已通过。具体提交、原始报告和设备覆盖边界见 [测试文档](docs/TESTING.md)。
+当前生产代码验证记录：截图 QtTest **43/0**、集成 **35/0**、体验 **20/0**、截图翻译 **49/0**、自检 **53/0**，零跳过。具体提交、原始报告和设备覆盖边界见 [测试文档](docs/TESTING.md)。
 
 欢迎提交可复现的问题或聚焦的改进，参与前请阅读 [贡献指南](CONTRIBUTING.md)。
 
@@ -110,6 +118,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File TaskPinQt/scripts/test.ps1
 | 使用与项目 | 开发与验证 |
 |---|---|
 | [更新日志](CHANGELOG.md) | [构建与打包](docs/BUILDING.md) |
+| [独立截图翻译](docs/SCREEN-TRANSLATION.md) | [翻译专项报告](docs/reports/2026-11-21-screen-translation.md) |
 | [保存路径与快捷键](docs/SAVE-PATH-HOTKEYS.md) | [软件架构](docs/ARCHITECTURE.md) |
 | [Canva 图标与设计来源](docs/BRANDING.md) | [测试记录与已知限制](docs/TESTING.md) |
 | [问题反馈](https://github.com/YChoux-Pan/TaskPin/issues) | [发行流程](docs/RELEASING.md) |

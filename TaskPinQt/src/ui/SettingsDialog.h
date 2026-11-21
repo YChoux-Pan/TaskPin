@@ -17,6 +17,7 @@ public:
 
 signals:
     void saved();
+    void translationSettingsRequested();
     void cardPreviewChanged(const CardAppearance &appearance);
 
 private:

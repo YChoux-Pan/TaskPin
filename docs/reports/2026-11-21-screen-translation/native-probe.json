@@ -1,0 +1,9 @@
+{
+    "cloudCalled": false,
+    "elapsedMs": 463,
+    "fixtureOnly": true,
+    "mockResult": "[离线测试，非真实译文] The operator segments regions by a watershed.\n\ninner circle (Region, ROW, CoIumn, Radius)\n\nmax(W-B1, W-B2) < ThreshoId",
+    "ocr": "The operator segments regions by a watershed.\n\ninner circle (Region, ROW, CoIumn, Radius)\n\nmax(W-B1, W-B2) < ThreshoId",
+    "state": "PRESENTING",
+    "systemOcrConfidence": "unavailable"
+}

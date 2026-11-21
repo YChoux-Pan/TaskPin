@@ -18,6 +18,7 @@ public:
         QuickAdd = 6,
         ToggleCard = 7,
         History = 8,
+        Translate = 9,
     };
 
     explicit Hotkeys(QObject *parent = nullptr);

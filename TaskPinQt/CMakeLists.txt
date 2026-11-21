@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(TaskPinQt VERSION 0.3.0 LANGUAGES CXX)
+project(TaskPinQt VERSION 0.4.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -43,6 +43,16 @@ endif()
 
 qt_add_executable(TaskPinQt WIN32
     src/main.cpp
+    assets/translation/translation.qrc
+    src/translation/TranslationTypes.h
+    src/translation/TranslationText.h src/translation/TranslationText.cpp
+    src/translation/TranslationConfig.h src/translation/TranslationConfig.cpp
+    src/translation/TranslationClient.h src/translation/TranslationClient.cpp
+    src/translation/TranslationOcr.h src/translation/TranslationOcr.cpp
+    src/platform/TranslationCredentials.h src/platform/TranslationCredentials.cpp
+    src/ui/TranslationOverlay.h src/ui/TranslationOverlay.cpp
+    src/ui/TranslationWindow.h src/ui/TranslationWindow.cpp
+    src/ui/TranslationSettingsDialog.h src/ui/TranslationSettingsDialog.cpp
     src/ui/AppIcon.h assets/brand/brand.qrc
 
     src/core/Task.h
@@ -86,7 +96,7 @@ target_compile_definitions(TaskPinQt PRIVATE TASKPIN_VERSION="${PROJECT_VERSION}
 
 target_link_libraries(TaskPinQt PRIVATE
     Qt6::Core Qt6::Gui Qt6::Widgets Qt6::Sql Qt6::Network Qt6::PrintSupport Qt6::Svg
-    user32 gdi32 shell32 dwmapi
+    user32 gdi32 shell32 dwmapi advapi32
 )
 
 if(BUILD_TESTING)
@@ -96,18 +106,35 @@ if(BUILD_TESTING)
     target_sources(TaskPinIntegrationTests PRIVATE ${TASKPIN_APP_SOURCES})
     target_compile_definitions(TaskPinIntegrationTests PRIVATE TASKPIN_VERSION="${PROJECT_VERSION}")
     target_link_libraries(TaskPinIntegrationTests PRIVATE
-        Qt6::Sql Qt6::Network Qt6::PrintSupport Qt6::Svg gdi32 shell32)
+        Qt6::Sql Qt6::Network Qt6::PrintSupport Qt6::Svg gdi32 shell32 advapi32)
     add_dependencies(TaskPinIntegrationTests TaskPinQt)
     qt_add_executable(TaskPinExperienceTests tests/tst_experience.cpp ${TASKPIN_APP_SOURCES})
     target_include_directories(TaskPinExperienceTests PRIVATE src)
     target_compile_definitions(TaskPinExperienceTests PRIVATE TASKPIN_VERSION="${PROJECT_VERSION}")
     target_link_libraries(TaskPinExperienceTests PRIVATE Qt6::Test Qt6::Widgets Qt6::Sql Qt6::Network
-        Qt6::PrintSupport Qt6::Svg user32 gdi32 shell32 dwmapi)
+        Qt6::PrintSupport Qt6::Svg user32 gdi32 shell32 dwmapi advapi32)
     add_dependencies(TaskPinExperienceTests TaskPinIntegrationTests)
     add_test(NAME TaskPinExperienceTests COMMAND TaskPinExperienceTests -o -,txt
         -o "${CMAKE_BINARY_DIR}/TaskPinExperienceTests.txt,txt"
         -o "${CMAKE_BINARY_DIR}/TaskPinExperienceTests.xml,junitxml")
     set_tests_properties(TaskPinExperienceTests PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+    qt_add_executable(TaskPinTranslationTests tests/tst_translation.cpp ${TASKPIN_APP_SOURCES})
+    target_include_directories(TaskPinTranslationTests PRIVATE src)
+    target_compile_definitions(TaskPinTranslationTests PRIVATE TASKPIN_VERSION="${PROJECT_VERSION}")
+    target_link_libraries(TaskPinTranslationTests PRIVATE Qt6::Test Qt6::Widgets Qt6::Sql Qt6::Network
+        Qt6::PrintSupport Qt6::Svg user32 gdi32 shell32 dwmapi advapi32)
+    add_dependencies(TaskPinTranslationTests TaskPinExperienceTests)
+    add_test(NAME TaskPinTranslationTests COMMAND TaskPinTranslationTests -o -,txt
+        -o "${CMAKE_BINARY_DIR}/TaskPinTranslationTests.txt,txt"
+        -o "${CMAKE_BINARY_DIR}/TaskPinTranslationTests.xml,junitxml")
+    set_tests_properties(TaskPinTranslationTests PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+    # Explicit local-only probe, excluded from CI/default build: exercises installed Windows OCR
+    # with synthetic text and the real result window, never a user's desktop or API key.
+    qt_add_executable(TaskPinTranslationProbe EXCLUDE_FROM_ALL tests/translation_probe.cpp ${TASKPIN_APP_SOURCES})
+    target_include_directories(TaskPinTranslationProbe PRIVATE src)
+    target_compile_definitions(TaskPinTranslationProbe PRIVATE TASKPIN_VERSION="${PROJECT_VERSION}")
+    target_link_libraries(TaskPinTranslationProbe PRIVATE Qt6::Test Qt6::Widgets Qt6::Sql Qt6::Network
+        Qt6::PrintSupport Qt6::Svg user32 gdi32 shell32 dwmapi advapi32)
 endif()
 
 # copy the Qt runtime next to the exe (windeployqt) after build
@@ -123,7 +150,7 @@ if(WIN32)
                     --no-opengl-sw "$<TARGET_FILE:TaskPinQt>"
             COMMENT "windeployqt")
         if(BUILD_TESTING)
-            foreach(test_target TaskPinScreenshotTests TaskPinIntegrationTests TaskPinExperienceTests)
+            foreach(test_target TaskPinScreenshotTests TaskPinIntegrationTests TaskPinExperienceTests TaskPinTranslationTests)
                 add_custom_command(TARGET ${test_target} POST_BUILD
                     COMMAND "${WINDEPLOYQT}" --no-translations --no-system-d3d-compiler
                             --no-opengl-sw "$<TARGET_FILE:${test_target}>"
@@ -133,7 +160,7 @@ if(WIN32)
     endif()
     if(BUILD_TESTING)
         find_file(QT_OFFSCREEN_PLUGIN qoffscreen.dll HINTS "${Qt6_DIR}/../../../plugins/platforms" NO_DEFAULT_PATH)
-        foreach(test_target TaskPinScreenshotTests TaskPinIntegrationTests TaskPinExperienceTests)
+        foreach(test_target TaskPinScreenshotTests TaskPinIntegrationTests TaskPinExperienceTests TaskPinTranslationTests)
             add_custom_command(TARGET ${test_target} POST_BUILD
                 COMMAND ${CMAKE_COMMAND} -E copy_if_different "$<TARGET_FILE:Qt6::Test>"
                         "$<TARGET_FILE_DIR:${test_target}>")
