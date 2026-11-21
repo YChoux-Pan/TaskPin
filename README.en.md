@@ -1,74 +1,114 @@
-# TaskPin
+<div align="center">
+  <img src="TaskPinQt/assets/brand/taskpin-128.png" width="96" alt="TaskPin icon" />
+  <h1>TaskPin</h1>
+  <p><strong>Keep the picture. Capture the thought.</strong></p>
+  <p>Screenshots, desktop image pins and daily tasks in one compact Windows tool.</p>
+  <p>
+    <a href="https://github.com/YChoux-Pan/TaskPin/releases/tag/v0.3.0"><img src="https://img.shields.io/badge/preview-v0.3.0-4C9AFF" alt="0.3.0 preview" /></a>
+    <img src="https://img.shields.io/badge/platform-Windows%2010%20%2F%2011-0078D4" alt="Windows 10 / 11 x64" />
+    <img src="https://img.shields.io/badge/C%2B%2B-17-00599C" alt="C++17" />
+    <a href="https://github.com/YChoux-Pan/TaskPin/actions/workflows/windows.yml"><img src="https://github.com/YChoux-Pan/TaskPin/actions/workflows/windows.yml/badge.svg?branch=main" alt="Windows build and test" /></a>
+    <a href="LICENSE"><img src="https://img.shields.io/badge/license-Unlicense-3EC46B" alt="Unlicense" /></a>
+  </p>
+  <p><a href="https://github.com/YChoux-Pan/TaskPin/releases/tag/v0.3.0"><strong>Download for Windows</strong></a> · <a href="README.md">简体中文</a> · <a href="CHANGELOG.md">Changelog</a> · <a href="https://github.com/YChoux-Pan/TaskPin/issues">Report an issue</a></p>
+</div>
 
-![TaskPin icon](TaskPinQt/assets/brand/taskpin-128.png)
+---
 
-The development branch now includes continuous pin zoom, configurable borders/shadows, full task details, completion undo/restore, an AI pending row and live card appearance previews. See the [experience update report](docs/reports/2026-11-20-experience-update.md). The new [Canva-designed icon](docs/BRANDING.md) is shared by the executable, tray, desktop shortcut and calendar. Version 0.3.0 is not yet a stable release.
+TaskPin connects **capture → annotate or pin → recognize as a task → review on a card or calendar**. Use its screenshot tools on their own, or keep daily tasks within reach on the desktop. Screenshots, tasks and Windows OCR are processed locally; AI is optional.
 
-Click task text to open scrollable, selectable details; use the circle to complete a task. Undo is available for 10 seconds (or Ctrl+Z on the card); completed tasks can always be restored from the card footer, context menu, tray or calendar details. Restoring updates today's state while preserving historical day snapshots. Appearance previews never persist until Save. AI failures/timeouts/restarts retain the local title and original OCR text; captures are serialized, with a waiting queue limited to three images / 128 MiB.
+## Features
 
-**Keep the picture. Capture the thought.** Screenshots, desktop image pins and daily task cards for Windows.
-
-[简体中文](README.md) · [Downloads](https://github.com/YChoux-Pan/TaskPin/releases) · [Changelog](CHANGELOG.md) · [Building](docs/BUILDING.md) · [Testing](docs/TESTING.md)
-
-![TaskPin 0.3.0 screenshot editor with demonstration content](docs/screenshots/taskpin-0.3.0-editor.png)
-
-*Real desktop capture of the 0.3.0 development UI using a dedicated demonstration fixture. The executable still reported 0.2.3 before the version bump. This illustrates the editor layout; it does not certify every desktop workflow. Older `test-*.png` images document 0.2.x.*
-
-## Capture, annotate, keep nearby
-
-- **Screenshot editor:** capture the monitor under the cursor, select a region or window, and annotate with shapes, arrows, lines, pen, highlighter, text, numbering, mosaic, blur and eraser. The toolbar fits available space, shows relevant parameters and supports undo/redo and annotation editing.
-- **Outputs and image pins:** copy, save, quick-save, pin to the desktop or choose “识别为任务” (recognize as a task). Pins support zoom, opacity, rotation, flipping, click-through and groups, with a grouped context menu. Direct screenshot pins preserve the original selection position and logical size.
-- **Daily task cards:** quick notes, Chinese time parsing, priorities, task notes, completion, carry-over, recycle bin and calendar history. Keep the card above windows or in the desktop layer.
-- **Utilities:** screenshot history, whiteboard, transparent whiteboard, color picker and configurable global hotkeys. Printing and optional AI have existing entry points; see [testing limits](docs/TESTING.md) for environment coverage.
-
-Built with C++17 and Qt 6 for Windows 10/11 x64. The current interface is primarily Chinese. `TaskPinQt/` is the maintained implementation; the earlier C# implementation is historical and does not define the current feature set.
-
-## Download and start
-
-1. Get `TaskPin-0.3.0-windows-x64.zip` and `SHA256SUMS.txt` from [Releases](https://github.com/YChoux-Pan/TaskPin/releases), once that version is published.
-2. Extract the complete folder to a writable location, keep its DLLs and plugin folders, and run `TaskPinQt.exe`. No Qt SDK or development tools are needed.
-3. Open Settings from the system tray and check the registered shortcuts. Use the tray to exit the background application.
-
-Verify the download with `Get-FileHash -Algorithm SHA256 -LiteralPath .\TaskPin-0.3.0-windows-x64.zip` and compare it with the matching checksum entry. Portable means no installation is required; **user data is stored in your local user profile by default**. Before upgrading, exit the old version from the tray and back up the data directory, then replace the application folder.
-
-## Keyboard shortcuts
-
-| Global action | Default shortcut |
+| Tool | What it does |
 |---|---|
-| Region / current monitor / last region | `F1` / `Ctrl+Alt+F` / `Ctrl+Alt+R` |
-| Pin clipboard image / show or hide pins | `F3` / `Shift+F3` |
-| Quick note / show or hide card / screenshot history | `Ctrl+Alt+Space` / `Ctrl+Alt+D` / `Ctrl+Alt+G` |
+| **Capture and annotate** | Region, window and current-monitor capture; arrows, text, pen, numbering, mosaic and blur; undo and redo |
+| **Desktop pins** | Preserve selection position and logical size; continuous wheel zoom; opacity, rotation, flipping, click-through and groups |
+| **Appearance controls** | Adjustable or disabled pin borders/shadows; live card color, width and opacity previews that revert on cancel |
+| **Daily tasks** | Quick notes, Chinese time parsing, priorities, notes and carry-over; click text for details and the circle to complete |
+| **Undo and calendar history** | Undo completion within 10 seconds; search and restore completed tasks; preserve historical day snapshots |
+| **OCR and optional AI** | Recognize a capture as a task; show an inline pending state; retain local text if AI fails |
+| **Utilities** | Capture history, whiteboard, transparent whiteboard, color picker and configurable global shortcuts |
 
-Inside the editor: `V` select, `R` rectangle, `O` ellipse, `A` arrow, `T` text, `M` mosaic, `B` blur; `Ctrl+Z` / `Ctrl+Y` undo/redo, `Enter` copy, `Ctrl+S` save, `Ctrl+Shift+S` quick-save, `Ctrl+P` pin, `Ctrl+R` recognize as a task and `Esc` cancel. Hover a button for its label and shortcut. Global hotkeys can be changed in Settings; the tray shows the shortcuts actually registered after conflict handling.
+Successful save and quick-save copy the **absolute file path** to the clipboard. Cancellation and errors leave the clipboard unchanged.
 
-## Data, privacy and optional AI
+## Preview
 
-Successful save and quick-save copy the screenshot's absolute native Windows file path to the clipboard. `Ctrl+Shift+S` uses the configured auto-save directory and adds a suffix to avoid overwriting existing files. Failed or cancelled saves leave the clipboard unchanged; `Enter` still copies the image.
+![TaskPin screenshot editor with grouped tools and output actions](docs/screenshots/taskpin-0.3.0-editor.png)
 
-The three screenshot/pin shortcuts match Snipaste defaults. Upgrades migrate only their old default values while preserving custom bindings; subsequent user choices remain unchanged. If Snipaste occupies the keys, TaskPin uses fallback bindings shown in its tray menu.
+<table>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/taskpin-0.3.0-pin-menu.png" alt="Desktop image pin menu" /></td>
+    <td width="50%"><img src="docs/screenshots/taskpin-canva-icon-preview.png" alt="Canva icon at different sizes on light and dark backgrounds" /></td>
+  </tr>
+  <tr><td align="center">Desktop pins and grouped controls</td><td align="center">One icon across desktop, tray and calendar</td></tr>
+</table>
 
-The default data directory is `%LOCALAPPDATA%\TaskPin\TaskPinQt\`, containing `taskpin.db` (SQLite and WAL), `settings.json`, `taskpinqt.log`, `history\snip\` and `ocr\`. Set `TASKPIN_DATA` to use a separate directory. Exit the application before copying the whole directory for a backup. Screenshot history and OCR temporary files may contain private information.
+<sub>Editor and pin screenshots use demonstration data. Their version string still showed 0.2.3 before the 0.3.0 version bump; they illustrate the redesigned layout. See <a href="docs/TESTING.md">testing evidence</a> for provenance and coverage.</sub>
 
-Screenshots, tasks and Windows OCR are processed locally. OCR requires Windows OCR components and a suitable language pack. “识别为任务” connects recognized text to the existing task workflow. **AI is disabled by default.** If you configure and enable an OpenAI-compatible endpoint, up to 4000 characters of recognized text are sent to that endpoint. The API key is stored locally in `settings.json` without OS credential encryption. Do not share settings, databases or logs. Your chosen provider's data policy applies. Failed AI requests fall back to the recognized text; screenshot and task features do not require AI.
+## Get started
+
+**Windows 10 / 11 x64. The interface is primarily Chinese.**
+
+1. Download <code>TaskPin-0.3.0-windows-x64.zip</code> from the [0.3.0 release](https://github.com/YChoux-Pan/TaskPin/releases/tag/v0.3.0).
+2. Extract the complete folder and run <code>TaskPinQt.exe</code>. Keep all DLLs and plugin directories. No Qt SDK is required.
+3. Press **F1** to capture or **F3** to pin a clipboard image. Open Settings, Calendar and other tools from the tray.
+
+Version 0.3.0 is a preview. The release also includes source, icons, change notes, test reports and SHA256SUMS.txt. Exit through the tray before replacing application files. User data stays in the local user profile.
+
+~~~powershell
+Get-FileHash -Algorithm SHA256 -LiteralPath .\TaskPin-0.3.0-windows-x64.zip
+~~~
+
+Compare the result with the matching checksum entry.
+
+## Shortcuts
+
+| Global action | Default |
+|---|---|
+| Region capture | **F1** |
+| Pin clipboard image / show or hide pins | **F3** / **Shift+F3** |
+| Current monitor / last region | Ctrl+Alt+F / Ctrl+Alt+R |
+| Quick note / toggle card / capture history | Ctrl+Alt+Space / Ctrl+Alt+D / Ctrl+Alt+G |
+
+Editor: **Enter** copy image, **Ctrl+S** save, **Ctrl+Shift+S** quick-save, **Ctrl+P** pin, **Ctrl+R** recognize as a task, **Ctrl+Z / Ctrl+Y** undo/redo, **Esc** cancel.
+
+The three capture/pin shortcuts follow Snipaste defaults. Upgrades retain custom bindings; the tray shows actual registered keys after conflict handling. Hover a tool for its name and shortcut.
+
+## Data and optional AI
+
+- **Local storage:** <code>%LOCALAPPDATA%\TaskPin\TaskPinQt\</code> contains the database, settings, capture history, OCR temporary files and log. TASKPIN_DATA selects a separate directory.
+- **Restore tasks:** click text to read scrollable, selectable details and OCR text; only the circle completes a task. Use Undo or card-local Ctrl+Z immediately, or restore later from the completed list. Restoration updates today while preserving past snapshots.
+- **AI is off by default:** enabling an OpenAI-compatible endpoint sends up to 4000 characters of recognized text to that address. Keys reside in local settings.json without OS credential encryption. Do not share settings, databases or logs.
+- **Pending recognition:** the card displays an inline AI status and retains the local title and OCR text after errors, timeouts or restart. Requests run serially; the waiting queue is limited to three images / 128 MiB.
 
 ## Build and contribute
 
-```powershell
+TaskPinQt/ is the maintained implementation: **C++17 · Qt 6.4.3 · MinGW GCC 11.2.0 · CMake · Ninja**.
+
+~~~powershell
+git clone https://github.com/YChoux-Pan/TaskPin.git
+cd TaskPin
 $env:QT_KIT = 'C:/Qt/6.4.3/mingw_64'
-# Add a matching MinGW, CMake and Ninja to PATH, or pass explicit parameters.
+# Add matching MinGW, CMake and Ninja to PATH, or provide script parameters.
 cmd /c TaskPinQt\build.cmd
 powershell -NoProfile -ExecutionPolicy Bypass -File TaskPinQt/scripts/test.ps1
-```
+~~~
 
-[Build and package](docs/BUILDING.md) · [Testing and evidence](docs/TESTING.md) · [Architecture](docs/ARCHITECTURE.md) · [Contributing](CONTRIBUTING.md) · [Release process](docs/RELEASING.md)
+Recorded production-code checks: screenshot QtTest **43/0**, integration **35/0**, experience **20/0**, selftest **53/0**, zero skips; Windows CI passed. See [testing](docs/TESTING.md) for exact commits, raw reports and physical-device limits.
 
-## Limits and direction
+Read the [contributing guide](CONTRIBUTING.md) before submitting a focused improvement or reproducible issue.
 
-- Capture is limited to the monitor under the cursor; spanning multiple monitors is unsupported.
-- Automated fixtures exercise DPR values, negative origins and narrow viewports. They do not establish behavior on every physical mixed-DPI setup.
-- Printers, real AI endpoints and different Windows OCR languages need separate verification. The remaining 0.3.0 editor/note desktop acceptance is tracked in the testing document.
-- QR/barcode recognition and automatic clipboard-to-task monitoring are not implemented. Further work prioritizes physical environment coverage, accessibility and interaction polish, without a promised release date.
+## Documentation
 
-## License
+| Project and usage | Development and verification |
+|---|---|
+| [Changelog](CHANGELOG.md) | [Build and package](docs/BUILDING.md) |
+| [Save paths and shortcuts](docs/SAVE-PATH-HOTKEYS.md) | [Architecture](docs/ARCHITECTURE.md) |
+| [Canva design provenance](docs/BRANDING.md) | [Testing and limitations](docs/TESTING.md) |
+| [Issue tracker](https://github.com/YChoux-Pan/TaskPin/issues) | [Release process](docs/RELEASING.md) |
 
-TaskPin's own code is [Unlicense](LICENSE). Third-party components retain their licenses: Lucide ISC (including Feather MIT notices), Material Design Icons graphics under Apache-2.0, Qt LGPL/GPL and MinGW runtime licenses. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) and [licenses/](licenses).
+Capture covers the monitor under the cursor. Multi-monitor stitching, QR/barcode recognition and automatic clipboard-to-task creation are not implemented. Real AI services, physical printers and every mixed-DPI arrangement need separate validation.
+
+## License and acknowledgements
+
+TaskPin's own code is [Unlicense](LICENSE). Thanks to Qt, Lucide, Pictogrammers and MinGW; their components retain their licenses in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) and [licenses/](licenses). TaskPin follows familiar Snipaste interactions and uses its own brand artwork.

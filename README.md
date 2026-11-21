@@ -1,78 +1,121 @@
-# TaskPin
+<div align="center">
+  <img src="TaskPinQt/assets/brand/taskpin-128.png" width="96" alt="TaskPin 图标" />
+  <h1>TaskPin</h1>
+  <p><strong>留住画面，记下灵感。</strong></p>
+  <p>截图、桌面贴图与每日待办，放在同一个轻巧的 Windows 工具里。</p>
+  <p>
+    <a href="https://github.com/YChoux-Pan/TaskPin/releases/tag/v0.3.0"><img src="https://img.shields.io/badge/preview-v0.3.0-4C9AFF" alt="0.3.0 预览版" /></a>
+    <img src="https://img.shields.io/badge/platform-Windows%2010%20%2F%2011-0078D4" alt="Windows 10 / 11 x64" />
+    <img src="https://img.shields.io/badge/C%2B%2B-17-00599C" alt="C++17" />
+    <a href="https://github.com/YChoux-Pan/TaskPin/actions/workflows/windows.yml"><img src="https://github.com/YChoux-Pan/TaskPin/actions/workflows/windows.yml/badge.svg?branch=main" alt="Windows 构建与测试" /></a>
+    <a href="LICENSE"><img src="https://img.shields.io/badge/license-Unlicense-3EC46B" alt="Unlicense" /></a>
+  </p>
+  <p><a href="https://github.com/YChoux-Pan/TaskPin/releases/tag/v0.3.0"><strong>下载 Windows 便携版</strong></a> · <a href="README.en.md">English</a> · <a href="CHANGELOG.md">更新日志</a> · <a href="https://github.com/YChoux-Pan/TaskPin/issues">反馈问题</a></p>
+</div>
 
-![TaskPin 图标](TaskPinQt/assets/brand/taskpin-128.png)
+---
 
-**留住画面，记下灵感。** 面向 Windows 的截图、桌面贴图与每日任务卡片。
+TaskPin 把截图后的几个动作接在一起：**截取画面 → 标注或固定 → 识别为任务 → 在便签与日历中回看**。可以只用截图和贴图，也可以把桌面卡片作为每天的待办入口。截图、任务和 Windows OCR 在本地处理，AI 按需开启。
 
-当前开发分支已加入[体验改进](docs/reports/2026-11-20-experience-update.md)：连续贴图缩放、可关闭的边框/阴影、长任务全文、完成撤销与恢复、AI 等待提示，以及设置实时预览。[新版图标](docs/BRANDING.md)通过 Canva 设计，并统一用于程序、托盘、桌面快捷方式与日历；0.3.0 尚未正式发行。
+[功能](#功能一览) · [预览](#界面预览) · [开始使用](#开始使用) · [快捷键](#快捷键) · [开发](#构建与参与) · [文档](#文档导航)
 
-[English](README.en.md) · [下载发行版](https://github.com/YChoux-Pan/TaskPin/releases) · [更新日志](CHANGELOG.md) · [构建](docs/BUILDING.md) · [测试](docs/TESTING.md)
+## 功能一览
 
-![TaskPin 0.3.0 截图编辑器，使用示例内容](docs/screenshots/taskpin-0.3.0-editor.png)
+| 功能 | 可以做什么 |
+|---|---|
+| **截图与标注** | 区域、窗口、当前屏幕截图；箭头、文字、画笔、序号、马赛克、模糊；撤销与重做 |
+| **原位桌面贴图** | 保留选区位置与显示尺寸；连续滚轮缩放；透明度、旋转、翻转、穿透与分组 |
+| **可调外观** | 贴图边框、颜色和阴影可调，可全部关闭；便签颜色、宽度与透明度实时预览，取消即恢复 |
+| **便签与每日任务** | 速记、中文时间解析、优先级、备注与自动顺延；点击文字看全文，点击圆圈完成 |
+| **撤销与日历回看** | 完成后 10 秒内撤销；已完成列表可搜索与恢复；日历保留历史日期快照 |
+| **OCR 与可选 AI** | 截图识别为任务；AI 等待时原位显示状态，完成后替换标题；失败保留本地标题和原文 |
+| **顺手的小工具** | 截屏历史、白板、透明白板、取色器与可配置的全局热键 |
 
-*0.3.0 开发版本的真实桌面截图，内容为专用演示夹具；拍摄时程序版本字符串尚未从 0.2.3 更新。它展示编辑器布局，不代表全部功能已经完成真机验收。旧 `test-*.png` 为 0.2.x 历史截图。*
+保存或快速保存成功后，**完整文件路径自动进入剪贴板**，方便粘贴到文件选择器或其他应用。取消、保存失败时保留原剪贴板。
 
-## 画面与任务，放在手边
+## 界面预览
 
-- **截图与标注**：捕获鼠标所在显示器，框选或选取窗口；矩形、椭圆、箭头、直线、画笔、荧光笔、文字、序号、马赛克、模糊和橡皮。工具栏按选区位置与可用空间排列，参数随工具切换；支持撤销、重做和标注选择编辑。
-- **输出与贴图**：复制、保存、快速保存、桌面贴图，以及「识别为任务」。贴图支持缩放、透明度、旋转、翻转、穿透与分组；右键菜单按用途组织。直接从截图贴图时保留选区原始位置和逻辑尺寸。
-- **每日任务卡片**：速记、中文时间解析、优先级、任务备注、完成、顺延、回收站与日历回看；卡片可以全局置顶或置于桌面层。
-- **辅助工具**：截屏历史、白板、透明白板、取色器与可配置全局热键。打印和可选 AI 接口已有入口，环境验证范围见[测试说明](docs/TESTING.md)。
+![TaskPin 截图编辑器：分组工具栏、标注与输出操作](docs/screenshots/taskpin-0.3.0-editor.png)
 
-项目使用 C++17 / Qt 6，目标系统为 Windows 10/11 x64。当前界面主要为中文。仓库的维护实现是 `TaskPinQt/`；早期 C# 实现仅属于历史，不作为当前功能承诺。
+<table>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/taskpin-0.3.0-pin-menu.png" alt="桌面贴图与分组菜单" /></td>
+    <td width="50%"><img src="docs/screenshots/taskpin-canva-icon-preview.png" alt="新图标在深浅背景和不同尺寸下的效果" /></td>
+  </tr>
+  <tr><td align="center">桌面贴图与分组操作</td><td align="center">统一的桌面、托盘与日历图标</td></tr>
+</table>
 
-便签任务的文字用于打开可滚动、可复制的全文详情，只有左侧圆圈用于完成。完成后 10 秒内可点击「撤销」或在卡片按 `Ctrl+Z`；之后可通过卡片页脚、右键或托盘的「已完成」列表恢复，日历任务也可打开详情并恢复。历史日期保留当日快照，恢复操作更新今天的状态。
+<sub>编辑器和贴图截图来自专用演示内容，拍摄时版本字符串尚未从 0.2.3 更新；展示的是 0.3.0 改造布局。截图来源与验收范围见 <a href="docs/TESTING.md">测试记录</a>。</sub>
 
-贴图滚轮支持细分增量和短缓动，停止后恢复高质量绘制。「设置 → 截图与贴图」可以调整阴影强度、边框宽度和颜色；阴影和边框都设为 0 可完全关闭，单张贴图可在右键菜单调整。卡片背景、文字色、透明度、宽度和显示条数即时预览，取消或关闭恢复原值，保存才写入设置。
+## 开始使用
 
-启用 AI 后，识别任务先保留本地标题与完整 OCR 原文，卡片在对应行显示「AI识别中…」，完成后原位替换标题；失败、超时或程序重启后保留可用的本地任务。连续截图串行处理，等待队列最多 3 张、总计 128 MiB，超出时提示重试。
+**系统：Windows 10 / 11 x64。当前界面主要为中文。**
 
-## 下载与开始
+1. 在 [0.3.0 发行页](https://github.com/YChoux-Pan/TaskPin/releases/tag/v0.3.0) 下载 <code>TaskPin-0.3.0-windows-x64.zip</code>。
+2. 完整解压，保留 DLL 和插件子目录，双击 <code>TaskPinQt.exe</code>。无需安装 Qt 或开发工具。
+3. 按 **F1** 开始截图，按 **F3** 贴住剪贴板图片，通过托盘打开设置、日历与其他工具。
 
-1. 在 [Releases](https://github.com/YChoux-Pan/TaskPin/releases) 下载 `TaskPin-0.3.0-windows-x64.zip` 与 `SHA256SUMS.txt`（该版本发布后提供）。
-2. 解压到有写权限的文件夹，保留所有 DLL 与插件子目录，运行 `TaskPinQt.exe`。无需安装 Qt 或开发工具。
-3. 在系统托盘中打开设置，检查快捷键。启动后可通过托盘退出；关闭单个窗口不等于退出常驻程序。
+0.3.0 为预览版。[发行页](https://github.com/YChoux-Pan/TaskPin/releases)同时提供源码、图标包、改动记录、测试报告和 SHA256SUMS.txt。升级时先通过托盘退出程序，再替换程序文件。用户数据默认保存在本机用户目录。
 
-校验下载文件：`Get-FileHash -Algorithm SHA256 -LiteralPath .\TaskPin-0.3.0-windows-x64.zip`，与校验文件中的同名条目逐字比较。便携版指程序无需安装，**用户数据仍默认写入本机用户目录**。升级前通过托盘退出旧版本并备份数据，再替换程序目录。
+<details>
+<summary>校验下载文件</summary>
 
-## 常用快捷键
+~~~powershell
+Get-FileHash -Algorithm SHA256 -LiteralPath .\TaskPin-0.3.0-windows-x64.zip
+~~~
+
+将结果与发行附件 SHA256SUMS.txt 中的同名条目比较。
+
+</details>
+
+## 快捷键
 
 | 全局操作 | 默认快捷键 |
 |---|---|
-| 区域截图 / 当前显示器全屏 / 上次区域 | `F1` / `Ctrl+Alt+F` / `Ctrl+Alt+R` |
-| 贴住剪贴板图片 / 显隐全部贴图 | `F3` / `Shift+F3` |
-| 速记 / 显隐卡片 / 截屏历史 | `Ctrl+Alt+Space` / `Ctrl+Alt+D` / `Ctrl+Alt+G` |
+| 区域截图 | **F1** |
+| 贴住剪贴板图片 / 显隐全部贴图 | **F3** / **Shift+F3** |
+| 当前显示器全屏 / 上次区域 | Ctrl+Alt+F / Ctrl+Alt+R |
+| 速记 / 显隐任务卡片 / 截屏历史 | Ctrl+Alt+Space / Ctrl+Alt+D / Ctrl+Alt+G |
 
-编辑器内：`V` 选择、`R` 矩形、`O` 椭圆、`A` 箭头、`T` 文字、`M` 马赛克、`B` 模糊；`Ctrl+Z` / `Ctrl+Y` 撤销 / 重做，`Enter` 复制，`Ctrl+S` 保存，`Ctrl+Shift+S` 快速保存，`Ctrl+P` 贴图，`Ctrl+R` 识别为任务，`Esc` 取消。完整工具提示直接显示在按钮上方。全局快捷键可在设置中更改，冲突时以托盘显示的已注册快捷键为准。
+编辑器内常用：**Enter** 复制图片，**Ctrl+S** 保存，**Ctrl+Shift+S** 保存到固定目录，**Ctrl+P** 贴图，**Ctrl+R** 识别为任务，**Ctrl+Z / Ctrl+Y** 撤销与重做，**Esc** 取消。
 
-保存或快速保存成功后，截图的完整文件路径会自动复制到剪贴板（Windows 原生路径格式，可直接粘贴到文件路径输入框）。`Ctrl+Shift+S` 使用设置中的自动保存目录，文件重名时自动添加序号；保存失败或取消不会改动剪贴板。复制图片仍使用 `Enter`。
+截图、贴图与贴图显隐的默认按键与 Snipaste 对齐。升级保留自定义按键；冲突时以托盘显示的实际注册按键为准。鼠标停在工具按钮上可查看名称和快捷键。
 
-截图、贴图及全部贴图显隐的默认快捷键与 Snipaste 对齐。升级时，仅迁移旧版的这三个默认值，保留自定义按键；之后重新设置的按键不会再次被迁移。如果 Snipaste 同时运行并占用这些按键，TaskPin 会使用备用键，请查看托盘中的实际按键。
+## 数据与可选 AI
 
-## 数据与隐私
+- **本地数据**：<code>%LOCALAPPDATA%\TaskPin\TaskPinQt\</code>，包含任务数据库、设置、截图历史、OCR 临时文件与运行日志。TASKPIN_DATA 可指定独立目录。
+- **任务恢复**：点击文字查看可滚动、可复制的全文与原文；只有左侧圆圈用于完成。完成后可点“撤销”或在卡片内按 Ctrl+Z，之后也可从已完成列表恢复。恢复更新今天的状态，保留历史快照。
+- **AI 默认关闭**：主动配置并启用 OpenAI 兼容服务后，最多 4000 字符的识别文本会发送到所填服务地址。密钥目前保存在本机 settings.json，未使用系统凭据加密；配置、数据库及日志不应公开分享。
+- **识别反馈**：AI 等待时显示“AI识别中…”，错误、超时或重启后保留本地标题与 OCR 原文。连续识别串行处理，等待队列最多 3 张、总计 128 MiB。
 
-默认数据目录为 `%LOCALAPPDATA%\TaskPin\TaskPinQt\`：`taskpin.db`（SQLite 与 WAL）、`settings.json`、`taskpinqt.log`、`history\snip\` 和 `ocr\`。可用环境变量 `TASKPIN_DATA` 指定独立目录；退出应用后再复制整个目录进行备份。截图历史和 OCR 临时文件可能包含敏感内容，请自行管理保存范围。
+## 构建与参与
 
-截图、任务与 Windows OCR 在本地处理；OCR 需要系统 OCR 组件与合适的语言包。「识别为任务」把识别结果接入已有任务流程。**AI 默认关闭**；主动配置并启用 OpenAI 兼容服务后，会把最多 4000 字符的识别文本发送到所填服务地址。API Key 存储于本机 `settings.json`，目前不做系统凭据加密；不要分享配置、数据库或日志，AI 服务按其自身政策处理数据。失败时使用本地识别文本回落，不要求 AI 才能使用截图与任务功能。
+维护实现位于 TaskPinQt/，使用 **C++17 · Qt 6.4.3 · MinGW GCC 11.2.0 · CMake · Ninja**。
 
-## 开发与参与
-
-```powershell
+~~~powershell
+git clone https://github.com/YChoux-Pan/TaskPin.git
+cd TaskPin
 $env:QT_KIT = 'C:/Qt/6.4.3/mingw_64'
-# 匹配的 MinGW、CMake、Ninja 加入 PATH，或通过参数指定，详见构建文档
+# 将匹配的 MinGW、CMake、Ninja 加入 PATH，或通过脚本参数指定。
 cmd /c TaskPinQt\build.cmd
 powershell -NoProfile -ExecutionPolicy Bypass -File TaskPinQt/scripts/test.ps1
-```
+~~~
 
-[构建与打包](docs/BUILDING.md) · [测试与证据边界](docs/TESTING.md) · [架构](docs/ARCHITECTURE.md) · [贡献指南](CONTRIBUTING.md) · [发布流程](docs/RELEASING.md)
+当前生产代码验证记录：截图 QtTest **43/0**、集成 **35/0**、体验 **20/0**、自检 **53/0**，零跳过；Windows 云端构建与测试已通过。具体提交、原始报告和设备覆盖边界见 [测试文档](docs/TESTING.md)。
 
-## 已知限制与后续方向
+欢迎提交可复现的问题或聚焦的改进，参与前请阅读 [贡献指南](CONTRIBUTING.md)。
 
-- 截图范围为鼠标所在的一块显示器，暂不支持跨显示器拼接捕获。
-- 自动化测试覆盖多种 DPR、负坐标和窄视口夹具；不等同于所有真实混合 DPI 显示器验证。
-- 打印机、真实 AI 服务、不同 Windows OCR 语言环境仍需独立验证。0.3.0 完整编辑 / 笔记桌面验收进度见测试文档。
-- 二维码 / 条码、剪贴板监听自动建任务尚未实现。后续优先补充真实环境覆盖、无障碍与交互打磨；这些方向不构成发布日期承诺。
+## 文档导航
 
-## 许可
+| 使用与项目 | 开发与验证 |
+|---|---|
+| [更新日志](CHANGELOG.md) | [构建与打包](docs/BUILDING.md) |
+| [保存路径与快捷键](docs/SAVE-PATH-HOTKEYS.md) | [软件架构](docs/ARCHITECTURE.md) |
+| [Canva 图标与设计来源](docs/BRANDING.md) | [测试记录与已知限制](docs/TESTING.md) |
+| [问题反馈](https://github.com/YChoux-Pan/TaskPin/issues) | [发行流程](docs/RELEASING.md) |
 
-TaskPin 自有代码采用 [Unlicense](LICENSE)。第三方图标和动态运行库各自保留许可：Lucide ISC（含 Feather MIT 声明）、Material Design Icons 图标 Apache-2.0、Qt LGPL/GPL 及 MinGW 运行库许可，详见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) 与 [licenses/](licenses)。
+当前截图范围为鼠标所在的一块显示器。跨屏拼接、二维码/条码识别和剪贴板自动建任务尚未实现；真实 AI 服务、实体打印机与全部物理混合 DPI 组合的验证进度见测试文档。
+
+## 许可与致谢
+
+TaskPin 自有代码采用 [Unlicense](LICENSE)。感谢 Qt、Lucide、Pictogrammers 和 MinGW 项目；第三方组件保留各自许可，完整声明见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) 与 [licenses/](licenses)。TaskPin 的操作习惯参考 Snipaste，品牌图案由本项目独立设计。
