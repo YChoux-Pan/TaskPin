@@ -1,1 +1,3 @@
 .superpowers export-ignore
+# This upstream license is SHA-256 pinned; retain its exact LF bytes on Windows.
+TaskPinQt/ocr/flatbuffers-LICENSE.txt -text
