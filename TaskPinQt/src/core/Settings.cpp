@@ -51,11 +51,11 @@ const QList<QPair<QString, QString>> &Settings::hotkeyActions()
 QMap<QString, QString> Settings::defaultHotkeys()
 {
     return {
-        {QStringLiteral("snip"), QStringLiteral("Ctrl+Alt+A")},
+        {QStringLiteral("snip"), QStringLiteral("F1")},
         {QStringLiteral("full"), QStringLiteral("Ctrl+Alt+F")},
         {QStringLiteral("last"), QStringLiteral("Ctrl+Alt+R")},
-        {QStringLiteral("pin"), QStringLiteral("Ctrl+Alt+V")},
-        {QStringLiteral("pins"), QStringLiteral("Ctrl+Alt+H")},
+        {QStringLiteral("pin"), QStringLiteral("F3")},
+        {QStringLiteral("pins"), QStringLiteral("Shift+F3")},
         {QStringLiteral("quick"), QStringLiteral("Ctrl+Alt+Space")},
         {QStringLiteral("toggle"), QStringLiteral("Ctrl+Alt+D")},
         {QStringLiteral("history"), QStringLiteral("Ctrl+Alt+G")},
@@ -181,6 +181,9 @@ void Settings::load()
     lastRegion = o.value(QStringLiteral("lastRegion")).toString(lastRegion);
 
     pinOpacity = o.value(QStringLiteral("pinOpacity")).toDouble(pinOpacity);
+    pinShadowStrength = qBound(0, o.value("pinShadowStrength").toInt(pinShadowStrength), 100);
+    pinBorderWidth = qBound(0, o.value("pinBorderWidth").toInt(pinBorderWidth), 8);
+    pinBorderColor = colorFrom(o, "pinBorderColor", pinBorderColor);
     pinGroup = o.value(QStringLiteral("pinGroup")).toString(pinGroup);
     const auto groups = o.value(QStringLiteral("pinGroups")).toArray();
     if (!groups.isEmpty()) {
@@ -212,12 +215,25 @@ void Settings::load()
         if (o.contains(QStringLiteral("quickHotkey"))) m_hotkeys[QStringLiteral("quick")] = o.value(QStringLiteral("quickHotkey")).toString();
         if (o.contains(QStringLiteral("toggleHotkey"))) m_hotkeys[QStringLiteral("toggle")] = o.value(QStringLiteral("toggleHotkey")).toString();
     }
+
+    // Upgrade only the previous defaults once; preserve custom chords and later choices.
+    if (o.value(QStringLiteral("version")).toInt() < 3) {
+        const QMap<QString, QString> previousDefaults{
+            {QStringLiteral("snip"), QStringLiteral("Ctrl+Alt+A")},
+            {QStringLiteral("pin"), QStringLiteral("Ctrl+Alt+V")},
+            {QStringLiteral("pins"), QStringLiteral("Ctrl+Alt+H")},
+        };
+        for (auto it = previousDefaults.cbegin(); it != previousDefaults.cend(); ++it) {
+            if (m_hotkeys.value(it.key()).compare(it.value(), Qt::CaseInsensitive) == 0)
+                m_hotkeys.remove(it.key());
+        }
+    }
 }
 
 void Settings::save()
 {
     QJsonObject o;
-    o[QStringLiteral("version")] = 2;
+    o[QStringLiteral("version")] = 3;
     o[QStringLiteral("cardPosition")] = cardPosition;
     o[QStringLiteral("cardWidth")] = cardWidth;
     o[QStringLiteral("visibleRows")] = visibleRows;
@@ -239,6 +255,9 @@ void Settings::save()
     o[QStringLiteral("lastRegion")] = lastRegion;
 
     o[QStringLiteral("pinOpacity")] = pinOpacity;
+    o["pinShadowStrength"] = pinShadowStrength;
+    o["pinBorderWidth"] = pinBorderWidth;
+    o["pinBorderColor"] = colorToHex(pinBorderColor);
     QJsonArray groups;
     for (const auto &g : pinGroups) groups.append(g);
     o[QStringLiteral("pinGroups")] = groups;

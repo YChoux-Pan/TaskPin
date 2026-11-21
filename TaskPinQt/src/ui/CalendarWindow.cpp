@@ -1,4 +1,6 @@
 #include "ui/CalendarWindow.h"
+#include "ui/TaskDialogs.h"
+#include "ui/AppIcon.h"
 
 #include <QDebug>
 #include <QFont>
@@ -39,6 +41,7 @@ CalendarWindow::CalendarWindow(Store *store, QWidget *parent)
     : QWidget(parent), m_store(store)
 {
     setWindowTitle(QStringLiteral("TaskPin 日历"));
+    setWindowIcon(taskpinIcon());
     setWindowFlag(Qt::WindowStaysOnTopHint, true);
     resize(860, 620);
     setMinimumSize(720, 560);
@@ -102,6 +105,9 @@ void CalendarWindow::mousePressEvent(QMouseEvent *e)
 {
     if (e->button() != Qt::LeftButton) return;
     const QPoint pos = e->pos();
+    for (const auto &row : m_taskRows) {
+        if (row.first.contains(pos)) { showTaskDetails(m_store, row.second, this); return; }
+    }
     if (m_prevRect.contains(pos)) {
         goMonth(-1);
         return;
@@ -139,7 +145,8 @@ void CalendarWindow::drawHeader(QPainter &p)
     const QLocale zh(QLocale::Chinese, QLocale::China);
     p.setFont(yahei(15, true));
     p.setPen(kText);
-    p.drawText(QRect(24, 14, width() - 320, 34), Qt::AlignLeft | Qt::AlignVCenter,
+    taskpinIcon().paint(&p, QRect(24, 18, 30, 30));
+    p.drawText(QRect(66, 14, width() - 362, 34), Qt::AlignLeft | Qt::AlignVCenter,
                zh.toString(m_month, QStringLiteral("yyyy 年 M 月")));
 
     m_prevRect = QRect(width() - 250, 20, 32, 28);
@@ -243,6 +250,7 @@ void CalendarWindow::drawGrid(QPainter &p)
 
 void CalendarWindow::drawDayPanel(QPainter &p)
 {
+    m_taskRows.clear();
     const QLocale zh(QLocale::Chinese, QLocale::China);
     const QRect panel(width() - 288, 96, 264, height() - 120);
     p.setPen(Qt::NoPen);
@@ -266,6 +274,7 @@ void CalendarWindow::drawDayPanel(QPainter &p)
     p.setFont(yahei(9));
     for (const DayTask &t : m_dayTasks) {
         if (y + 20 > panel.bottom() - 30) break;
+        m_taskRows.append({QRect(panel.left() + 12, y, panel.width() - 24, 22), t.id});
         QColor color = kAccent;
         QString mark;
         if (t.state == QStringLiteral("done")) {

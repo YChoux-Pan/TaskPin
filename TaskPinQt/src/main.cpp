@@ -1,6 +1,8 @@
 #include "app/AppHost.h"
 #include "core/SelfTest.h"
 #include "core/Settings.h"
+#include "core/InstanceNames.h"
+#include "ui/AppIcon.h"
 
 #include <QApplication>
 #include <QDateTime>
@@ -41,11 +43,13 @@ int main(int argc, char *argv[])
     QApplication app(argc, argv);
     QApplication::setApplicationName(QStringLiteral("TaskPinQt"));
     QApplication::setOrganizationName(QStringLiteral("TaskPin"));
+    QApplication::setWindowIcon(taskpinIcon());
     QApplication::setQuitOnLastWindowClosed(false);
     QLocale::setDefault(QLocale(QLocale::Chinese, QLocale::China));
     qInstallMessageHandler(fileLogger);
 
     const QStringList args = QCoreApplication::arguments();
+    const auto names = instanceNamesFor(qEnvironmentVariable("TASKPIN_DATA"));
 
     // --selftest [dir]: head-less assertions, no window, no tray
     const int selftestIndex = args.indexOf(QStringLiteral("--selftest"));
@@ -66,7 +70,7 @@ int main(int argc, char *argv[])
     // the command pipe from it, which used to break every later --snip.
     if (dumpRequested) {
         QLocalSocket sock;
-        sock.connectToServer(QStringLiteral("TaskPinQt.Cmd"));
+        sock.connectToServer(names.command);
         if (sock.waitForConnected(600)) {
             sock.write(QStringLiteral("dump %1").arg(dumpPath).toUtf8());
             sock.flush();
@@ -84,7 +88,7 @@ int main(int argc, char *argv[])
         QString verb = QString::fromLocal8Bit(argv[1]);
         if (verb.startsWith(QStringLiteral("--"))) verb.remove(0, 2);
         QLocalSocket sock;
-        sock.connectToServer(QStringLiteral("TaskPinQt.Cmd"));
+        sock.connectToServer(names.command);
         if (sock.waitForConnected(500)) {
             sock.write(verb.toUtf8());
             sock.flush();
@@ -97,7 +101,7 @@ int main(int argc, char *argv[])
     // single instance: a second normal launch just pings the first one and exits
     if (!dumpRequested) {
         QLocalSocket probe;
-        probe.connectToServer(QStringLiteral("TaskPinQt.SingleInstance"));
+        probe.connectToServer(names.singleInstance);
         if (probe.waitForConnected(300)) {
             probe.write("show\n");
             probe.flush();
@@ -107,8 +111,8 @@ int main(int argc, char *argv[])
     }
 
     static QLocalServer server;
-    QLocalServer::removeServer(QStringLiteral("TaskPinQt.SingleInstance"));
-    server.listen(QStringLiteral("TaskPinQt.SingleInstance"));
+    QLocalServer::removeServer(names.singleInstance);
+    server.listen(names.singleInstance);
 
     AppHost host;
     host.start(pendingVerb);

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="Win32-ninja"
+	tests="3"
+	failures="0"
+	disabled="0"
+	skipped="0"
+	hostname="XYC-PYC"
+	time="5"
+	timestamp="2026-11-20T17:30:30"
+	>
+	<testcase name="TaskPinScreenshotTests" classname="TaskPinScreenshotTests" time="0.260382" status="run">
+		<system-out></system-out>
+	</testcase>
+	<testcase name="TaskPinIntegrationTests" classname="TaskPinIntegrationTests" time="1.00317" status="run">
+		<system-out></system-out>
+	</testcase>
+	<testcase name="TaskPinExperienceTests" classname="TaskPinExperienceTests" time="3.81234" status="run">
+		<system-out></system-out>
+	</testcase>
+</testsuite>

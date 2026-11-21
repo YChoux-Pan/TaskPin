@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Build and test instructions
+    url: https://github.com/YChoux-Pan/TaskPin/blob/main/docs/BUILDING.md
+    about: Check toolchain and safe testing instructions before filing a setup problem.

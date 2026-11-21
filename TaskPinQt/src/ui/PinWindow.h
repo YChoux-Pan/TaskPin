@@ -1,6 +1,9 @@
 #pragma once
 
 #include <QImage>
+#include <QColor>
+#include <QTimer>
+#include <QVariantAnimation>
 #include <QList>
 #include <QString>
 #include <QStringList>
@@ -13,7 +16,9 @@ class QMenu;
 class PinWindow : public QWidget {
     Q_OBJECT
 public:
-    explicit PinWindow(const QImage &image, const QString &group = QString(), QWidget *parent = nullptr);
+    /// sourceRegion is the global logical capture rectangle; pixels remain at source resolution.
+    explicit PinWindow(const QImage &image, const QString &group = QString(), QWidget *parent = nullptr,
+                       const QRect &sourceRegion = QRect());
     ~PinWindow() override;
 
     static const QList<PinWindow *> &all();
@@ -37,11 +42,17 @@ public:
 
     QString group() const { return m_group; }
     QImage image() const { return m_image; }
+    qreal zoom() const { return m_zoom; }
+    qreal pinOpacity() const { return m_opacity; }
+    bool clickThrough() const { return m_clickThrough; }
+    QRect contentGeometry() const;
+    void applyAppearance(int shadowStrength, int borderWidth, const QColor &borderColor);
 
 signals:
     void recognizeRequested(const QImage &image);
 
 protected:
+    bool event(QEvent *event) override;
     void paintEvent(QPaintEvent *e) override;
     void mousePressEvent(QMouseEvent *e) override;
     void mouseMoveEvent(QMouseEvent *e) override;
@@ -54,7 +65,12 @@ protected:
 private:
     void relayout();
     void setZoom(qreal zoom);
+    void displayZoom(qreal zoom, const QPointF &center);
+    void rebuildCache();
+    void rebuildPreview();
+    int padding() const;
     void setPinOpacity(qreal opacity);
+    void resetDisplay();
     void flash();
     void toggleClickThrough();
     void replaceFromClipboard();
@@ -64,8 +80,18 @@ private:
     static QImage renderTextImage(const QString &text);
 
     QImage m_image;
+    QSize m_logicalImageSize;
     QString m_group;
     qreal m_zoom = 1.0;
+    qreal m_targetZoom = 1.0;
+    QPointF m_zoomCenter;
+    QVariantAnimation m_zoomAnimation;
+    QTimer m_qualityTimer;
+    QImage m_preview;
+    QImage m_cache;
+    int m_shadowStrength = 18;
+    int m_borderWidth = 1;
+    QColor m_borderColor;
     qreal m_opacity = 1.0;
     bool m_clickThrough = false;
     bool m_menuOpen = false;

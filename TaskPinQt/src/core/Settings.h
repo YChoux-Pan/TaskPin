@@ -58,6 +58,9 @@ public:
 
     // ---------------------------------------------------------------- pins
     double pinOpacity = 1.0;
+    int pinShadowStrength = 18;
+    int pinBorderWidth = 1;
+    QColor pinBorderColor{0x80, 0x90, 0xA0};
     QStringList pinGroups{QStringLiteral("默认")};
     QString pinGroup = QStringLiteral("默认");
 

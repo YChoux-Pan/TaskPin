@@ -5,6 +5,7 @@
 #include "core/History.h"
 #include "core/Ocr.h"
 #include "core/Settings.h"
+#include "core/InstanceNames.h"
 #include "core/Store.h"
 #include "core/TimeParser.h"
 #include "platform/Autostart.h"
@@ -20,6 +21,8 @@
 #include "ui/SettingsDialog.h"
 #include "ui/SnipOverlay.h"
 #include "ui/WhiteboardWindow.h"
+#include "ui/TaskDialogs.h"
+#include "ui/AppIcon.h"
 
 #include <QAction>
 #include <QApplication>
@@ -57,22 +60,6 @@
 #endif
 
 namespace {
-
-QIcon makeTrayIcon()
-{
-    QPixmap pm(32, 32);
-    pm.fill(Qt::transparent);
-    QPainter p(&pm);
-    p.setRenderHint(QPainter::Antialiasing);
-    QPainterPath path;
-    path.addRoundedRect(QRectF(3, 3, 26, 26), 8, 8);
-    p.fillPath(path, QColor(0x4C, 0x9A, 0xFF));
-    p.setPen(QPen(Qt::white, 2.4, Qt::SolidLine, Qt::RoundCap));
-    p.drawLine(QPointF(10, 12), QPointF(22, 12));
-    p.drawLine(QPointF(10, 18), QPointF(18, 18));
-    p.end();
-    return QIcon(pm);
-}
 
 /// action id -> hotkey action id
 const QList<QPair<QString, int>> &hotkeyActions()
@@ -151,7 +138,15 @@ private:
 
 AppHost::AppHost(QObject *parent) : QObject(parent) {}
 
-AppHost::~AppHost() = default;
+AppHost::~AppHost()
+{
+    // Top-level widgets must go before QObject destroys their Store and signal targets.
+    delete m_snip;
+    delete m_settings.data();
+    delete m_calendar.data();
+    delete m_history.data();
+    delete m_card;
+}
 
 void AppHost::start(const QString &initialCommand)
 {
@@ -165,7 +160,8 @@ void AppHost::start(const QString &initialCommand)
     qInfo("TaskPin Qt %s started, rolled over %d task(s)", TASKPIN_VERSION, moved);
 
     // keep the logon entry in sync with settings.json (S5)
-    Autostart::setEnabled(Settings::instance().autostart, QCoreApplication::applicationFilePath());
+    if (!taskPinAutomation())
+        Autostart::setEnabled(Settings::instance().autostart, QCoreApplication::applicationFilePath());
 
     m_card = new CardWindow(m_store);
     m_card->placeOnScreen();
@@ -185,7 +181,10 @@ void AppHost::start(const QString &initialCommand)
     connect(m_ai, &AiClient::finished, this, &AppHost::onAiFinished);
     connect(m_ai, &AiClient::failed, this, [this](const QString &reason) {
         qWarning("ai summarize failed: %s", qUtf8Printable(reason));
-        if (!m_pendingOcrText.isEmpty()) createTaskFromCapture(m_pendingLocalTitle);
+        if (m_pendingTaskId.isEmpty()) return;
+        m_store->finishAiTask(m_pendingTaskId, QString(), false);
+        toast(QStringLiteral("AI 暂未完成，已保留本地识别任务和原文"));
+        finishCapture();
     });
 
     m_hotkeys = new Hotkeys(this);
@@ -197,8 +196,9 @@ void AppHost::start(const QString &initialCommand)
     // command channel: TaskPinQt.exe --snip / --full / --last / --pin / --pins / --quick /
     // --toggle / --recycle / --history / --calendar / --settings / --quit (also used by tests)
     m_cmd = new QLocalServer(this);
-    QLocalServer::removeServer(QStringLiteral("TaskPinQt.Cmd"));
-    if (!m_cmd->listen(QStringLiteral("TaskPinQt.Cmd"))) qWarning("cmd channel listen failed");
+    const auto names = instanceNamesFor(qEnvironmentVariable("TASKPIN_DATA"));
+    QLocalServer::removeServer(names.command);
+    if (!m_cmd->listen(names.command)) qWarning("cmd channel listen failed");
     connect(m_cmd, &QLocalServer::newConnection, this, [this] {
         while (auto *sock = m_cmd->nextPendingConnection()) {
             connect(sock, &QLocalSocket::readyRead, this, [this, sock] {
@@ -249,10 +249,12 @@ void AppHost::handleCommand(const QString &command)
 
 void AppHost::buildTray()
 {
-    m_tray = new QSystemTrayIcon(makeTrayIcon(), this);
+    m_tray = new QSystemTrayIcon(taskpinIcon(), this);
     m_tray->setToolTip(QStringLiteral("TaskPin %1").arg(QStringLiteral(TASKPIN_VERSION)));
 
     auto *menu = new QMenu();
+    menu->addAction(QStringLiteral("已完成任务…"), this, [this] { showCompletedTasks(m_store, m_card); });
+    menu->addSeparator();
     // Every item that has a global hotkey is tracked so the menu can show the chord right-aligned
     // (a tab in the action text: QMenu renders the part after it as the shortcut hint, without
     // registering a second QAction shortcut that could double-fire with RegisterHotKey).
@@ -321,6 +323,7 @@ void AppHost::registerHotkeys()
 {
     if (!m_hotkeys) return;
     m_hotkeys->unbindAll();
+    if (taskPinAutomation()) return;
     int registered = 0;
     for (const auto &pair : hotkeyActions()) {
         const QString wanted = Settings::instance().chordFor(pair.first);
@@ -433,12 +436,14 @@ void AppHost::captureAndEdit(bool preselectLast)
 
     connect(overlay, &SnipOverlay::captured, this, &AppHost::recordCapture);
     connect(overlay, &SnipOverlay::saved, this, [this](const QString &path) {
-        toast(QStringLiteral("已保存：%1").arg(QDir::toNativeSeparators(path)));
+        toast(QStringLiteral("已保存并复制路径：%1").arg(QDir::toNativeSeparators(path)));
     });
     connect(overlay, &SnipOverlay::copied, this, [this](const QImage &image) {
         toast(QStringLiteral("已复制 %1 × %2").arg(image.width()).arg(image.height()));
     });
-    connect(overlay, &SnipOverlay::pinned, this, &AppHost::pinImage);
+    connect(overlay, &SnipOverlay::pinned, this, [this, overlay, origin = shot.logicalRect.topLeft()](const QImage &image) {
+        pinImage(image, overlay->selection().translated(origin));
+    });
     connect(overlay, &SnipOverlay::recognizeRequested, this, &AppHost::recognizeImage);
     connect(overlay, &SnipOverlay::printed, this, &AppHost::printImage);
     connect(overlay, &QObject::destroyed, this, [this] {
@@ -498,10 +503,10 @@ void AppHost::recordCapture(const QImage &image, const QRect &logicalRegion)
 
 // ---------------------------------------------------------------- pins
 
-void AppHost::pinImage(const QImage &image)
+void AppHost::pinImage(const QImage &image, const QRect &sourceRegion)
 {
     if (image.isNull()) return;
-    auto *pin = new PinWindow(image);
+    auto *pin = new PinWindow(image, QString(), nullptr, sourceRegion);
     connect(pin, &PinWindow::recognizeRequested, this, &AppHost::recognizeImage);
     pin->show();
     WindowFx::keepOnTop(pin);
@@ -595,20 +600,35 @@ void AppHost::captureWhiteboard(bool transparent)
 
 void AppHost::recognizeImage(const QImage &image)
 {
-    if (!m_ocr) return;
-    if (m_ocr->busy()) {
-        toast(QStringLiteral("上一次识别还没结束…"));
+    if (!m_ocr || image.isNull()) return;
+    qint64 bytes = image.sizeInBytes();
+    for (const auto &queued : m_captureQueue) bytes += queued.sizeInBytes();
+    if (m_captureQueue.size() >= 3 || bytes > 128 * 1024 * 1024) {
+        toast(QStringLiteral("识别队列已满，请等当前任务完成后重试"));
         return;
     }
+    m_captureQueue.enqueue(image);
+    if (m_captureBusy) toast(QStringLiteral("已加入识别队列，前面还有 %1 张").arg(m_captureQueue.size()));
+    startNextCapture();
+}
+
+void AppHost::startNextCapture()
+{
+    if (m_captureBusy || m_captureQueue.isEmpty()) return;
+    m_captureBusy = true;
+    const auto image = m_captureQueue.dequeue();
     toast(QStringLiteral("正在识别文字…"));
     m_ocr->recognize(image);
 }
 
 void AppHost::onOcrFinished(const QString &text)
 {
+    if (!m_pendingTaskId.isEmpty()) return;
+    m_captureBusy = true;
     m_pendingOcrText = text.trimmed();
     if (m_pendingOcrText.isEmpty()) {
         toast(QStringLiteral("没有识别到文字"));
+        finishCapture();
         return;
     }
     const ParsedTask parsed = TimeParser::parse(m_pendingOcrText);
@@ -618,37 +638,44 @@ void AppHost::onOcrFinished(const QString &text)
     if (m_pendingLocalTitle.isEmpty()) m_pendingLocalTitle = firstLineTitle(m_pendingOcrText);
 
     const auto &s = Settings::instance();
-    if (s.aiEnabled && !s.aiApiKey.trimmed().isEmpty()) {
+    const bool useAi = s.aiEnabled && !s.aiApiKey.trimmed().isEmpty();
+    const QString id = m_store->addTask(m_pendingLocalTitle, QStringLiteral("ocr"), QString(), m_pendingDue,
+        m_pendingPriority, m_pendingOcrText, useAi ? QStringLiteral("pending") : QStringLiteral("none"));
+    if (m_card) m_card->revealTask(id);
+    if (useAi) {
+        m_pendingTaskId = id;
         toast(QStringLiteral("识别完成，AI 归纳中…"));
         m_ai->summarize(m_pendingOcrText);
         return;
     }
-    createTaskFromCapture(m_pendingLocalTitle);
+    toast(QStringLiteral("已建任务：%1").arg(m_pendingLocalTitle));
+    finishCapture();
 }
 
 void AppHost::onOcrFailed(const QString &reason)
 {
     toast(QStringLiteral("识别失败：%1").arg(reason));
-    m_pendingOcrText.clear();
+    finishCapture();
 }
 
 void AppHost::onAiFinished(const QString &title)
 {
-    createTaskFromCapture(title.trimmed().isEmpty() ? m_pendingLocalTitle : title.trimmed());
+    if (m_pendingTaskId.isEmpty()) return;
+    const QString summary = title.trimmed().isEmpty() ? m_pendingLocalTitle : title.trimmed();
+    m_store->finishAiTask(m_pendingTaskId, summary, true);
+    toast(QStringLiteral("已建任务：%1").arg(summary));
+    finishCapture();
 }
 
-void AppHost::createTaskFromCapture(const QString &title)
+void AppHost::finishCapture()
 {
-    if (title.trimmed().isEmpty() || m_pendingOcrText.isEmpty()) return;
-    const QString id = m_store->addTask(title.trimmed(), QStringLiteral("ocr"), QString(), m_pendingDue,
-                                        m_pendingPriority, m_pendingOcrText);
-    qInfo("ocr task created: %s id=%s due=%s", qUtf8Printable(title), qUtf8Printable(id),
-          qUtf8Printable(m_pendingDue.isValid() ? m_pendingDue.toString(Qt::ISODate) : QStringLiteral("-")));
-    toast(QStringLiteral("已建任务：%1").arg(title.trimmed()));
     m_pendingOcrText.clear();
     m_pendingLocalTitle.clear();
     m_pendingDue = QDateTime();
     m_pendingPriority = 2;
+    m_pendingTaskId.clear();
+    m_captureBusy = false;
+    QTimer::singleShot(0, this, &AppHost::startNextCapture);
 }
 
 // ---------------------------------------------------------------- windows
@@ -691,7 +718,7 @@ void AppHost::showHistory()
     auto *dlg = new HistoryDialog();
     m_history = dlg;
     dlg->setAttribute(Qt::WA_DeleteOnClose, true);
-    connect(dlg, &HistoryDialog::pinRequested, this, &AppHost::pinImage);
+    connect(dlg, &HistoryDialog::pinRequested, this, [this](const QImage &image) { pinImage(image); });
     connect(dlg, &HistoryDialog::printRequested, this, &AppHost::printImage);
     dlg->show();
     dlg->raise();
@@ -724,6 +751,9 @@ void AppHost::showSettings()
     m_settings = dlg;
     dlg->setAttribute(Qt::WA_DeleteOnClose, true);
     connect(dlg, &SettingsDialog::saved, this, &AppHost::applySettings);
+    connect(dlg, &SettingsDialog::cardPreviewChanged, m_card, &CardWindow::previewAppearance);
+    connect(dlg, &QDialog::finished, m_card, [this] { m_card->clearAppearancePreview(); });
+    connect(dlg, &QObject::destroyed, m_card, [this] { m_card->clearAppearancePreview(); });
     dlg->show();
     dlg->raise();
     WindowFx::forceForeground(dlg);
@@ -734,8 +764,11 @@ void AppHost::applySettings()
     qInfo("settings applied");
     registerHotkeys();
     if (m_card) m_card->applySettings();
+    const auto &s = Settings::instance();
+    for (auto *pin : PinWindow::all()) pin->applyAppearance(s.pinShadowStrength, s.pinBorderWidth, s.pinBorderColor);
     syncCardTopAction();
-    Autostart::setEnabled(Settings::instance().autostart, QCoreApplication::applicationFilePath());
+    if (!taskPinAutomation())
+        Autostart::setEnabled(Settings::instance().autostart, QCoreApplication::applicationFilePath());
     toast(QStringLiteral("设置已保存"));
 }
 
@@ -825,6 +858,9 @@ QJsonObject AppHost::dumpState() const
     o["dbPath"] = Settings::dbPath();
     o["logPath"] = Settings::logPath();
     o["historyDir"] = History::dir();
+    const auto names = instanceNamesFor(qEnvironmentVariable("TASKPIN_DATA"));
+    o["instance"] = QJsonObject{{"command", names.command}, {"singleInstance", names.singleInstance},
+                               {"automation", taskPinAutomation()}, {"pid", QCoreApplication::applicationPid()}};
 
     QJsonObject cfg;
     cfg["cardPosition"] = s.cardPosition;
@@ -846,6 +882,9 @@ QJsonObject AppHost::dumpState() const
     cfg["historyLimit"] = s.historyLimit;
     cfg["lastRegion"] = s.lastRegion;
     cfg["pinOpacity"] = s.pinOpacity;
+    cfg["pinShadowStrength"] = s.pinShadowStrength;
+    cfg["pinBorderWidth"] = s.pinBorderWidth;
+    cfg["pinBorderColor"] = s.pinBorderColor.name();
     cfg["pinGroup"] = s.pinGroup;
     cfg["aiEnabled"] = s.aiEnabled;
     cfg["aiBaseUrl"] = s.aiBaseUrl;
@@ -896,6 +935,17 @@ QJsonObject AppHost::dumpState() const
     QJsonArray groups;
     for (const QString &g : PinWindow::groups()) groups.append(g);
     pins["groups"] = groups;
+    QJsonArray pinItems;
+    for (const auto *pin : PinWindow::all()) {
+        const QRect content = pin->contentGeometry();
+        pinItems.append(QJsonObject{{"x", pin->x()}, {"y", pin->y()}, {"w", pin->width()},
+            {"h", pin->height()}, {"imageWidth", pin->image().width()}, {"imageHeight", pin->image().height()},
+            {"zoom", pin->zoom()}, {"opacity", pin->pinOpacity()}, {"visible", pin->isVisible()},
+            {"clickThrough", pin->clickThrough()}, {"group", pin->group()},
+            {"contentX", content.x()}, {"contentY", content.y()},
+            {"contentWidth", content.width()}, {"contentHeight", content.height()}});
+    }
+    pins["items"] = pinItems;
     o["pins"] = pins;
 
     QJsonObject history;
@@ -905,6 +955,9 @@ QJsonObject AppHost::dumpState() const
 
     QJsonObject ocr;
     ocr["available"] = Ocr::available();
+    ocr["busy"] = m_captureBusy;
+    ocr["queued"] = m_captureQueue.size();
+    ocr["aiPending"] = !m_pendingTaskId.isEmpty();
     ocr["engine"] = QStringLiteral("Windows.Media.Ocr");
     o["ocr"] = ocr;
 
@@ -920,6 +973,7 @@ QJsonObject AppHost::dumpState() const
 
     QJsonObject snip;
     snip["active"] = m_snip != nullptr;
+    QJsonArray actions;
     if (m_snip) {
         snip["hoverHint"] = m_snip->hoverHint();
         const QRect tb = m_snip->toolbarRect();
@@ -929,7 +983,14 @@ QJsonObject AppHost::dumpState() const
                               .arg(origin.y())
                               .arg(tb.width())
                               .arg(tb.height());
+        for (const auto &action : m_snip->toolbarActions()) {
+            const QPoint pos = m_snip->mapToGlobal(action.rect.topLeft());
+            actions.append(QJsonObject{{"id", action.id}, {"enabled", action.enabled},
+                {"label", action.label}, {"shortcut", action.shortcut}, {"group", action.group},
+                {"x", pos.x()}, {"y", pos.y()}, {"w", action.rect.width()}, {"h", action.rect.height()}});
+        }
     }
+    snip["actions"] = actions;
     o["snip"] = snip;
 
     QJsonArray screens;

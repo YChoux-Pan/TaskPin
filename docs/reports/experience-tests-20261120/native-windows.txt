@@ -1,0 +1,46 @@
+********* Start testing of ExperienceTests *********
+Config: Using QtTest library 6.4.3, Qt 6.4.3 (x86_64-little_endian-llp64 shared (dynamic) release build; by GCC 11.2.0), windows 11
+PASS   : ExperienceTests::initTestCase()
+PASS   : ExperienceTests::textOpensFullTaskWithoutCompleting()
+PASS   : ExperienceTests::completedListRestoresTaskAndDailyCounts()
+PASS   : ExperienceTests::doubleClickCompletionDoesNotCompleteNextTask()
+QINFO  : ExperienceTests::liveColorPreviewCancelAndSave() TaskPin Qt 0.3.0 started, rolled over 0 task(s)
+QINFO  : ExperienceTests::liveColorPreviewCancelAndSave() card z-order: topmost (native topmost=1)
+QINFO  : ExperienceTests::liveColorPreviewCancelAndSave() settings applied
+QINFO  : ExperienceTests::liveColorPreviewCancelAndSave() card z-order: topmost (native topmost=1)
+QINFO  : ExperienceTests::liveColorPreviewCancelAndSave() toast: 设置已保存
+PASS   : ExperienceTests::liveColorPreviewCancelAndSave()
+QINFO  : ExperienceTests::largePinContinuousZoomDrawCost() pin created 3840x2160 group=默认
+QINFO  : ExperienceTests::largePinContinuousZoomDrawCost() 4K pin clipped draw ms: median=2.171 p95=4.148 max=4.214 samples=24
+QINFO  : ExperienceTests::largePinContinuousZoomDrawCost() pin closed, 0 remaining
+PASS   : ExperienceTests::largePinContinuousZoomDrawCost()
+QINFO  : ExperienceTests::slowAiKeepsOneRecoverableTaskAndReplacesTitle() TaskPin Qt 0.3.0 started, rolled over 0 task(s)
+QINFO  : ExperienceTests::slowAiKeepsOneRecoverableTaskAndReplacesTitle() card z-order: topmost (native topmost=1)
+QINFO  : ExperienceTests::slowAiKeepsOneRecoverableTaskAndReplacesTitle() toast: 识别完成，AI 归纳中…
+QINFO  : ExperienceTests::slowAiKeepsOneRecoverableTaskAndReplacesTitle() ai request -> http://127.0.0.1:52737/v1/chat/completions
+QINFO  : ExperienceTests::slowAiKeepsOneRecoverableTaskAndReplacesTitle() ai title: condensed title
+QINFO  : ExperienceTests::slowAiKeepsOneRecoverableTaskAndReplacesTitle() toast: 已建任务：condensed title
+PASS   : ExperienceTests::slowAiKeepsOneRecoverableTaskAndReplacesTitle()
+QINFO  : ExperienceTests::aiTimeoutEmitsOneFailure() ai request -> http://127.0.0.1:52739/v1/chat/completions
+PASS   : ExperienceTests::aiTimeoutEmitsOneFailure()
+QINFO  : ExperienceTests::captureWhileAiWaitsIsQueued() TaskPin Qt 0.3.0 started, rolled over 0 task(s)
+QINFO  : ExperienceTests::captureWhileAiWaitsIsQueued() card z-order: topmost (native topmost=1)
+QINFO  : ExperienceTests::captureWhileAiWaitsIsQueued() toast: 识别完成，AI 归纳中…
+QINFO  : ExperienceTests::captureWhileAiWaitsIsQueued() ai request -> http://127.0.0.1:52742/v1/chat/completions
+QINFO  : ExperienceTests::captureWhileAiWaitsIsQueued() pin created 60x40 group=默认
+QINFO  : ExperienceTests::captureWhileAiWaitsIsQueued() toast: 已贴到桌面 60 × 40
+QINFO  : ExperienceTests::captureWhileAiWaitsIsQueued() toast: 已加入识别队列，前面还有 1 张
+QINFO  : ExperienceTests::captureWhileAiWaitsIsQueued() ai title: first request
+QINFO  : ExperienceTests::captureWhileAiWaitsIsQueued() toast: 已建任务：first request
+QINFO  : ExperienceTests::captureWhileAiWaitsIsQueued() toast: 正在识别文字…
+QINFO  : ExperienceTests::captureWhileAiWaitsIsQueued() ocr start 60x40
+QINFO  : ExperienceTests::captureWhileAiWaitsIsQueued() pin closed, 0 remaining
+PASS   : ExperienceTests::captureWhileAiWaitsIsQueued()
+QINFO  : ExperienceTests::ocrTimeoutEmitsOnlyOneFailure() ocr start 100x60
+QWARN  : ExperienceTests::ocrTimeoutEmitsOnlyOneFailure() ocr failed: "OCR 超时"
+PASS   : ExperienceTests::ocrTimeoutEmitsOnlyOneFailure()
+QINFO  : ExperienceTests::calendarTaskOpensDetailsAndCanRestore() calendar opened month=2026-11 selected=2026-11-20
+PASS   : ExperienceTests::calendarTaskOpensDetailsAndCanRestore()
+PASS   : ExperienceTests::cleanupTestCase()
+Totals: 12 passed, 0 failed, 0 skipped, 0 blacklisted, 3633ms
+********* Finished testing of ExperienceTests *********

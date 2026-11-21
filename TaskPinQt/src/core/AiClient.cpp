@@ -99,9 +99,13 @@ void AiClient::summarize(const QString &text)
 void AiClient::finishError(const QString &reason)
 {
     if (m_reply) {
-        m_reply->abort();
-        m_reply->deleteLater();
+        // abort() can emit finished synchronously. Detach before aborting so one timeout
+        // cannot emit two failures or clear the following request's reply.
+        auto *reply = m_reply;
         m_reply = nullptr;
+        disconnect(reply, nullptr, this, nullptr);
+        reply->abort();
+        reply->deleteLater();
     }
     if (m_timer) {
         m_timer->stop();

@@ -6,6 +6,9 @@
 #include <QList>
 #include <QObject>
 #include <QPointer>
+#include <QRect>
+#include <QQueue>
+#include <QImage>
 #include <QString>
 
 class AiClient;
@@ -74,12 +77,13 @@ private:
     void restoreAfterCapture();
 
     void recordCapture(const QImage &image, const QRect &logicalRegion);
-    void pinImage(const QImage &image);
+    void pinImage(const QImage &image, const QRect &sourceRegion = QRect());
     void recognizeImage(const QImage &image);
     void onOcrFinished(const QString &text);
     void onOcrFailed(const QString &reason);
     void onAiFinished(const QString &title);
-    void createTaskFromCapture(const QString &title);
+    void finishCapture();
+    void startNextCapture();
     void printImage(const QImage &image);
     void toast(const QString &message);
 
@@ -115,4 +119,7 @@ private:
     QString m_pendingLocalTitle;
     QDateTime m_pendingDue;
     int m_pendingPriority = 2;
+    QString m_pendingTaskId;
+    QQueue<QImage> m_captureQueue;
+    bool m_captureBusy = false;
 };

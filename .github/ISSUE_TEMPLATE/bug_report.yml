@@ -1,0 +1,38 @@
+name: Bug report / 错误报告
+description: Report a reproducible problem with TaskPin.
+body:
+  - type: markdown
+    attributes:
+      value: Please use synthetic content. Do not upload databases, settings, API keys or unreviewed logs/screenshots. 请勿上传私人数据或密钥。
+  - type: input
+    id: version
+    attributes:
+      label: TaskPin version / 版本
+      description: Release tag or source commit; say whether this is an official portable build.
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Windows and displays / 系统与显示器
+      description: Windows version, monitor count/scaling, affected monitor and whether its origin is negative.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce / 复现步骤
+      description: Include starting state, exact tool/action/shortcut and a safe minimal fixture.
+    validations:
+      required: true
+  - type: textarea
+    id: result
+    attributes:
+      label: Expected and actual behavior / 预期与实际结果
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Safe evidence / 脱敏证据
+      description: Optional cropped screenshots or relevant redacted messages; state whether the problem also occurs in normal mode.

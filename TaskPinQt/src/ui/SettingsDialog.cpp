@@ -7,7 +7,6 @@
 #include <QCheckBox>
 #include <QColorDialog>
 #include <QComboBox>
-#include <QCoreApplication>
 #include <QDesktopServices>
 #include <QDialogButtonBox>
 #include <QDir>
@@ -20,6 +19,7 @@
 #include <QMessageBox>
 #include <QPushButton>
 #include <QSlider>
+#include <QScrollArea>
 #include <QSpinBox>
 #include <QStandardPaths>
 #include <QTabWidget>
@@ -65,6 +65,8 @@ struct SettingsDialog::Ui {
     QSpinBox *historyLimit = nullptr;
     QSpinBox *annotationWidth = nullptr;
     QDoubleSpinBox *pinOpacity = nullptr;
+    QSpinBox *pinShadow = nullptr;
+    QSpinBox *pinBorderWidth = nullptr;
     QCheckBox *aiEnabled = nullptr;
     QLineEdit *aiBaseUrl = nullptr;
     QLineEdit *aiKey = nullptr;
@@ -78,6 +80,7 @@ SettingsDialog::SettingsDialog(QWidget *parent) : QDialog(parent), m_ui(new Ui)
     m_cardBg = s.cardBg;
     m_cardFg = s.cardFg;
     m_annotationColor = s.annotationColor;
+    m_pinBorderColor = s.pinBorderColor;
 
     setWindowTitle(QStringLiteral("TaskPin 设置"));
     resize(620, 600);
@@ -103,6 +106,38 @@ SettingsDialog::SettingsDialog(QWidget *parent) : QDialog(parent), m_ui(new Ui)
         accept();
     });
     connect(buttons, &QDialogButtonBox::rejected, this, &QDialog::reject);
+    connect(m_ui->cardWidth, qOverload<int>(&QSpinBox::valueChanged), this, &SettingsDialog::emitPreview);
+    connect(m_ui->visibleRows, qOverload<int>(&QSpinBox::valueChanged), this, &SettingsDialog::emitPreview);
+    connect(m_ui->cardOpacity, &QSlider::valueChanged, this, &SettingsDialog::emitPreview);
+    connect(m_ui->showCarryMark, &QCheckBox::toggled, this, &SettingsDialog::emitPreview);
+}
+
+SettingsDialog::~SettingsDialog() { delete m_ui; }
+
+void SettingsDialog::emitPreview()
+{
+    emit cardPreviewChanged({m_cardBg, m_cardFg, m_ui->cardOpacity->value() / 100.0,
+                             m_ui->cardWidth->value(), m_ui->visibleRows->value(),
+                             m_ui->showCarryMark->isChecked()});
+}
+
+void SettingsDialog::chooseColor(QPushButton *button, QColor &value, bool preview)
+{
+    const QColor before = value;
+    QColorDialog picker(value, this);
+    picker.setWindowTitle(QStringLiteral("选择颜色 · 即时预览"));
+    picker.setOption(QColorDialog::DontUseNativeDialog);
+    connect(&picker, &QColorDialog::currentColorChanged, this, [this, button, &value, preview](const QColor &c) {
+        if (!c.isValid()) return;
+        value = c;
+        styleColorButton(button, c);
+        if (preview) emitPreview();
+    });
+    if (picker.exec() != QDialog::Accepted) {
+        value = before;
+        styleColorButton(button, before);
+        if (preview) emitPreview();
+    }
 }
 
 QWidget *SettingsDialog::buildCardPage()
@@ -148,29 +183,21 @@ QWidget *SettingsDialog::buildCardPage()
     auto *bg = new QPushButton(page);
     styleColorButton(bg, m_cardBg);
     connect(bg, &QPushButton::clicked, this, [this, bg] {
-        const QColor c = QColorDialog::getColor(m_cardBg, this, QStringLiteral("选择卡片背景色"));
-        if (c.isValid()) {
-            m_cardBg = c;
-            styleColorButton(bg, c);
-        }
+        chooseColor(bg, m_cardBg, true);
     });
     form->addRow(QStringLiteral("卡片背景色"), bg);
 
     auto *fg = new QPushButton(page);
     styleColorButton(fg, m_cardFg);
     connect(fg, &QPushButton::clicked, this, [this, fg] {
-        const QColor c = QColorDialog::getColor(m_cardFg, this, QStringLiteral("选择卡片文字色"));
-        if (c.isValid()) {
-            m_cardFg = c;
-            styleColorButton(fg, c);
-        }
+        chooseColor(fg, m_cardFg, true);
     });
     form->addRow(QStringLiteral("卡片文字色"), fg);
 
     auto *resetPos = new QPushButton(QStringLiteral("恢复自动位置"), page);
-    connect(resetPos, &QPushButton::clicked, this, [] {
-        Settings::instance().cardX = -1;
-        Settings::instance().cardY = -1;
+    connect(resetPos, &QPushButton::clicked, this, [this, resetPos] {
+        m_resetPosition = true;
+        resetPos->setText(QStringLiteral("保存后恢复自动位置"));
     });
     form->addRow(QString(), resetPos);
     return page;
@@ -189,6 +216,7 @@ QWidget *SettingsDialog::buildHotkeyPage()
     }
     layout->addLayout(form);
     layout->addWidget(hintLabel(QStringLiteral(
+        "默认 F1 截图、F3 贴图、Shift+F3 显隐全部贴图，与 Snipaste 一致。\n"
         "点进输入框后直接按下组合键即可录制；Backspace 清除（恢复默认）。\n"
         "被其它软件占用时会自动降级到备用键，并把实际生效的按键写进日志。")));
 
@@ -250,6 +278,8 @@ QWidget *SettingsDialog::buildSnipPage()
         if (!dir.isEmpty()) m_ui->autoSaveDir->setText(QDir::toNativeSeparators(dir));
     });
     form->addRow(QStringLiteral("自动保存目录"), dirRow);
+    form->addRow(QString(), hintLabel(QStringLiteral(
+        "Ctrl+Shift+S 保存到此目录；保存或另存为成功后，完整文件路径会复制到剪贴板。")));
 
     m_ui->namePattern = new QLineEdit(s.namePattern, page);
     form->addRow(QStringLiteral("文件名规则"), m_ui->namePattern);
@@ -266,8 +296,30 @@ QWidget *SettingsDialog::buildSnipPage()
     m_ui->pinOpacity->setDecimals(2);
     m_ui->pinOpacity->setValue(qBound(0.1, s.pinOpacity, 1.0));
     form->addRow(QStringLiteral("新贴图不透明度"), m_ui->pinOpacity);
-
-    return page;
+    m_ui->pinShadow = new QSpinBox(page);
+    m_ui->pinShadow->setRange(0, 100);
+    m_ui->pinShadow->setSuffix(" %");
+    m_ui->pinShadow->setSpecialValueText(QStringLiteral("关闭阴影"));
+    m_ui->pinShadow->setValue(s.pinShadowStrength);
+    form->addRow(QStringLiteral("贴图阴影强度"), m_ui->pinShadow);
+    m_ui->pinBorderWidth = new QSpinBox(page);
+    m_ui->pinBorderWidth->setRange(0, 8);
+    m_ui->pinBorderWidth->setSuffix(" px");
+    m_ui->pinBorderWidth->setSpecialValueText(QStringLiteral("无边框"));
+    m_ui->pinBorderWidth->setValue(s.pinBorderWidth);
+    form->addRow(QStringLiteral("贴图边框宽度"), m_ui->pinBorderWidth);
+    auto *borderColor = new QPushButton(page);
+    styleColorButton(borderColor, m_pinBorderColor);
+    connect(borderColor, &QPushButton::clicked, this, [this, borderColor] {
+        chooseColor(borderColor, m_pinBorderColor, false);
+    });
+    form->addRow(QStringLiteral("贴图边框颜色"), borderColor);
+    form->addRow(QString(), hintLabel(QStringLiteral("阴影设为 0、边框设为 0 可完全关闭。保存后更新当前及新贴图；单张贴图也可通过右键调整。")));
+    auto *scroll = new QScrollArea(this);
+    scroll->setWidgetResizable(true);
+    scroll->setFrameShape(QFrame::NoFrame);
+    scroll->setWidget(page);
+    return scroll;
 }
 
 QWidget *SettingsDialog::buildAiPage()
@@ -336,6 +388,7 @@ void SettingsDialog::apply()
     s.showCarryMark = m_ui->showCarryMark->isChecked();
     s.cardBg = m_cardBg;
     s.cardFg = m_cardFg;
+    if (m_resetPosition) { s.cardX = -1; s.cardY = -1; }
 
     for (auto it = m_hotkeyEdits.begin(); it != m_hotkeyEdits.end(); ++it) s.setChord(it.key(), it.value()->chord());
 
@@ -347,6 +400,9 @@ void SettingsDialog::apply()
     s.namePattern = m_ui->namePattern->text().trimmed();
     s.historyLimit = m_ui->historyLimit->value();
     s.pinOpacity = m_ui->pinOpacity->value();
+    s.pinShadowStrength = m_ui->pinShadow->value();
+    s.pinBorderWidth = m_ui->pinBorderWidth->value();
+    s.pinBorderColor = m_pinBorderColor;
 
     s.aiEnabled = m_ui->aiEnabled->isChecked();
     s.aiBaseUrl = m_ui->aiBaseUrl->text().trimmed();
@@ -354,8 +410,8 @@ void SettingsDialog::apply()
     s.aiModel = m_ui->aiModel->text().trimmed();
 
     s.autostart = m_ui->autostart->isChecked();
-    Autostart::setEnabled(s.autostart, QCoreApplication::applicationFilePath());
 
     s.save();
+    // AppHost applies OS integration after saved(), including automation isolation.
     emit saved();
 }
