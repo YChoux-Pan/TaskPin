@@ -45,7 +45,7 @@ OcrProfiles OcrProfiles::load(QString *error)
     if(parse.error!=QJsonParseError::NoError || !document.isObject() || !knownKeys(object,{"schemaVersion","profile","customProfilePath"}) ||
        !integerInRange(object.value("schemaVersion"),1,1) || !object.value("profile").isString() ||
        (object.contains("customProfilePath") && !object.value("customProfilePath").isString()) ||
-       (selection.profile!="builtin-ppocrv5-mobile" && selection.profile!="custom")) {
+       (selection.profile!="builtin-ppocrv5-mobile" && selection.profile!="builtin-ppocrv4-mobile" && selection.profile!="custom")) {
         selection.profile.clear();reject(error,QStringLiteral("本地 OCR 配置无效或版本不受支持，请重新选择模型。"));
     }
     return selection;
@@ -59,7 +59,7 @@ QString OcrProfiles::profilePath() const
 bool OcrProfiles::validate(QString *error,bool verifyHashes) const
 {
     if(error)error->clear();
-    if(profile=="builtin-ppocrv5-mobile")return true;
+    if(profile=="builtin-ppocrv5-mobile" || profile=="builtin-ppocrv4-mobile")return true;
     if(profile!="custom")return reject(error,QStringLiteral("本地 OCR 配置无效，请重新选择模型。"));
     if(customProfilePath.trimmed().isEmpty())return reject(error,QStringLiteral("请选择本地 OCR 模型配置 JSON 文件。"));
     const QFileInfo configFile(profilePath());QFile file(configFile.absoluteFilePath());

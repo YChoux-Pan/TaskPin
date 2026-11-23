@@ -1,6 +1,6 @@
 # TaskPin PaddleOCR runtime attribution
 
-TaskPin's local OCR uses **PaddleOCR PP-OCRv5 mobile detection and recognition
+TaskPin's local OCR uses **PaddleOCR PP-OCRv5 mobile and lightweight PP-OCRv4 mobile detection and recognition
 models**. RapidOCR 3.10.0 is the inference wrapper; ONNX Runtime 1.32.0 executes
 the converted models on the CPU. RapidOCR is not a replacement model family.
 The optional angle classifier is disabled. No PaddlePaddle Python package is
@@ -22,6 +22,8 @@ without changing their contents.
 | --- | --- | --- |
 | `ch_PP-OCRv5_det_mobile.onnx` | `PP-OCRv5_mobile_det` | `4d97c44a20d30a81aad087d6a396b08f786c4635742afc391f6621f5c6ae78ae` |
 | `ch_PP-OCRv5_rec_mobile.onnx` | `PP-OCRv5_mobile_rec` | `5825fc7ebf84ae7a412be049820b4d86d77620f204a041697b0494669b1742c5` |
+| `ch_PP-OCRv4_det_mobile.onnx` | `PP-OCRv4 mobile detection` | `d2a7720d45a54257208b1e13e36a8479894cb74155a5efe29462512d42f49da9` |
+| `ch_PP-OCRv4_rec_mobile.onnx` | `PP-OCRv4 mobile recognition` | `48fc40f24f6d2a207a2b1091d3437eb3cc3eb6b676dc3ef9c37384005483683b` |
 
 Model source URLs and immutable artifact hashes are in
 `TaskPinQt/ocr/runtime-lock.json`. The source registry is RapidOCR 3.10.0,
@@ -29,6 +31,7 @@ Git commit `38ed48d802cfb9f91d24153258427beef2b3d50c`:
 
 - [RapidOCR model registry](https://github.com/RapidAI/RapidOCR/blob/38ed48d802cfb9f91d24153258427beef2b3d50c/rapidocr/default_models.yaml)
 - [PaddleOCR 3.0.3 source and license](https://github.com/PaddlePaddle/PaddleOCR/tree/v3.0.3)
+- [PaddleOCR PP-OCRv4 introduction](https://github.com/PaddlePaddle/PaddleOCR/blob/release/2.7/doc/doc_ch/PP-OCRv4_introduction.md)
 - [Official detection model](https://huggingface.co/PaddlePaddle/PP-OCRv5_mobile_det)
 - [Official recognition model](https://huggingface.co/PaddlePaddle/PP-OCRv5_mobile_rec)
 

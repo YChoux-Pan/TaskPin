@@ -108,6 +108,31 @@ test('OCR profile validation, save and cancel preserve configuration', async ({}
     'immediateOcrInputFailureKeepsCallerIdSnapshot', 'customOcrValidationKeepsUiResponsiveAndCancelPreservesFiles'], info);
 });
 
+test('Bundled lightweight PaddleOCR switches, persists and translates a selected region', async ({}, info) => {
+  await qt('TaskPinTranslationTests', ['lightweightOcrSelectionSavesAndCancelKeepsPrevious',
+    'lightweightOcrActuallySwitchesSharedWorker'], info);
+  const output = await workspace();
+  expect(await native('TaskPinTranslationProbe', [output, '--lightweight', '--comparison'], output)).toBe(0);
+  const report = JSON.parse(await fs.readFile(path.join(output, 'native-probe.json'), 'utf8'));
+  expect(report.profileId).toBe('builtin-ppocrv4-mobile');
+  expect(report.ocrEngine).toBe('PaddleOCR PP-OCRv4');
+  expect(report.state).toBe('PRESENTING');
+  expect(report.framelessPin).toBe(true);
+  expect(report.positionAndZoomPreserved).toBe(true);
+  expect(report.cloudCalled).toBe(false);
+  await info.attach('Lightweight native OCR and translation state', { path: path.join(output, 'native-probe.json'), contentType: 'application/json' });
+  await info.attach('Lightweight translation pin', { path: path.join(output, 'translation-pin-mock.png'), contentType: 'image/png' });
+  const oneShot = await workspace();
+  expect(await native('TaskPinTranslationProbe', [oneShot, '--lightweight', '--benchmark', '--oneshot-ocr', '--single-sample'], oneShot)).toBe(0);
+  const timing = JSON.parse(await fs.readFile(path.join(oneShot, 'benchmark.json'), 'utf8'));
+  expect(timing.samples).toHaveLength(2);
+  for (const sample of timing.samples) {
+    expect(sample.profileId).toBe('builtin-ppocrv4-mobile');
+    expect(sample.ocrEngine).toBe('PaddleOCR PP-OCRv4');
+  }
+  await info.attach('Lightweight one-shot model identity', { path: path.join(oneShot, 'benchmark.json'), contentType: 'application/json' });
+});
+
 test('Isolated application selftest keeps data and platform contracts', async ({}, info) => {
   const output = await workspace();
   expect(await native('TaskPinQt', ['--selftest', output], output)).toBe(0);

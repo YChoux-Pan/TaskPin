@@ -66,7 +66,7 @@ def unzip(archive: Path, destination: Path, wheel: bool = False) -> None:
             if relative.is_absolute() or ".." in relative.parts or ":" in member.filename or "\\" in member.filename:
                 raise RuntimeError("Unsafe archive path")
             # RapidOCR's wheel contains v6/angle models. This runtime explicitly
-            # distributes only its two pinned PaddleOCR v5 models below.
+            # distributes only its explicitly pinned PaddleOCR mobile models.
             if wheel and relative.parts[:2] == ("rapidocr", "models"):
                 continue
             parts = relative.parts
@@ -160,7 +160,8 @@ def self_check(root: Path) -> None:
                             creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
     try:
         reply = json.loads(result.stdout)
-        valid = result.returncode == 0 and reply.get("runtimeReady") is True and not result.stderr
+        valid = (result.returncode == 0 and reply.get("runtimeReady") is True and not result.stderr
+                 and set(reply.get("builtinProfilesVerified", [])) == {"builtin-ppocrv5-mobile", "builtin-ppocrv4-mobile"})
     except ValueError:
         valid = False
     if not valid:
@@ -216,7 +217,8 @@ def build(args: argparse.Namespace) -> None:
         raise RuntimeError("Refusing to replace a directory not created by this builder")
     cache.mkdir(parents=True, exist_ok=True)
     output.parent.mkdir(parents=True, exist_ok=True)
-    all_artifacts = [lock["python"], lock["vcRuntime"], *lock["wheels"], *lock["models"]]
+    models = [*lock["models"], *lock["lightweightModels"]]
+    all_artifacts = [lock["python"], lock["vcRuntime"], *lock["wheels"], *models]
     cached = {item["filename"]: fetch(item, cache, args.offline) for item in all_artifacts}
     with tempfile.TemporaryDirectory(prefix="taskpin-ocr-build-", dir=output.parent) as working:
         scratch = Path(working)
@@ -235,7 +237,7 @@ def build(args: argparse.Namespace) -> None:
         (staging / "python312._pth").write_text("python312.zip\n.\nLib/site-packages\nimport site\n", encoding="ascii")
         copy_vc_runtime(cached[lock["vcRuntime"]["filename"]], lock["vcRuntime"], staging, scratch)
         (staging / "models").mkdir()
-        for model in lock["models"]:
+        for model in models:
             shutil.copyfile(cached[model["filename"]], staging / "models" / model["filename"])
         shutil.copyfile(lock_path, staging / "runtime-lock.json")
         shutil.copyfile(SOURCE / "helper.py", staging / "helper.py")

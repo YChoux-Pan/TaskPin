@@ -28,6 +28,8 @@ ocr/taskpin-ocr-runtime.json
 ocr/Lib/site-packages/...
 ocr/models/ch_PP-OCRv5_det_mobile.onnx
 ocr/models/ch_PP-OCRv5_rec_mobile.onnx
+ocr/models/ch_PP-OCRv4_det_mobile.onnx
+ocr/models/ch_PP-OCRv4_rec_mobile.onnx
 ocr/LICENSE.txt
 ocr/licenses/...
 ```
@@ -35,7 +37,10 @@ ocr/licenses/...
 The one-shot protocol launches `python.exe -I -B helper.py`, writes one UTF-8
 JSON request to stdin, and closes stdin. The helper writes exactly one UTF-8
 JSON object plus a newline to stdout and exits. It accepts
-`{ "image": "<base64 PNG>" }`, optionally with a local `profilePath`.
+`{ "image": "<base64 PNG>" }`, optionally with a local `profilePath` or a bundled `profileId` (mutually exclusive).
+Bundled IDs are `builtin-ppocrv5-mobile` (default) and `builtin-ppocrv4-mobile`
+(lightweight). The latter returns `PaddleOCR PP-OCRv4` metadata and uses the
+independently hash-pinned v4 weights; it never falls back to v5.
 Successful output includes these fields:
 
 ```json
@@ -91,10 +96,14 @@ are written to stderr.
 
 ## Local model profiles
 
-Settings → Screenshot translation selects the bundled PP-OCRv5 mobile profile or
-a custom local JSON file. Both notes OCR and screenshot translation use this
+Settings → Screenshot translation selects bundled PP-OCRv5 mobile (20.5 MiB),
+bundled lightweight PP-OCRv4 mobile (14.9 MiB), or a custom local JSON file.
+The lightweight weights occupy about 27% less disk space; this is not a
+guarantee of faster inference or equal recognition quality on every image.
+Both bundled profiles are included in the portable package and require no
+download or configuration file. Existing selections are preserved. Both notes OCR and screenshot translation use this
 selection. `ocr.json` in the isolated TaskPin data directory stores only
-`schemaVersion: 1`, `profile` (`builtin-ppocrv5-mobile` or `custom`) and
+`schemaVersion: 1`, `profile` (`builtin-ppocrv5-mobile`, `builtin-ppocrv4-mobile`, or `custom`) and
 `customProfilePath`. Editing settings is a draft until Save; Cancel preserves
 the previous selection. A malformed saved selection fails visibly.
 
@@ -155,9 +164,11 @@ Behavioral fixture checks (also run by `scripts/test.ps1`):
 C:/build/taskpin/ocr/python.exe -I -B ./TaskPinQt/ocr/test_helper.py --runtime C:/build/taskpin/ocr
 ```
 
-The self-check verifies hashes, imports, and loads both local ONNX models.
+The self-check verifies hashes, imports, and loads all four local ONNX models.
+`builtinProfilesVerified` names both checked profiles. The builder and packaging
+step require both profiles to pass before producing a release.
 The behavioral test creates in-memory English/Chinese/dark technical fixtures,
-checks recognized phrases, real confidence, coordinates, invalid-input handling,
+checks both bundled profiles, worker switching and reuse, recognized phrases, real confidence, coordinates, invalid-input handling,
 and model tamper rejection. It writes no screenshots or recognition transcripts.
 English fixtures default to Windows Arial; Chinese fixtures use Microsoft YaHei.
 On a CI host without Chinese fonts, pass `--font C:/fonts/NotoSansCJK-Regular.ttc`
