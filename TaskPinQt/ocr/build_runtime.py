@@ -161,7 +161,7 @@ def self_check(root: Path) -> None:
     try:
         reply = json.loads(result.stdout)
         valid = (result.returncode == 0 and reply.get("runtimeReady") is True and not result.stderr
-                 and set(reply.get("builtinProfilesVerified", [])) == {"builtin-ppocrv5-mobile", "builtin-ppocrv4-mobile"})
+                 and set(reply.get("builtinProfilesVerified", [])) == {"builtin-ppocrv5-mobile", "builtin-ppocrv4-mobile", "builtin-ppocrv6-tiny"})
     except ValueError:
         valid = False
     if not valid:
@@ -200,7 +200,7 @@ def build(args: argparse.Namespace) -> None:
     lock_path = SOURCE / "runtime-lock.json"
     lock = json.loads(lock_path.read_text(encoding="utf-8"))
     source_digest = hashlib.sha256()
-    for path in (lock_path, SOURCE / "helper.py", SOURCE / "build_runtime.py",
+    for path in (lock_path, SOURCE / "helper.py", SOURCE / "model_catalog.py", SOURCE / "build_runtime.py",
                  SOURCE.parents[1] / "licenses" / "PADDLEOCR_RUNTIME_NOTICE.md",
                  SOURCE.parents[1] / "licenses" / "PaddleOCR-Apache-2.0.txt"):
         source_digest.update(path.read_bytes())
@@ -217,7 +217,7 @@ def build(args: argparse.Namespace) -> None:
         raise RuntimeError("Refusing to replace a directory not created by this builder")
     cache.mkdir(parents=True, exist_ok=True)
     output.parent.mkdir(parents=True, exist_ok=True)
-    models = [*lock["models"], *lock["lightweightModels"]]
+    models = [*lock["models"], *lock["lightweightModels"], *lock["tinyModels"]]
     all_artifacts = [lock["python"], lock["vcRuntime"], *lock["wheels"], *models]
     cached = {item["filename"]: fetch(item, cache, args.offline) for item in all_artifacts}
     with tempfile.TemporaryDirectory(prefix="taskpin-ocr-build-", dir=output.parent) as working:
@@ -241,6 +241,7 @@ def build(args: argparse.Namespace) -> None:
             shutil.copyfile(cached[model["filename"]], staging / "models" / model["filename"])
         shutil.copyfile(lock_path, staging / "runtime-lock.json")
         shutil.copyfile(SOURCE / "helper.py", staging / "helper.py")
+        shutil.copyfile(SOURCE / "model_catalog.py", staging / "model_catalog.py")
         collect_licenses(staging, lock)
         self_check(staging)
         receipt = {"schemaVersion": 1, "sourceHash": source_hash,

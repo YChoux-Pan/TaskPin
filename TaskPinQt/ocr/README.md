@@ -177,3 +177,35 @@ synthetic test images and are not part of the OCR runtime or model inference.
 Repository source contains manifests and scripts only; binary artifacts remain
 in the chosen output/cache directories. Dependency and model attributions are
 in `licenses/PADDLEOCR_RUNTIME_NOTICE.md` and each generated runtime's licenses.
+
+
+## Model folders (TaskPin 0.4.5)
+
+Settings → Screenshot translation → Local OCR offers built-in PP-OCRv6 tiny as
+well as v4/v5. The v6 preset uses max-side 960, four intra-op threads and one
+inter-op thread. Existing selections remain unchanged on upgrade.
+
+The application scans its sibling `ocr-models/` directory, one pair per immediate
+subfolder. Canonical filenames such as `PP-OCRv6_det_small.onnx` and
+`PP-OCRv6_rec_small.onnx` need no JSON. Restart or press Refresh to discover them.
+Settings performs discovery in a separate process and actual model loading only
+when saving a folder/custom selection. Detailed examples and optional model.json
+format are in [OCR-MODELS.md](../../docs/OCR-MODELS.md).
+
+`helper.py --catalog --model-dir ABS_DIRECTORY` reports bounded metadata-only
+candidates with stable `local-<64 hex>` IDs. A folder request carries `profileId`
+and `modelDirectory`; these are mutually exclusive with `profilePath`. Each real
+request resolves the package, hashes its selected weights, checks declared hashes
+when present, and includes options/hash values in `modelIdentity`. Replacing bytes
+loads a new engine; a removed selected package fails visibly without fallback.
+
+Custom JSON also accepts optional `detector` (`limitType`: min/max,
+`limitSideLen`: integer 32–8192), optional per-weight `language` (ch/en/multi/zh),
+and PP-OCRv6 tiny/small/medium. Existing custom hashes remain required. Folder
+`model.json` hashes are optional: actual bytes are always hashed before loading,
+so replacement changes the cache identity; an optional declared hash is enforced.
+
+All six built-in weights are hash-pinned and loaded by self-check. Supported
+families/types are adapter capabilities, not a promise for arbitrary ONNX files
+or future architectures. Recognition models must include a compatible embedded
+character dictionary. No model-provided scripts run and inference never downloads.

@@ -37,6 +37,7 @@ public:
         if(m_queue.size()>=MaxQueuedRequests){const QString taskId=owner->m_taskId;emit owner->failed(taskId,QStringLiteral("本地 OCR 等待队列已满，请稍后重试。"));return;}
         Request request;request.owner=owner;request.id=QString::number(++m_sequence);request.image=image;
         request.size=image.size();request.runtime=runtime;request.profilePath=selection.profilePath();request.profile=selection.profile;
+        if(OcrProfiles::isLocalProfile(selection.profile))request.modelDirectory=OcrProfiles::modelDirectory();
         request.queued.start();request.requestStarted=owner->m_started;
         owner->m_requestId=request.id;m_queue.append(std::move(request));startNext();
     }
@@ -47,7 +48,7 @@ public:
     }
 private:
     struct Request {
-        QPointer<Ocr> owner;QString id,runtime,profilePath,profile;QImage image;QSize size;
+        QPointer<Ocr> owner;QString id,runtime,profilePath,profile,modelDirectory;QImage image;QSize size;
         QElapsedTimer queued,requestStarted,processStarted;
         qint64 queueMs=0;bool sent=false;
     };
@@ -94,6 +95,7 @@ private:
         QJsonObject payload{{"image",QString::fromLatin1(png.toBase64())},{"requestId",m_active->id}};
         if(!m_active->profilePath.isEmpty())payload.insert("profilePath",m_active->profilePath);
         else payload.insert("profileId",m_active->profile);
+        if(!m_active->modelDirectory.isEmpty())payload.insert("modelDirectory",m_active->modelDirectory);
         m_active->sent=true;m_active->image=QImage();
         if(m_process->write(QJsonDocument(payload).toJson(QJsonDocument::Compact)+"\n")<0)failActive(QStringLiteral("无法发送本地 OCR 输入。"));
     }
@@ -179,6 +181,8 @@ bool Ocr::decode(const QByteArray &json, const QSize &imageSize, OcrResult *resu
     *error = QStringLiteral("PaddleOCR 本地识别失败，请检查完整模型文件，或缩小截图范围。原图未上传。");
     if(object.value("errorCode").toString()=="model_hash_mismatch")*error=QStringLiteral("所选 OCR 模型 SHA256 校验失败，请检查模型与配置版本。原图未上传。");
     else if(object.value("errorCode").toString()=="model_missing")*error=QStringLiteral("所选 OCR 模型文件缺失，请检查本地配置中的 ONNX 路径。原图未上传。");
+    else if(object.value("errorCode").toString()=="model_package_missing")*error=QStringLiteral("所选文件夹模型已移走或重命名，请刷新模型列表后重新选择。原图未上传。");
+    else if(object.value("errorCode").toString()=="model_package_invalid" || object.value("errorCode").toString()=="model_directory_invalid")*error=QStringLiteral("所选模型文件夹不完整、配置无效或不受支持，请检查检测与识别模型后刷新。原图未上传。");
     else if(object.value("errorCode").toString().startsWith("profile_"))*error=QStringLiteral("所选 OCR 模型配置缺失、无效或不受支持，请重新选择本地配置。原图未上传。");
     else if(object.value("errorCode").toString()=="model_incompatible")*error=QStringLiteral("所选 ONNX 模型与本地 OCR 引擎不兼容，请检查模型家族、类型与字符字典。原图未上传。");
     else if(object.value("errorCode").toString()=="network_disabled")*error=QStringLiteral("所选 OCR 模型缺少本地依赖；已阻止自动下载，请提供完整的兼容模型。原图未上传。");

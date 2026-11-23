@@ -14,6 +14,7 @@
 #include <QFile>
 #include <QFileInfo>
 #include <QDir>
+#include <QDirIterator>
 #include <QDateTime>
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -23,6 +24,9 @@
 #include <QScrollArea>
 #include <QPushButton>
 #include <QSpinBox>
+#include <QStandardItemModel>
+#include <QSignalBlocker>
+#include <QDesktopServices>
 #include <QTimer>
 #include <QVBoxLayout>
 
@@ -53,14 +57,37 @@ TranslationSettingsPage::TranslationSettingsPage(QWidget *parent):QWidget(parent
     m_ocrProfile=new QComboBox(this);m_ocrProfile->setObjectName("translationOcrProfile");
     m_ocrProfile->addItem(QStringLiteral("PP-OCRv5 mobile · 默认 · 20.5 MiB"),"builtin-ppocrv5-mobile");
     m_ocrProfile->addItem(QStringLiteral("PP-OCRv4 mobile · 轻量 · 14.9 MiB"),"builtin-ppocrv4-mobile");
+    m_ocrProfile->addItem(QStringLiteral("PP-OCRv6 tiny · 960 像素 · 4 线程"),"builtin-ppocrv6-tiny");
     m_ocrProfile->addItem(QStringLiteral("自定义本地模型配置"),"custom");
+    if(m_ocrProfile->findData(ocr.profile)<0 && !ocr.profile.isEmpty()) {
+        m_ocrProfile->addItem(QStringLiteral("不可用 · %1").arg(ocr.profile),ocr.profile);
+        qobject_cast<QStandardItemModel *>(m_ocrProfile->model())->item(m_ocrProfile->count()-1)->setEnabled(false);
+    }
     m_ocrProfile->setCurrentIndex(m_ocrProfile->findData(ocr.profile));form->addRow(QStringLiteral("本地 OCR · 便签与翻译共用"),m_ocrProfile);
     auto *ocrRow=new QHBoxLayout;m_ocrPath=new QLineEdit(ocr.customProfilePath,this);m_ocrPath->setObjectName("translationOcrProfilePath");
     m_ocrPath->setPlaceholderText(QStringLiteral("选择包含 ONNX 路径与 SHA256 的 JSON 配置"));
     auto *browse=new QPushButton(QStringLiteral("选择文件…"),this);browse->setObjectName("translationOcrProfileBrowse");
     ocrRow->addWidget(m_ocrPath,1);ocrRow->addWidget(browse);form->addRow(QStringLiteral("模型配置"),ocrRow);
+    auto *catalogRow=new QHBoxLayout;
+    auto *openFolder=new QPushButton(QStringLiteral("打开模型文件夹"),this);openFolder->setObjectName("translationOcrOpenFolder");
+    m_ocrRefresh=new QPushButton(QStringLiteral("刷新模型"),this);m_ocrRefresh->setObjectName("translationOcrRefresh");
+    catalogRow->addWidget(openFolder);catalogRow->addWidget(m_ocrRefresh);form->addRow(QStringLiteral("文件夹模型"),catalogRow);
+    connect(openFolder,&QPushButton::clicked,this,[] {
+        const auto directory=Translation::OcrProfiles::modelDirectory();
+        if(QDir().mkpath(directory))QDesktopServices::openUrl(QUrl::fromLocalFile(directory));
+    });
+    connect(m_ocrRefresh,&QPushButton::clicked,this,&TranslationSettingsPage::refreshOcrCatalog);
     auto updateOcr=[this,browse] {
         const bool custom=m_ocrProfile->currentData().toString()=="custom";m_ocrPath->setEnabled(custom);browse->setEnabled(custom);
+        const auto id=m_ocrProfile->currentData().toString();
+        if(Translation::OcrProfiles::isLocalProfile(id)) {
+            const auto entry=m_catalogEntries.value(id);
+            m_ocrStatus->setText(entry.value("enabled").toBool()?entry.value("description").toString():
+                QStringLiteral("所选文件夹模型不可用：%1").arg(entry.value("error").toString(QStringLiteral("尚未发现模型，请刷新或检查模型文件夹。"))));return;
+        }
+        if(id=="builtin-ppocrv6-tiny") {
+            m_ocrStatus->setText(QStringLiteral("随应用提供的 PP-OCRv6 tiny，最大边 960 像素，4 个推理线程。本地识别后仅文字按上方模式发送翻译。"));return;
+        }
         m_ocrStatus->setText(custom?QStringLiteral("保存时校验本地文件、模型家族和 SHA256。配置错误会显示失败，不会自动下载或改用默认模型。"):
             m_ocrProfile->currentData().toString()=="builtin-ppocrv4-mobile"?
             QStringLiteral("轻量模型已随应用提供，无需另行下载。权重约 14.9 MiB，适合常见中英文截图；复杂文字建议与默认 v5 对比。速度因图片与设备而异。"):
@@ -103,8 +130,11 @@ TranslationSettingsPage::TranslationSettingsPage(QWidget *parent):QWidget(parent
     connect(m_consent,&QCheckBox::toggled,this,&TranslationSettingsPage::invalidateOcrValidation);
     connect(m_ocrProfile,&QComboBox::currentIndexChanged,this,&TranslationSettingsPage::invalidateOcrValidation);
     connect(m_ocrPath,&QLineEdit::textChanged,this,&TranslationSettingsPage::invalidateOcrValidation);
+    m_catalogTimeout=new QTimer(this);m_catalogTimeout->setSingleShot(true);
+    connect(m_catalogTimeout,&QTimer::timeout,this,[this]{cancelOcrCatalog();finishOcrCatalog({},QStringLiteral("模型发现超时，请重试。"));});
+    refreshOcrCatalog();
 }
-TranslationSettingsPage::~TranslationSettingsPage(){cancelOcrValidation(false);}
+TranslationSettingsPage::~TranslationSettingsPage(){cancelOcrCatalog();cancelOcrValidation(false);}
 void TranslationSettingsPage::setConnection(const QString &endpoint,const QString &model,const QString &key)
 {
     const QPointer<TranslationSettingsPage> guard(this);
@@ -135,10 +165,14 @@ bool TranslationSettingsPage::save()
     // Only the bounded JSON and supported option/path syntax are read here.
     // Model hashes and actual ONNX compatibility run in a cancellable process.
     if(!ocr.validate(&error,false)){m_ocrStatus->setText(error);invalidateOcrValidation();return false;}
+    if(Translation::OcrProfiles::isLocalProfile(ocr.profile) &&
+       (m_ocrCatalog || !m_catalogEntries.value(ocr.profile).value("enabled").toBool())) {
+        m_ocrStatus->setText(QStringLiteral("所选文件夹模型不可用或仍在刷新，请检查模型文件夹后重试。"));return false;
+    }
     if(cfg.mode=="cloud" && (!cfg.authorized() || m_model.isEmpty() || m_key.isEmpty())) {
         m_status->setText(QStringLiteral("请在 AI 页配置有效的 HTTPS 接口、模型和密钥，并勾选文字翻译授权。"));return false;
     }
-    if(ocr.profile=="custom") {
+    if(ocr.profile=="custom" || Translation::OcrProfiles::isLocalProfile(ocr.profile)) {
         const auto draftKey=ocrDraftKey(ocr);
         if(m_validatedDraft.isEmpty() || m_validatedDraft!=draftKey) {
             if(m_ocrValidation && m_validationDraft==draftKey)return false;
@@ -171,13 +205,47 @@ QByteArray TranslationSettingsPage::ocrDraftKey(const Translation::OcrProfiles &
     QJsonObject draft{{"profile",ocr.profile},{"path",ocr.profilePath()},{"mode",cfg.mode},
         {"endpoint",m_endpoint},{"model",m_model},{"key",m_key},{"timeoutMs",cfg.timeoutMs},
         {"consentEndpoint",cfg.consentEndpoint},{"runtime",Translation::Ocr::runtimeDirectory()}};
+    draft.insert("modelDirectory",Translation::OcrProfiles::modelDirectory());
+    QStringList paths;
     QFile profile(ocr.profilePath());QByteArray bytes;
-    if(profile.open(QIODevice::ReadOnly) && profile.size()<=65536)bytes=profile.read(65537);
+    if(ocr.profile=="custom" && profile.open(QIODevice::ReadOnly) && profile.size()<=65536)bytes=profile.read(65537);
     draft.insert("profileBytes",QString::fromLatin1(bytes.toBase64()));
     const auto object=QJsonDocument::fromJson(bytes).object();
     QJsonArray weights;
-    for(const auto &task:QStringList{"det","rec"}) {
-        const QFileInfo weight(QFileInfo(ocr.profilePath()).dir().absoluteFilePath(object.value(task).toObject().value("path").toString()));
+    if(Translation::OcrProfiles::isLocalProfile(ocr.profile)) {
+        for(const auto &value:m_catalogEntries.value(ocr.profile).value("files").toArray())paths.append(value.toString());
+        if(!paths.isEmpty()) {
+            QString packagePath=QFileInfo(paths.first()).absolutePath();
+            for(const auto &path:paths)if(QFileInfo(path).fileName()=="model.json")packagePath=QFileInfo(path).absolutePath();
+            const QFileInfo package(packagePath);
+            draft.insert("packageDirectory",QJsonObject{{"path",package.absoluteFilePath()},{"canonicalPath",package.canonicalFilePath()},
+                {"exists",package.isDir()},{"modified",QString::number(package.lastModified().toMSecsSinceEpoch())},
+                {"created",QString::number(package.birthTime().toMSecsSinceEpoch())}});
+            // Package interpretation also depends on its immediate members:
+            // an extra ONNX can make a previously valid pair ambiguous. Match
+            // the helper's 64-entry bound, retaining one overflow entry, and
+            // never recurse or open/hash model files on the GUI thread.
+            QDirIterator entries(packagePath,QDir::AllEntries|QDir::NoDotAndDotDot|QDir::Hidden|QDir::System,QDirIterator::NoIteratorFlags);
+            QMap<QString,QJsonObject> members;
+            while(members.size()<65 && entries.hasNext()) {
+                entries.next();const auto member=entries.fileInfo();
+                members.insert(member.fileName(),QJsonObject{{"name",member.fileName()},{"canonicalPath",member.canonicalFilePath()},
+                    {"file",member.isFile()},{"directory",member.isDir()},{"symlink",member.isSymLink()},
+                    {"size",QString::number(member.size())},{"modified",QString::number(member.lastModified().toMSecsSinceEpoch())},
+                    {"created",QString::number(member.birthTime().toMSecsSinceEpoch())}});
+            }
+            QJsonArray membership;for(const auto &member:members)membership.append(member);
+            draft.insert("packageMembers",membership);draft.insert("packageTooManyEntries",members.size()>64);
+            // A descriptor can be introduced after filename-only discovery.
+            // Include its missing-file stat so that this also invalidates a
+            // successful load without opening or hashing any model weights.
+            const auto descriptor=QFileInfo(paths.first()).dir().absoluteFilePath("model.json");
+            if(!paths.contains(descriptor))paths.append(descriptor);
+        }
+    } else for(const auto &task:QStringList{"det","rec"})
+        paths.append(QFileInfo(ocr.profilePath()).dir().absoluteFilePath(object.value(task).toObject().value("path").toString()));
+    for(const auto &path:paths) {
+        const QFileInfo weight(path);
         // Stat identity detects ordinary replacement without hashing/opening
         // potentially large model files on the GUI thread.
         weights.append(QJsonObject{{"path",weight.absoluteFilePath()},{"canonicalPath",weight.canonicalFilePath()},
@@ -193,11 +261,14 @@ void TranslationSettingsPage::beginOcrValidation(const Translation::OcrProfiles 
     if(!Translation::Ocr::available()) {
         m_ocrStatus->setText(QStringLiteral("PaddleOCR 本地运行环境未完整部署，请解压完整发行包后重试。"));return;
     }
-    QFile profile(ocr.profilePath());
-    if(!profile.open(QIODevice::ReadOnly) || profile.size()>65536) {
-        m_ocrStatus->setText(QStringLiteral("无法读取所选 OCR 模型配置文件。"));return;
+    QString expectedId=ocr.profile;
+    if(ocr.profile=="custom") {
+        QFile profile(ocr.profilePath());
+        if(!profile.open(QIODevice::ReadOnly) || profile.size()>65536) {
+            m_ocrStatus->setText(QStringLiteral("无法读取所选 OCR 模型配置文件。"));return;
+        }
+        expectedId=QJsonDocument::fromJson(profile.readAll()).object().value("id").toString();
     }
-    const QString expectedId=QJsonDocument::fromJson(profile.readAll()).object().value("id").toString();
     const QString runtime=Translation::Ocr::runtimeDirectory();
     auto *process=new QProcess(this);m_ocrValidation=process;m_validationDraft=draftKey;m_validationOutput.clear();
     const auto generation=++m_validationGeneration;
@@ -211,7 +282,10 @@ void TranslationSettingsPage::beginOcrValidation(const Translation::OcrProfiles 
         QImage image(ValidationImageSize,QImage::Format_RGB32);image.fill(Qt::white);
         QByteArray png;QBuffer buffer(&png);buffer.open(QIODevice::WriteOnly);
         if(!image.save(&buffer,"PNG")){failOcrValidation(QStringLiteral("无法准备本地 OCR 模型校验。"));return;}
-        const auto request=QJsonDocument(QJsonObject{{"image",QString::fromLatin1(png.toBase64())},{"profilePath",ocr.profilePath()}}).toJson(QJsonDocument::Compact);
+        QJsonObject payload{{"image",QString::fromLatin1(png.toBase64())}};
+        if(ocr.profile=="custom")payload.insert("profilePath",ocr.profilePath());
+        else {payload.insert("profileId",ocr.profile);payload.insert("modelDirectory",Translation::OcrProfiles::modelDirectory());}
+        const auto request=QJsonDocument(payload).toJson(QJsonDocument::Compact);
         if(process->write(request)!=request.size()){failOcrValidation(QStringLiteral("无法发送本地 OCR 模型校验。"));return;}
         process->closeWriteChannel();
     });
@@ -271,7 +345,106 @@ void TranslationSettingsPage::invalidateOcrValidation()
     if(m_ocrValidation)m_ocrStatus->setText(QStringLiteral("设置已更改，请保存以校验当前本地模型。"));
     cancelOcrValidation(true);
 }
-void TranslationSettingsPage::cancelTest(){m_client->cancel();m_test->setEnabled(true);m_cancel->setEnabled(false);cancelOcrValidation(true);}
+void TranslationSettingsPage::refreshOcrCatalog()
+{
+    cancelOcrCatalog();invalidateOcrValidation();
+    m_ocrRefresh->setEnabled(false);
+    const auto runtime=Translation::Ocr::runtimeDirectory();
+    auto *process=new QProcess(this);m_ocrCatalog=process;m_catalogOutput.clear();
+    const auto generation=++m_catalogGeneration;
+    const auto current=[guard=QPointer<TranslationSettingsPage>(this),process,generation] {
+        return guard && guard->m_ocrCatalog==process && guard->m_catalogGeneration==generation;
+    };
+    const auto fail=[this,current](const QString &error) {
+        if(!current())return;
+        cancelOcrCatalog();finishOcrCatalog({},error);
+    };
+    const auto read=[this,process,current,fail] {
+        if(!current())return;
+        process->setReadChannel(QProcess::StandardOutput);
+        m_catalogOutput+=process->read(MaxValidationReplyBytes+1-m_catalogOutput.size());
+        if(m_catalogOutput.size()>MaxValidationReplyBytes)fail(QStringLiteral("模型发现响应超过大小限制。"));
+    };
+    connect(process,&QProcess::readyReadStandardOutput,this,read);
+    connect(process,&QProcess::readyReadStandardError,this,[process]{process->readAllStandardError();});
+    connect(process,&QProcess::errorOccurred,this,[fail](QProcess::ProcessError error){
+        if(error==QProcess::FailedToStart)fail(QStringLiteral("无法启动模型发现，请检查本地 OCR 运行环境。"));
+    });
+    connect(process,qOverload<int,QProcess::ExitStatus>(&QProcess::finished),this,
+        [this,current,read,fail](int code,QProcess::ExitStatus status) {
+        if(!current())return;read();if(!current())return;
+        QJsonParseError parse;const auto document=QJsonDocument::fromJson(m_catalogOutput,&parse);
+        const auto object=document.object();const auto models=object.value("models").toArray();
+        if(code!=0 || status!=QProcess::NormalExit || parse.error!=QJsonParseError::NoError || !document.isObject() ||
+           !object.value("ok").toBool() || !object.value("models").isArray() || models.size()>131) {
+            fail(QStringLiteral("模型发现失败：%1").arg(object.value("error").toString(QStringLiteral("请检查本地 OCR 运行环境与模型文件夹。"))).left(8192));return;
+        }
+        QSet<QString> seen;
+        for(const auto &value:models) {
+            const auto entry=value.toObject();const auto id=entry.value("id").toString();
+            const bool knownBuiltin=QStringList{"builtin-ppocrv4-mobile","builtin-ppocrv5-mobile","builtin-ppocrv6-tiny"}.contains(id);
+            const auto files=entry.value("files").toArray();
+            if(!value.isObject() || (!knownBuiltin && !Translation::OcrProfiles::isLocalProfile(id)) || seen.contains(id) ||
+               !entry.value("name").isString() || entry.value("name").toString().isEmpty() || entry.value("name").toString().size()>1024 ||
+               !entry.value("description").isString() || entry.value("description").toString().size()>8192 ||
+               !entry.value("enabled").isBool() || !entry.value("files").isArray() || files.size()>3 ||
+               entry.value("source").toString()!=(knownBuiltin?QStringLiteral("builtin"):QStringLiteral("folder")) ||
+               (!knownBuiltin && entry.value("enabled").toBool() && files.size()<2)) {
+                fail(QStringLiteral("模型发现返回了无效条目，请检查本地 OCR 运行环境。"));return;
+            }
+            for(const auto &file:files)if(!file.isString() || file.toString().size()>32768 || !QFileInfo(file.toString()).isAbsolute()) {
+                fail(QStringLiteral("模型发现返回了无效文件路径。"));return;
+            }
+            seen.insert(id);
+        }
+        cancelOcrCatalog();finishOcrCatalog(models);
+    });
+    process->setProgram(runtime+"/python.exe");process->setWorkingDirectory(runtime);
+    process->setArguments({"-I","-B",runtime+"/helper.py","--catalog","--model-dir",Translation::OcrProfiles::modelDirectory()});
+    m_catalogTimeout->start(30000);process->start();process->closeWriteChannel();
+}
+void TranslationSettingsPage::finishOcrCatalog(const QJsonArray &models,const QString &error)
+{
+    const auto selected=m_ocrProfile->currentData().toString();
+    {
+        const QSignalBlocker blocker(m_ocrProfile);m_catalogEntries.clear();
+        for(int i=m_ocrProfile->count()-1;i>=0;--i)
+            if(Translation::OcrProfiles::isLocalProfile(m_ocrProfile->itemData(i).toString()))m_ocrProfile->removeItem(i);
+        auto *model=qobject_cast<QStandardItemModel *>(m_ocrProfile->model());
+        for(const auto &value:models) {
+            const auto entry=value.toObject();const auto id=entry.value("id").toString();
+            if(!Translation::OcrProfiles::isLocalProfile(id))continue;
+            m_catalogEntries.insert(id,entry);const bool enabled=entry.value("enabled").toBool();
+            m_ocrProfile->addItem((enabled?QString():QStringLiteral("不可用 · "))+entry.value("name").toString(),id);
+            auto *item=model->item(m_ocrProfile->count()-1);item->setEnabled(enabled);
+            item->setToolTip("<p>"+(enabled?entry.value("description").toString():entry.value("error").toString()).toHtmlEscaped()+"</p>");
+        }
+        if(!selected.isEmpty() && m_ocrProfile->findData(selected)<0) {
+            m_ocrProfile->addItem(QStringLiteral("不可用 · %1").arg(selected),selected);
+            model->item(m_ocrProfile->count()-1)->setEnabled(false);
+        }
+        m_ocrProfile->setCurrentIndex(m_ocrProfile->findData(selected));
+    }
+    m_ocrRefresh->setEnabled(true);
+    if(!error.isEmpty())m_ocrStatus->setText(error);
+    else if(Translation::OcrProfiles::isLocalProfile(selected)) {
+        const auto entry=m_catalogEntries.value(selected);
+        m_ocrStatus->setText(entry.value("enabled").toBool()?entry.value("description").toString():
+            QStringLiteral("所选文件夹模型不可用：%1").arg(entry.value("error").toString(QStringLiteral("文件夹已移除或改名，请重新选择模型。"))));
+    }
+}
+void TranslationSettingsPage::cancelOcrCatalog()
+{
+    ++m_catalogGeneration;m_catalogTimeout->stop();m_catalogOutput.clear();m_ocrRefresh->setEnabled(true);
+    if(!m_ocrCatalog)return;
+    auto *process=m_ocrCatalog.data();m_ocrCatalog.clear();disconnect(process,nullptr,this,nullptr);process->setParent(nullptr);
+    if(process->state()!=QProcess::NotRunning) {
+        connect(process,qOverload<int,QProcess::ExitStatus>(&QProcess::finished),process,&QObject::deleteLater);
+        connect(process,&QProcess::errorOccurred,process,[process](QProcess::ProcessError error){if(error==QProcess::FailedToStart)process->deleteLater();});
+        process->kill();
+    } else process->deleteLater();
+}
+void TranslationSettingsPage::cancelTest(){m_client->cancel();m_test->setEnabled(true);m_cancel->setEnabled(false);cancelOcrCatalog();cancelOcrValidation(true);}
 void TranslationSettingsPage::testConnection()
 {
     auto cfg=configuration();cfg.mode="cloud";

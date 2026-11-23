@@ -1,10 +1,10 @@
 # TaskPin PaddleOCR runtime attribution
 
-TaskPin's local OCR uses **PaddleOCR PP-OCRv5 mobile and lightweight PP-OCRv4 mobile detection and recognition
+TaskPin's local OCR uses **PaddleOCR PP-OCRv5 mobile and lightweight PP-OCRv4 mobile and PP-OCRv6 tiny detection and recognition
 models**. RapidOCR 3.10.0 is the inference wrapper; ONNX Runtime 1.32.0 executes
 the converted models on the CPU. RapidOCR is not a replacement model family.
 The optional angle classifier is disabled. No PaddlePaddle Python package is
-distributed, and the unused PP-OCRv6/classifier artifacts in RapidOCR's wheel
+distributed, and the unused PP-OCRv6 small/medium and classifier artifacts in RapidOCR's wheel
 are omitted from this runtime.
 
 The model weights are copyright Baidu and/or the applicable PaddleOCR rights
@@ -25,11 +25,14 @@ without changing their contents.
 | `ch_PP-OCRv4_det_mobile.onnx` | `PP-OCRv4 mobile detection` | `d2a7720d45a54257208b1e13e36a8479894cb74155a5efe29462512d42f49da9` |
 | `ch_PP-OCRv4_rec_mobile.onnx` | `PP-OCRv4 mobile recognition` | `48fc40f24f6d2a207a2b1091d3437eb3cc3eb6b676dc3ef9c37384005483683b` |
 
+| `PP-OCRv6_det_tiny.onnx` | `PP-OCRv6_det_tiny` | `f42c0fbd294d95eac1a550e131b277dac97462c8025fa4b6c3cec1b7894bd3d5` |
+| `PP-OCRv6_rec_tiny.onnx` | `PP-OCRv6_rec_tiny` | `e16e242de5937ad92609223f19bc2aff3727ee40b095f996907c24749bad251b` |
+
 Model source URLs and immutable artifact hashes are in
 `TaskPinQt/ocr/runtime-lock.json`. The source registry is RapidOCR 3.10.0,
 Git commit `38ed48d802cfb9f91d24153258427beef2b3d50c`:
 
-- [RapidOCR model registry](https://github.com/RapidAI/RapidOCR/blob/38ed48d802cfb9f91d24153258427beef2b3d50c/rapidocr/default_models.yaml)
+- [RapidOCR model registry](https://github.com/RapidAI/RapidOCR/blob/38ed48d802cfb9f91d24153258427beef2b3d50c/python/rapidocr/default_models.yaml)
 - [PaddleOCR 3.0.3 source and license](https://github.com/PaddlePaddle/PaddleOCR/tree/v3.0.3)
 - [PaddleOCR PP-OCRv4 introduction](https://github.com/PaddlePaddle/PaddleOCR/blob/release/2.7/doc/doc_ch/PP-OCRv4_introduction.md)
 - [Official detection model](https://huggingface.co/PaddlePaddle/PP-OCRv5_mobile_det)

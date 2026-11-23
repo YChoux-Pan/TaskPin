@@ -29,6 +29,8 @@
 #include <QPlainTextEdit>
 #include <QPushButton>
 #include <QSignalSpy>
+#include <QScopeGuard>
+#include <QStandardItemModel>
 #include <QTcpServer>
 #include <QTcpSocket>
 #include <QTemporaryDir>
@@ -367,6 +369,129 @@ private slots:
         }
         QCOMPARE(OcrProfiles::load(&error).profile,QString("builtin-ppocrv4-mobile"));
         QFile::remove(selection);
+    }
+    void v6OcrSelectionSavesAndReopens() {
+        Config local;QString error;QVERIFY(local.save(&error));QFile::remove(OcrProfiles::settingsPath());
+        {
+            TranslationSettingsPage page;auto *choice=page.findChild<QComboBox *>("translationOcrProfile");
+            const int tiny=choice->findData("builtin-ppocrv6-tiny");QVERIFY(tiny>=0);
+            choice->setCurrentIndex(tiny);QVERIFY2(page.save(),qPrintable(page.findChild<QLabel *>("translationOcrStatus")->text()));
+        }
+        QCOMPARE(OcrProfiles::load(&error).profile,QString("builtin-ppocrv6-tiny"));QVERIFY(error.isEmpty());
+        TranslationSettingsPage reopened;QCOMPARE(reopened.findChild<QComboBox *>("translationOcrProfile")->currentData().toString(),QString("builtin-ppocrv6-tiny"));
+        QFile::remove(OcrProfiles::settingsPath());
+    }
+    void ocrFolderRefreshPreservesDraftAndMissingSelection() {
+        QTemporaryDir packages;QVERIFY(packages.isValid());const auto previous=qgetenv("TASKPIN_OCR_MODELS");
+        qputenv("TASKPIN_OCR_MODELS",packages.path().toUtf8());
+        const auto restore=qScopeGuard([previous]{if(previous.isEmpty())qunsetenv("TASKPIN_OCR_MODELS");else qputenv("TASKPIN_OCR_MODELS",previous);});
+        QFile::remove(OcrProfiles::settingsPath());
+        const QString folder=packages.path()+"/dropped-small";QVERIFY(QDir().mkpath(folder));
+        for(const auto &name:{"PP-OCRv6_det_small.onnx","PP-OCRv6_rec_small.onnx"}) {
+            QFile file(folder+"/"+name);QVERIFY(file.open(QIODevice::WriteOnly));file.write("catalog metadata fixture");
+        }
+        QString id;
+        {
+            TranslationSettingsPage page;auto *choice=page.findChild<QComboBox *>("translationOcrProfile");
+            auto *refresh=page.findChild<QPushButton *>("translationOcrRefresh");QVERIFY(refresh);
+            QVERIFY(page.findChild<QPushButton *>("translationOcrOpenFolder"));
+            auto localIndex=[&]{for(int i=0;i<choice->count();++i)if(choice->itemData(i).toString().startsWith("local-"))return i;return -1;};
+            QTRY_VERIFY_WITH_TIMEOUT(localIndex()>=0,30000);id=choice->itemData(localIndex()).toString();
+            choice->setCurrentIndex(choice->findData("custom"));page.findChild<QLineEdit *>("translationOcrProfilePath")->setText("unsaved-draft.json");
+            refresh->click();QTRY_VERIFY_WITH_TIMEOUT(refresh->isEnabled(),30000);
+            QCOMPARE(choice->currentData().toString(),QString("custom"));QCOMPARE(page.findChild<QLineEdit *>("translationOcrProfilePath")->text(),QString("unsaved-draft.json"));
+            choice->setCurrentIndex(choice->findData(id));QSignalSpy ready(&page,SIGNAL(saveReady()));QSignalSpy busy(&page,SIGNAL(validationBusyChanged(bool)));
+            QVERIFY(!page.save());QTRY_VERIFY_WITH_TIMEOUT(busy.size()>=2,30000);QCOMPARE(ready.size(),0);
+            QVERIFY(!QFileInfo::exists(OcrProfiles::settingsPath()));
+        }
+        QVERIFY(!QFileInfo::exists(OcrProfiles::settingsPath()));
+        OcrProfiles selection;selection.profile=id;QString error;QVERIFY(selection.save(&error,false));
+        QVERIFY(QDir(folder).removeRecursively());
+        {
+            TranslationSettingsPage page;auto *choice=page.findChild<QComboBox *>("translationOcrProfile");
+            QTRY_VERIFY_WITH_TIMEOUT(page.findChild<QPushButton *>("translationOcrRefresh")->isEnabled(),30000);
+            QCOMPARE(choice->currentData().toString(),id);QVERIFY(choice->currentText().contains(QStringLiteral("不可用")));
+            auto *model=qobject_cast<QStandardItemModel *>(choice->model());QVERIFY(model);QVERIFY(!model->item(choice->currentIndex())->isEnabled());
+            QVERIFY(!page.save());
+        }
+        QFile::remove(OcrProfiles::settingsPath());
+    }
+    void folderOcrLoadsOnSaveAndRoutesSharedWorker() {
+        QVERIFY(Translation::Ocr::available());QTemporaryDir packages;QVERIFY(packages.isValid());
+        const auto previous=qgetenv("TASKPIN_OCR_MODELS");qputenv("TASKPIN_OCR_MODELS",packages.path().toUtf8());
+        const auto restore=qScopeGuard([previous]{QFile::remove(OcrProfiles::settingsPath());if(previous.isEmpty())qunsetenv("TASKPIN_OCR_MODELS");else qputenv("TASKPIN_OCR_MODELS",previous);});
+        Config local;QString error;QVERIFY(local.save(&error));QFile::remove(OcrProfiles::settingsPath());
+        const QString folder=packages.path()+"/actual-tiny";QVERIFY(QDir().mkpath(folder));
+        for(const auto &name:{"PP-OCRv6_det_tiny.onnx","PP-OCRv6_rec_tiny.onnx"})
+            QVERIFY(QFile::copy(Translation::Ocr::runtimeDirectory()+"/models/"+name,folder+"/"+name));
+        QString selected;
+        {
+            TranslationSettingsPage page;auto *choice=page.findChild<QComboBox *>("translationOcrProfile");
+            auto localIndex=[&]{for(int i=0;i<choice->count();++i)if(choice->itemData(i).toString().startsWith("local-"))return i;return -1;};
+            QTRY_VERIFY_WITH_TIMEOUT(localIndex()>=0,30000);selected=choice->itemData(localIndex()).toString();choice->setCurrentIndex(localIndex());
+            QSignalSpy ready(&page,SIGNAL(saveReady()));bool heartbeat=false;QTimer::singleShot(0,&page,[&]{heartbeat=true;});
+            QElapsedTimer elapsed;elapsed.start();QVERIFY(!page.save());QVERIFY(elapsed.elapsed()<500);QVERIFY(!QFileInfo::exists(OcrProfiles::settingsPath()));
+            QTRY_VERIFY(heartbeat);page.cancelTest();QTest::qWait(100);QCOMPARE(ready.size(),0);QVERIFY(!QFileInfo::exists(OcrProfiles::settingsPath()));
+            QVERIFY(!page.save());QTRY_COMPARE_WITH_TIMEOUT(ready.size(),1,90000);
+            // A descriptor added after loading changes model interpretation even
+            // when the already-discovered weight files have not changed.
+            QFile descriptor(folder+"/model.json");QVERIFY(descriptor.open(QIODevice::WriteOnly));descriptor.write("{invalid}");descriptor.close();
+            QVERIFY(!page.save());QVERIFY(!QFileInfo::exists(OcrProfiles::settingsPath()));
+            page.cancelTest();QVERIFY(QFile::remove(descriptor.fileName()));
+            QVERIFY(!page.save());QTRY_COMPARE_WITH_TIMEOUT(ready.size(),2,90000);QVERIFY(page.save());
+        }
+        QCOMPARE(OcrProfiles::load(&error).profile,selected);QVERIFY(error.isEmpty());
+        {
+            TranslationSettingsPage draft;auto *choice=draft.findChild<QComboBox *>("translationOcrProfile");
+            QTRY_VERIFY_WITH_TIMEOUT(draft.findChild<QPushButton *>("translationOcrRefresh")->isEnabled(),30000);
+            QCOMPARE(choice->currentData().toString(),selected);choice->setCurrentIndex(choice->findData("builtin-ppocrv5-mobile"));
+        }
+        QCOMPARE(OcrProfiles::load(&error).profile,selected);
+        Translation::Ocr recognizer;QSignalSpy finished(&recognizer,&Translation::Ocr::finished),failed(&recognizer,&Translation::Ocr::failed);
+        QImage image(300,80,QImage::Format_RGB32);image.fill(Qt::white);recognizer.recognize("folder-routing",image);
+        QTRY_VERIFY_WITH_TIMEOUT(!finished.isEmpty() || !failed.isEmpty(),90000);
+        QVERIFY2(failed.isEmpty(),failed.isEmpty()?"":qPrintable(failed.first()[1].toString()));
+        const auto result=qvariant_cast<OcrResult>(finished.last()[1]);QCOMPARE(result.profileId,selected);QCOMPARE(result.engine,QString("PaddleOCR PP-OCRv6"));
+    }
+    void folderOcrValidationRejectsPackageMembershipChanges_data() {
+        QTest::addColumn<bool>("afterReady");
+        QTest::newRow("while-loading")<<false;QTest::newRow("after-loading")<<true;
+    }
+    void folderOcrValidationRejectsPackageMembershipChanges() {
+        QFETCH(bool,afterReady);QVERIFY(Translation::Ocr::available());QTemporaryDir packages;QVERIFY(packages.isValid());
+        const auto previous=qgetenv("TASKPIN_OCR_MODELS");qputenv("TASKPIN_OCR_MODELS",packages.path().toUtf8());
+        const auto restore=qScopeGuard([previous]{QFile::remove(OcrProfiles::settingsPath());if(previous.isEmpty())qunsetenv("TASKPIN_OCR_MODELS");else qputenv("TASKPIN_OCR_MODELS",previous);});
+        Config local;QString error;QVERIFY(local.save(&error));QFile::remove(OcrProfiles::settingsPath());
+        QFile translation(Settings::dataDir()+"/translation.json");QVERIFY(translation.open(QIODevice::ReadOnly));const auto before=translation.readAll();translation.close();
+        const QString folder=packages.path()+"/changing-tiny";QVERIFY(QDir().mkpath(folder));
+        for(const auto &name:{"PP-OCRv6_det_tiny.onnx","PP-OCRv6_rec_tiny.onnx"})
+            QVERIFY(QFile::copy(Translation::Ocr::runtimeDirectory()+"/models/"+name,folder+"/"+name));
+        TranslationSettingsPage page;auto *choice=page.findChild<QComboBox *>("translationOcrProfile");
+        auto localIndex=[&]{for(int i=0;i<choice->count();++i)if(choice->itemData(i).toString().startsWith("local-"))return i;return -1;};
+        QTRY_VERIFY_WITH_TIMEOUT(localIndex()>=0,30000);choice->setCurrentIndex(localIndex());
+        QSignalSpy ready(&page,SIGNAL(saveReady())),busy(&page,SIGNAL(validationBusyChanged(bool)));
+        QVERIFY(!page.save());
+        if(afterReady)QTRY_COMPARE_WITH_TIMEOUT(ready.size(),1,90000);
+        QFile conflict(folder+"/unknown.onnx");QVERIFY(conflict.open(QIODevice::WriteOnly));conflict.write("conflicting package member");conflict.close();
+        if(afterReady)QVERIFY(!page.save());
+        QTRY_VERIFY_WITH_TIMEOUT(!busy.isEmpty() && !busy.last().first().toBool(),90000);
+        QCOMPARE(ready.size(),afterReady?1:0);QVERIFY(!QFileInfo::exists(OcrProfiles::settingsPath()));
+        QVERIFY(translation.open(QIODevice::ReadOnly));QCOMPARE(translation.readAll(),before);
+    }
+    void customV6SchemaAndLocalIdsAreStrict() {
+        QString error;const auto path=writeDraftOcrProfile(data.path(),"v6-schema",false);QVERIFY(!path.isEmpty());
+        QFile file(path);QVERIFY(file.open(QIODevice::ReadOnly));auto object=QJsonDocument::fromJson(file.readAll()).object();file.close();
+        object.insert("detector",QJsonObject{{"limitType","max"},{"limitSideLen",960}});
+        for(const auto &task:QStringList{"det","rec"}) {auto model=object.value(task).toObject();model.insert("ocrVersion","PP-OCRv6");model.insert("modelType","tiny");model.insert("language","ch");object.insert(task,model);}
+        auto write=[&]{if(!file.open(QIODevice::WriteOnly|QIODevice::Truncate))return false;file.write(QJsonDocument(object).toJson());file.close();return true;};
+        OcrProfiles selection;selection.profile="custom";selection.customProfilePath=path;QVERIFY(write());QVERIFY2(selection.validate(&error,false),qPrintable(error));
+        object.insert("detector",QJsonObject{{"limitType","max"},{"limitSideLen",31}});QVERIFY(write());QVERIFY(!selection.validate(&error,false));
+        object.insert("detector",QJsonObject{{"limitType","max"},{"limitSideLen",960}});auto model=object.value("rec").toObject();model.insert("modelType","mobile");object.insert("rec",model);QVERIFY(write());QVERIFY(!selection.validate(&error,false));
+        selection.profile="local-"+QString(64,'a');QVERIFY(selection.validate(&error,false));
+        for(const auto &id:QStringList{"local-a","local-"+QString(64,'A'),"local-"+QString(65,'a'),"local-../model"}) {selection.profile=id;QVERIFY(!selection.validate(&error,false));}
+        const auto configured=qgetenv("TASKPIN_OCR_MODELS");qputenv("TASKPIN_OCR_MODELS",data.path().toUtf8());
+        QCOMPARE(OcrProfiles::modelDirectory(),QDir::cleanPath(data.path()));
+        if(configured.isEmpty())qunsetenv("TASKPIN_OCR_MODELS");else qputenv("TASKPIN_OCR_MODELS",configured);
     }
     void lightweightOcrActuallySwitchesSharedWorker() {
         QVERIFY2(Translation::Ocr::available(),"Real packaged OCR runtime required");

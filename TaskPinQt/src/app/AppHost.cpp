@@ -1013,9 +1013,12 @@ QJsonObject AppHost::dumpState() const
     ocr["aiPending"] = !m_pendingTaskId.isEmpty();
     const auto ocrSelection=Translation::OcrProfiles::load();
     ocr["profile"] = ocrSelection.profile;
-    ocr["engine"] = ocrSelection.profile=="builtin-ppocrv4-mobile"?QStringLiteral("PaddleOCR PP-OCRv4"):
+    ocr["modelDirectory"] = Translation::OcrProfiles::modelDirectory();
+    ocr["engine"] = ocrSelection.profile=="builtin-ppocrv6-tiny"?QStringLiteral("PaddleOCR PP-OCRv6"):
+        ocrSelection.profile=="builtin-ppocrv4-mobile"?QStringLiteral("PaddleOCR PP-OCRv4"):
         ocrSelection.profile=="builtin-ppocrv5-mobile"?QStringLiteral("PaddleOCR PP-OCRv5"):
-        ocrSelection.profile=="custom"?QStringLiteral("PaddleOCR · 自定义模型"):QStringLiteral("PaddleOCR · 配置无效");
+        ocrSelection.profile=="custom"?QStringLiteral("PaddleOCR · 自定义模型"):
+        Translation::OcrProfiles::isLocalProfile(ocrSelection.profile)?QStringLiteral("PaddleOCR · 文件夹模型"):QStringLiteral("PaddleOCR · 配置无效");
     o["ocr"] = ocr;
 
     syncTrayHints();   // the dump reflects the chords the tray menu would show

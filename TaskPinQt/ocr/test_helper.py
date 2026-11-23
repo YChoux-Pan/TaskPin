@@ -78,6 +78,10 @@ def check_worker(runtime: Path, image: Image.Image, profile_path: Path, profile:
         assert light["ok"] and light["profileId"] == "builtin-ppocrv4-mobile"
         assert light["engine"] == "PaddleOCR PP-OCRv4" and not light["workerReused"]
         assert light_warm["ok"] and light_warm["workerReused"] and light_warm["stageMs"]["load"] == 0
+        tiny = exchange("tiny", profile_id="builtin-ppocrv6-tiny")
+        tiny_warm = exchange("tiny-warm", profile_id="builtin-ppocrv6-tiny")
+        assert tiny['ok'] and tiny['engine']=='PaddleOCR PP-OCRv6' and not tiny['workerReused']
+        assert tiny_warm['ok'] and tiny_warm['workerReused'] and tiny_warm['stageMs']['load']==0
         assert light["modelIdentity"] != cold["modelIdentity"]
         back = exchange("back-to-default")
         assert back["ok"] and not back["workerReused"] and back["modelIdentity"] == cold["modelIdentity"]
@@ -92,7 +96,7 @@ def check_worker(runtime: Path, image: Image.Image, profile_path: Path, profile:
         assert after_failure["ok"] and after_failure["workerReused"]
         return [{"fixture": "worker-" + name, "matched": True, "stageMs": reply["stageMs"]}
                 for name, reply in (("cold", cold), ("warm", warm), ("lightweight", light),
-                                    ("lightweight-warm", light_warm), ("back-to-default", back), ("switch", custom))]
+                                    ("lightweight-warm", light_warm), ("tiny",tiny), ("tiny-warm",tiny_warm), ("back-to-default", back), ("switch", custom))]
     finally:
         try:
             worker.stdin.close()
@@ -120,9 +124,10 @@ def fixture(lines: list[str], dark: bool = False, font_path: Path | None = None)
 
 def check_regions(reply: dict, image: Image.Image, family: str = "v5") -> None:
     assert reply["ok"] and reply["engine"] == "PaddleOCR PP-OCR" + family, reply
-    assert reply["modelVersion"] == "PP-OCR" + family + "_mobile/RapidOCR-v3.10.0"
+    kind='tiny' if family=='v6' else 'mobile'
+    assert reply["modelVersion"] == "PP-OCR" + family + "_"+kind+"/RapidOCR-v3.10.0"
     assert reply["language"] == "multi"
-    assert reply.get("profileId") == "builtin-ppocr" + family + "-mobile", "Helper did not report selected profile"
+    assert reply.get("profileId") == "builtin-ppocr" + family + "-"+kind, "Helper did not report selected profile"
     assert reply.get("modelIdentity", "").startswith("sha256:")
     stages = reply.get("stageMs", {})
     for stage in ("import", "load", "inference", "verifyModels", "prepareImage", "formatResult", "total"):
@@ -147,6 +152,15 @@ def main() -> None:
     args = parser.parse_args()
     runtime = args.runtime.resolve()
     results = []
+    for name,lines,expected,dark in [
+        ('english',['Hello TaskPin 2026','Keep the original text.'],['HelloTaskPin2026','originaltext'],False),
+        ('chinese',['请确认翻译结果','保留原始文字'],['确认翻译结果','保留原始文字'],False),
+        ('dark',['const maxRetries = 3;','retry failed requests','离线文字识别'],['maxRetries=3','retryfailedrequests','离线文字识别'],True)]:
+        image=fixture(lines,dark,args.font);reply,seconds=call(runtime,request(image,profile_id='builtin-ppocrv6-tiny'))
+        check_regions(reply,image,'v6')
+        normalized=''.join(item['text'] for item in reply['lines']).replace(' ','')
+        assert all(phrase in normalized for phrase in expected),('v6 tiny generated text missing',name)
+        results.append({'fixture':'tiny-'+name,'matched':True,'processSeconds':round(seconds,3),'stageMs':reply['stageMs']})
     for name, lines, expected, dark in [
         ("english", ["Hello TaskPin 2026", "Keep the original text."], ["HelloTaskPin2026", "originaltext"], False),
         ("chinese", ["请确认翻译结果", "保留原始文字"], ["确认翻译结果", "保留原始文字"], False),
@@ -272,7 +286,7 @@ def main() -> None:
 
     assert not list(runtime.rglob("__pycache__")), "Runtime wrote Python bytecode"
     print(json.dumps({"ok": True, "fixtures": results, "invalidInputCases": len(malformed),
-                      "tamperAndMissingModelRejected": True, "builtinProfilesTested": ["builtin-ppocrv5-mobile", "builtin-ppocrv4-mobile"],
+                      "tamperAndMissingModelRejected": True, "builtinProfilesTested": ["builtin-ppocrv5-mobile", "builtin-ppocrv4-mobile", "builtin-ppocrv6-tiny"],
                       "networkInference": False, "imageOrTranscriptFilesWritten": False}, ensure_ascii=True, indent=2))
 
 

@@ -30,7 +30,8 @@ if (!(Test-Path -LiteralPath (Join-Path $ocrRuntime 'python.exe')) -or !(Test-Pa
 $ocrCheck = & (Join-Path $ocrRuntime 'python.exe') -I -B (Join-Path $ocrRuntime 'helper.py') --self-check
 $ocrStatus = $ocrCheck | ConvertFrom-Json
 if ($LASTEXITCODE -ne 0 -or !$ocrStatus.runtimeReady -or
-    @($ocrStatus.builtinProfilesVerified).Count -ne 2 -or
+    @($ocrStatus.builtinProfilesVerified).Count -ne 3 -or
+    'builtin-ppocrv6-tiny' -notin $ocrStatus.builtinProfilesVerified -or
     'builtin-ppocrv4-mobile' -notin $ocrStatus.builtinProfilesVerified -or
     'builtin-ppocrv5-mobile' -notin $ocrStatus.builtinProfilesVerified) {
     throw 'PaddleOCR model/runtime self-check failed before packaging.'
@@ -46,6 +47,8 @@ foreach ($driver in @('qsqlodbc.dll', 'qsqlpsql.dll')) {
 }
 Copy-Item -LiteralPath (Join-Path $root 'LICENSE'), (Join-Path $root 'THIRD_PARTY_NOTICES.md') -Destination $appDir
 Copy-Item -LiteralPath (Join-Path $root 'docs/PORTABLE-README.txt') -Destination (Join-Path $appDir 'README.txt')
+New-Item -ItemType Directory -Path (Join-Path $appDir 'ocr-models') | Out-Null
+Copy-Item -LiteralPath (Join-Path $root 'docs/OCR-MODELS-README.txt') -Destination (Join-Path $appDir 'ocr-models/README.txt')
 Copy-Item -LiteralPath (Join-Path $root 'licenses') -Destination $appDir -Recurse
 $forbidden = @(Get-ChildItem -LiteralPath $appDir -Recurse -File | Where-Object {
     $_.Extension -in @('.db', '.log', '.a', '.cmake', '.obj', '.o') -or $_.Name -eq 'CMakeCache.txt'
