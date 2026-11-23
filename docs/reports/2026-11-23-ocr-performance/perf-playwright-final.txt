@@ -1,17 +1,17 @@
-
-Running 10 tests using 1 worker
-
-(node:32612) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
-(Use `node --trace-warnings ...` to show where the warning was created)
-  ok  1 tests\playwright\native.spec.ts:55:1 › F1 editor → real PaddleOCR → translation pin, no result popup (2.9s)
-  ok  2 tests\playwright\native.spec.ts:80:3 › Wheel reversal, cursor anchor and cache stability at display scale 1 (2.8s)
-  ok  3 tests\playwright\native.spec.ts:80:3 › Wheel reversal, cursor anchor and cache stability at display scale 1.25 (2.8s)
-  ok  4 tests\playwright\native.spec.ts:80:3 › Wheel reversal, cursor anchor and cache stability at display scale 1.5 (2.9s)
-  ok  5 tests\playwright\native.spec.ts:80:3 › Wheel reversal, cursor anchor and cache stability at display scale 2 (2.8s)
-  ok  6 tests\playwright\native.spec.ts:87:1 › Comparison stays opaque and proportional on light/dark pins (157ms)
-  ok  7 tests\playwright\native.spec.ts:91:1 › F3 and custom editor shortcuts export the selected image (99ms)
-  ok  8 tests\playwright\native.spec.ts:97:1 › Host hotkey routing, persistence and collision checks match settings (147ms)
-  ok  9 tests\playwright\native.spec.ts:103:1 › OCR profile validation, save and cancel preserve configuration (9.8s)
-  ok 10 tests\playwright\native.spec.ts:111:1 › Isolated application selftest keeps data and platform contracts (75ms)
-
-  10 passed (25.1s)
+
+Running 10 tests using 1 worker
+
+(node:32612) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ok  1 tests\playwright\native.spec.ts:55:1 › F1 editor → real PaddleOCR → translation pin, no result popup (2.9s)
+  ok  2 tests\playwright\native.spec.ts:80:3 › Wheel reversal, cursor anchor and cache stability at display scale 1 (2.8s)
+  ok  3 tests\playwright\native.spec.ts:80:3 › Wheel reversal, cursor anchor and cache stability at display scale 1.25 (2.8s)
+  ok  4 tests\playwright\native.spec.ts:80:3 › Wheel reversal, cursor anchor and cache stability at display scale 1.5 (2.9s)
+  ok  5 tests\playwright\native.spec.ts:80:3 › Wheel reversal, cursor anchor and cache stability at display scale 2 (2.8s)
+  ok  6 tests\playwright\native.spec.ts:87:1 › Comparison stays opaque and proportional on light/dark pins (157ms)
+  ok  7 tests\playwright\native.spec.ts:91:1 › F3 and custom editor shortcuts export the selected image (99ms)
+  ok  8 tests\playwright\native.spec.ts:97:1 › Host hotkey routing, persistence and collision checks match settings (147ms)
+  ok  9 tests\playwright\native.spec.ts:103:1 › OCR profile validation, save and cancel preserve configuration (9.8s)
+  ok 10 tests\playwright\native.spec.ts:111:1 › Isolated application selftest keeps data and platform contracts (75ms)
+
+  10 passed (25.1s)

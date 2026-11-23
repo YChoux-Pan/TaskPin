@@ -1,16 +1,16 @@
-********* Start testing of TranslationTests *********
-Config: Using QtTest library 6.4.3, Qt 6.4.3 (x86_64-little_endian-llp64 shared (dynamic) release build; by GCC 11.2.0), windows 11
-PASS   : TranslationTests::initTestCase()
-FAIL!  : TranslationTests::ocrTimingMetadataIsValidatedAndPreserved() Compared values are not the same
-   Actual   (result.profileId)   : ""
-   Expected (QString("local-v4")): "local-v4"
-[development]/pin-source/TaskPinQt/tests/tst_translation.cpp(400) : failure location
-FAIL!  : TranslationTests::sharedOcrWorkerReusesModelAndHonorsCancelledOwners() 'warm.workerReused' returned FALSE. ()
-[development]/pin-source/TaskPinQt/tests/tst_translation.cpp(415) : failure location
-FAIL!  : TranslationTests::ocrModelHashFailureExplainsSelectedModelProblem() 'error.contains("SHA256")' returned FALSE. ()
-[development]/pin-source/TaskPinQt/tests/tst_translation.cpp(389) : failure location
-FAIL!  : TranslationTests::invalidSavedOcrSelectionFailsVisiblyBeforeRuntimeFallback() 'failure.contains(QStringLiteral("配置"))' returned FALSE. ()
-[development]/pin-source/TaskPinQt/tests/tst_translation.cpp(377) : failure location
-PASS   : TranslationTests::cleanupTestCase()
-Totals: 2 passed, 4 failed, 0 skipped, 0 blacklisted, 6377ms
-********* Finished testing of TranslationTests *********
+********* Start testing of TranslationTests *********
+Config: Using QtTest library 6.4.3, Qt 6.4.3 (x86_64-little_endian-llp64 shared (dynamic) release build; by GCC 11.2.0), windows 11
+PASS   : TranslationTests::initTestCase()
+FAIL!  : TranslationTests::ocrTimingMetadataIsValidatedAndPreserved() Compared values are not the same
+   Actual   (result.profileId)   : ""
+   Expected (QString("local-v4")): "local-v4"
+[development]/pin-source/TaskPinQt/tests/tst_translation.cpp(400) : failure location
+FAIL!  : TranslationTests::sharedOcrWorkerReusesModelAndHonorsCancelledOwners() 'warm.workerReused' returned FALSE. ()
+[development]/pin-source/TaskPinQt/tests/tst_translation.cpp(415) : failure location
+FAIL!  : TranslationTests::ocrModelHashFailureExplainsSelectedModelProblem() 'error.contains("SHA256")' returned FALSE. ()
+[development]/pin-source/TaskPinQt/tests/tst_translation.cpp(389) : failure location
+FAIL!  : TranslationTests::invalidSavedOcrSelectionFailsVisiblyBeforeRuntimeFallback() 'failure.contains(QStringLiteral("配置"))' returned FALSE. ()
+[development]/pin-source/TaskPinQt/tests/tst_translation.cpp(377) : failure location
+PASS   : TranslationTests::cleanupTestCase()
+Totals: 2 passed, 4 failed, 0 skipped, 0 blacklisted, 6377ms
+********* Finished testing of TranslationTests *********

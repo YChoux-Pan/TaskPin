@@ -1,131 +1,131 @@
-********* Start testing of IntegrationTests *********
-Config: Using QtTest library 6.4.3, Qt 6.4.3 (x86_64-little_endian-llp64 shared (dynamic) release build; by GCC 11.2.0), windows 11
-PASS   : IntegrationTests::initTestCase()
-PASS   : IntegrationTests::hotkeySettingsUpgrade(fresh)
-PASS   : IntegrationTests::hotkeySettingsUpgrade(old-defaults)
-PASS   : IntegrationTests::hotkeySettingsUpgrade(legacy-flat)
-PASS   : IntegrationTests::hotkeySettingsUpgrade(custom)
-PASS   : IntegrationTests::hotkeySettingsUpgrade(new-schema-preserves-old-chords)
-PASS   : IntegrationTests::hotkeySettingsUpgrade(mixed)
-QWARN  : IntegrationTests::editorTranslationHotkeyPersistsThroughDialog() QFontDatabase: Cannot find font directory [development]/pin-build/lib/fonts.
-Note that Qt no longer ships fonts. Deploy some (from https://dejavu-fonts.github.io/ for example) or switch to fontconfig.
-PASS   : IntegrationTests::editorTranslationHotkeyPersistsThroughDialog()
-PASS   : IntegrationTests::editorTranslationRejectsShortcutCollision(global-pin)
-PASS   : IntegrationTests::editorTranslationRejectsShortcutCollision(editor-copy)
-PASS   : IntegrationTests::editorTranslationRejectsShortcutCollision(editor-save)
-PASS   : IntegrationTests::editorTranslationRejectsShortcutCollision(pin-alias)
-PASS   : IntegrationTests::editorTranslationRejectsShortcutCollision(pin-fallback)
-PASS   : IntegrationTests::editorTranslationRejectsShortcutCollision(snip-fallback)
-PASS   : IntegrationTests::globalHotkeysProtectEditorCommands(history-cannot-steal-pin-alias)
-PASS   : IntegrationTests::globalHotkeysProtectEditorCommands(quick-cannot-steal-ocr)
-PASS   : IntegrationTests::globalHotkeysProtectEditorCommands(pin-can-use-its-own-alias)
-QINFO  : IntegrationTests::pinHotkeyRoutesToEditorInsteadOfClipboard(selected) onHotkey id=4
-PASS   : IntegrationTests::pinHotkeyRoutesToEditorInsteadOfClipboard(selected)
-QINFO  : IntegrationTests::pinHotkeyRoutesToEditorInsteadOfClipboard(no-selection) onHotkey id=4
-PASS   : IntegrationTests::pinHotkeyRoutesToEditorInsteadOfClipboard(no-selection)
-QINFO  : IntegrationTests::pinHotkeyWithoutEditorKeepsClipboardBehavior() onHotkey id=4
-QINFO  : IntegrationTests::pinHotkeyWithoutEditorKeepsClipboardBehavior() pin created 20x10 group=默认
-QINFO  : IntegrationTests::pinHotkeyWithoutEditorKeepsClipboardBehavior() toast: 已贴到桌面 20 × 10
-QINFO  : IntegrationTests::pinHotkeyWithoutEditorKeepsClipboardBehavior() pin closed, 0 remaining
-PASS   : IntegrationTests::pinHotkeyWithoutEditorKeepsClipboardBehavior()
-PASS   : IntegrationTests::instanceNamespaces()
-PASS   : IntegrationTests::aliasedDataDirectoryNamespaceIsStable()
-QINFO  : IntegrationTests::pinPresetsAndReset() pin created 200x100 group=默认
-QINFO  : IntegrationTests::pinPresetsAndReset() pin closed, 0 remaining
-PASS   : IntegrationTests::pinPresetsAndReset()
-QINFO  : IntegrationTests::automationWindowsRemainSelectable() pin created 100x60 group=默认
-QINFO  : IntegrationTests::automationWindowsRemainSelectable() pin closed, 0 remaining
-QINFO  : IntegrationTests::automationWindowsRemainSelectable() pin created 100x60 group=默认
-QINFO  : IntegrationTests::automationWindowsRemainSelectable() pin closed, 0 remaining
-PASS   : IntegrationTests::automationWindowsRemainSelectable()
-QINFO  : IntegrationTests::pinWheelValuesVisible() pin created 200x100 group=默认
-QINFO  : IntegrationTests::pinWheelValuesVisible() pin closed, 0 remaining
-PASS   : IntegrationTests::pinWheelValuesVisible()
-QINFO  : IntegrationTests::pinActionsPreserved() pin created 200x100 group=默认
-QINFO  : IntegrationTests::pinActionsPreserved() pin click-through=1
-QINFO  : IntegrationTests::pinActionsPreserved() cleared click-through on all pins
-QINFO  : IntegrationTests::pinActionsPreserved() pin closed, 0 remaining
-PASS   : IntegrationTests::pinActionsPreserved()
-QINFO  : IntegrationTests::oversizedPinPlacement() pin created 6000x4000 group=默认
-QINFO  : IntegrationTests::oversizedPinPlacement() pin closed, 0 remaining
-PASS   : IntegrationTests::oversizedPinPlacement()
-QINFO  : IntegrationTests::capturePinGeometry(1-120-80) pin created 400x200 group=默认
-QINFO  : IntegrationTests::capturePinGeometry(1-120-80) pin closed, 0 remaining
-PASS   : IntegrationTests::capturePinGeometry(1-120-80)
-QINFO  : IntegrationTests::capturePinGeometry(1--1500--700) pin created 400x200 group=默认
-QINFO  : IntegrationTests::capturePinGeometry(1--1500--700) pin closed, 0 remaining
-PASS   : IntegrationTests::capturePinGeometry(1--1500--700)
-QINFO  : IntegrationTests::capturePinGeometry(1-0-0) pin created 400x200 group=默认
-QINFO  : IntegrationTests::capturePinGeometry(1-0-0) pin closed, 0 remaining
-PASS   : IntegrationTests::capturePinGeometry(1-0-0)
-QINFO  : IntegrationTests::capturePinGeometry(1-1520-880) pin created 400x200 group=默认
-QINFO  : IntegrationTests::capturePinGeometry(1-1520-880) pin closed, 0 remaining
-PASS   : IntegrationTests::capturePinGeometry(1-1520-880)
-QINFO  : IntegrationTests::capturePinGeometry(1.25-120-80) pin created 500x250 group=默认
-QINFO  : IntegrationTests::capturePinGeometry(1.25-120-80) pin closed, 0 remaining
-PASS   : IntegrationTests::capturePinGeometry(1.25-120-80)
-QINFO  : IntegrationTests::capturePinGeometry(1.25--1500--700) pin created 500x250 group=默认
-QINFO  : IntegrationTests::capturePinGeometry(1.25--1500--700) pin closed, 0 remaining
-PASS   : IntegrationTests::capturePinGeometry(1.25--1500--700)
-QINFO  : IntegrationTests::capturePinGeometry(1.25-0-0) pin created 500x250 group=默认
-QINFO  : IntegrationTests::capturePinGeometry(1.25-0-0) pin closed, 0 remaining
-PASS   : IntegrationTests::capturePinGeometry(1.25-0-0)
-QINFO  : IntegrationTests::capturePinGeometry(1.25-1520-880) pin created 500x250 group=默认
-QINFO  : IntegrationTests::capturePinGeometry(1.25-1520-880) pin closed, 0 remaining
-PASS   : IntegrationTests::capturePinGeometry(1.25-1520-880)
-QINFO  : IntegrationTests::capturePinGeometry(1.5-120-80) pin created 600x300 group=默认
-QINFO  : IntegrationTests::capturePinGeometry(1.5-120-80) pin closed, 0 remaining
-PASS   : IntegrationTests::capturePinGeometry(1.5-120-80)
-QINFO  : IntegrationTests::capturePinGeometry(1.5--1500--700) pin created 600x300 group=默认
-QINFO  : IntegrationTests::capturePinGeometry(1.5--1500--700) pin closed, 0 remaining
-PASS   : IntegrationTests::capturePinGeometry(1.5--1500--700)
-QINFO  : IntegrationTests::capturePinGeometry(1.5-0-0) pin created 600x300 group=默认
-QINFO  : IntegrationTests::capturePinGeometry(1.5-0-0) pin closed, 0 remaining
-PASS   : IntegrationTests::capturePinGeometry(1.5-0-0)
-QINFO  : IntegrationTests::capturePinGeometry(1.5-1520-880) pin created 600x300 group=默认
-QINFO  : IntegrationTests::capturePinGeometry(1.5-1520-880) pin closed, 0 remaining
-PASS   : IntegrationTests::capturePinGeometry(1.5-1520-880)
-QINFO  : IntegrationTests::capturePinGeometry(2-120-80) pin created 800x400 group=默认
-QINFO  : IntegrationTests::capturePinGeometry(2-120-80) pin closed, 0 remaining
-PASS   : IntegrationTests::capturePinGeometry(2-120-80)
-QINFO  : IntegrationTests::capturePinGeometry(2--1500--700) pin created 800x400 group=默认
-QINFO  : IntegrationTests::capturePinGeometry(2--1500--700) pin closed, 0 remaining
-PASS   : IntegrationTests::capturePinGeometry(2--1500--700)
-QINFO  : IntegrationTests::capturePinGeometry(2-0-0) pin created 800x400 group=默认
-QINFO  : IntegrationTests::capturePinGeometry(2-0-0) pin closed, 0 remaining
-PASS   : IntegrationTests::capturePinGeometry(2-0-0)
-QINFO  : IntegrationTests::capturePinGeometry(2-1520-880) pin created 800x400 group=默认
-QINFO  : IntegrationTests::capturePinGeometry(2-1520-880) pin closed, 0 remaining
-PASS   : IntegrationTests::capturePinGeometry(2-1520-880)
-QINFO  : IntegrationTests::automationHostSettingsAndDiagnostics() TaskPin Qt 0.4.3 started, rolled over 0 task(s)
-QINFO  : IntegrationTests::automationHostSettingsAndDiagnostics() card z-order: topmost (native topmost=0)
-QINFO  : IntegrationTests::automationHostSettingsAndDiagnostics() settings applied
-QINFO  : IntegrationTests::automationHostSettingsAndDiagnostics() card z-order: topmost (native topmost=0)
-QINFO  : IntegrationTests::automationHostSettingsAndDiagnostics() toast: 设置已保存
-QINFO  : IntegrationTests::automationHostSettingsAndDiagnostics() settings applied
-QINFO  : IntegrationTests::automationHostSettingsAndDiagnostics() card z-order: topmost (native topmost=0)
-QINFO  : IntegrationTests::automationHostSettingsAndDiagnostics() toast: 设置已保存
-QINFO  : IntegrationTests::automationHostSettingsAndDiagnostics() pin created 60x40 group=默认
-QINFO  : IntegrationTests::automationHostSettingsAndDiagnostics() toast: 已贴到桌面 60 × 40
-QINFO  : IntegrationTests::automationHostSettingsAndDiagnostics() pin closed, 0 remaining
-PASS   : IntegrationTests::automationHostSettingsAndDiagnostics()
-QINFO  : IntegrationTests::automationDialogSavePreservesAutostart(disabled) TaskPin Qt 0.4.3 started, rolled over 0 task(s)
-QINFO  : IntegrationTests::automationDialogSavePreservesAutostart(disabled) card z-order: topmost (native topmost=0)
-QWARN  : IntegrationTests::automationDialogSavePreservesAutostart(disabled) This plugin does not support propagateSizeHints()
-QWARN  : IntegrationTests::automationDialogSavePreservesAutostart(disabled) This plugin does not support raise()
-QINFO  : IntegrationTests::automationDialogSavePreservesAutostart(disabled) settings applied
-QINFO  : IntegrationTests::automationDialogSavePreservesAutostart(disabled) card z-order: topmost (native topmost=0)
-QINFO  : IntegrationTests::automationDialogSavePreservesAutostart(disabled) toast: 设置已保存
-PASS   : IntegrationTests::automationDialogSavePreservesAutostart(disabled)
-QINFO  : IntegrationTests::automationDialogSavePreservesAutostart(enabled) TaskPin Qt 0.4.3 started, rolled over 0 task(s)
-QINFO  : IntegrationTests::automationDialogSavePreservesAutostart(enabled) card z-order: topmost (native topmost=0)
-QWARN  : IntegrationTests::automationDialogSavePreservesAutostart(enabled) This plugin does not support propagateSizeHints()
-QWARN  : IntegrationTests::automationDialogSavePreservesAutostart(enabled) This plugin does not support raise()
-QINFO  : IntegrationTests::automationDialogSavePreservesAutostart(enabled) settings applied
-QINFO  : IntegrationTests::automationDialogSavePreservesAutostart(enabled) card z-order: topmost (native topmost=0)
-QINFO  : IntegrationTests::automationDialogSavePreservesAutostart(enabled) toast: 设置已保存
-PASS   : IntegrationTests::automationDialogSavePreservesAutostart(enabled)
-PASS   : IntegrationTests::separateProcesses()
-PASS   : IntegrationTests::cleanupTestCase()
-Totals: 48 passed, 0 failed, 0 skipped, 0 blacklisted, 859ms
-********* Finished testing of IntegrationTests *********
+********* Start testing of IntegrationTests *********
+Config: Using QtTest library 6.4.3, Qt 6.4.3 (x86_64-little_endian-llp64 shared (dynamic) release build; by GCC 11.2.0), windows 11
+PASS   : IntegrationTests::initTestCase()
+PASS   : IntegrationTests::hotkeySettingsUpgrade(fresh)
+PASS   : IntegrationTests::hotkeySettingsUpgrade(old-defaults)
+PASS   : IntegrationTests::hotkeySettingsUpgrade(legacy-flat)
+PASS   : IntegrationTests::hotkeySettingsUpgrade(custom)
+PASS   : IntegrationTests::hotkeySettingsUpgrade(new-schema-preserves-old-chords)
+PASS   : IntegrationTests::hotkeySettingsUpgrade(mixed)
+QWARN  : IntegrationTests::editorTranslationHotkeyPersistsThroughDialog() QFontDatabase: Cannot find font directory [development]/pin-build/lib/fonts.
+Note that Qt no longer ships fonts. Deploy some (from https://dejavu-fonts.github.io/ for example) or switch to fontconfig.
+PASS   : IntegrationTests::editorTranslationHotkeyPersistsThroughDialog()
+PASS   : IntegrationTests::editorTranslationRejectsShortcutCollision(global-pin)
+PASS   : IntegrationTests::editorTranslationRejectsShortcutCollision(editor-copy)
+PASS   : IntegrationTests::editorTranslationRejectsShortcutCollision(editor-save)
+PASS   : IntegrationTests::editorTranslationRejectsShortcutCollision(pin-alias)
+PASS   : IntegrationTests::editorTranslationRejectsShortcutCollision(pin-fallback)
+PASS   : IntegrationTests::editorTranslationRejectsShortcutCollision(snip-fallback)
+PASS   : IntegrationTests::globalHotkeysProtectEditorCommands(history-cannot-steal-pin-alias)
+PASS   : IntegrationTests::globalHotkeysProtectEditorCommands(quick-cannot-steal-ocr)
+PASS   : IntegrationTests::globalHotkeysProtectEditorCommands(pin-can-use-its-own-alias)
+QINFO  : IntegrationTests::pinHotkeyRoutesToEditorInsteadOfClipboard(selected) onHotkey id=4
+PASS   : IntegrationTests::pinHotkeyRoutesToEditorInsteadOfClipboard(selected)
+QINFO  : IntegrationTests::pinHotkeyRoutesToEditorInsteadOfClipboard(no-selection) onHotkey id=4
+PASS   : IntegrationTests::pinHotkeyRoutesToEditorInsteadOfClipboard(no-selection)
+QINFO  : IntegrationTests::pinHotkeyWithoutEditorKeepsClipboardBehavior() onHotkey id=4
+QINFO  : IntegrationTests::pinHotkeyWithoutEditorKeepsClipboardBehavior() pin created 20x10 group=默认
+QINFO  : IntegrationTests::pinHotkeyWithoutEditorKeepsClipboardBehavior() toast: 已贴到桌面 20 × 10
+QINFO  : IntegrationTests::pinHotkeyWithoutEditorKeepsClipboardBehavior() pin closed, 0 remaining
+PASS   : IntegrationTests::pinHotkeyWithoutEditorKeepsClipboardBehavior()
+PASS   : IntegrationTests::instanceNamespaces()
+PASS   : IntegrationTests::aliasedDataDirectoryNamespaceIsStable()
+QINFO  : IntegrationTests::pinPresetsAndReset() pin created 200x100 group=默认
+QINFO  : IntegrationTests::pinPresetsAndReset() pin closed, 0 remaining
+PASS   : IntegrationTests::pinPresetsAndReset()
+QINFO  : IntegrationTests::automationWindowsRemainSelectable() pin created 100x60 group=默认
+QINFO  : IntegrationTests::automationWindowsRemainSelectable() pin closed, 0 remaining
+QINFO  : IntegrationTests::automationWindowsRemainSelectable() pin created 100x60 group=默认
+QINFO  : IntegrationTests::automationWindowsRemainSelectable() pin closed, 0 remaining
+PASS   : IntegrationTests::automationWindowsRemainSelectable()
+QINFO  : IntegrationTests::pinWheelValuesVisible() pin created 200x100 group=默认
+QINFO  : IntegrationTests::pinWheelValuesVisible() pin closed, 0 remaining
+PASS   : IntegrationTests::pinWheelValuesVisible()
+QINFO  : IntegrationTests::pinActionsPreserved() pin created 200x100 group=默认
+QINFO  : IntegrationTests::pinActionsPreserved() pin click-through=1
+QINFO  : IntegrationTests::pinActionsPreserved() cleared click-through on all pins
+QINFO  : IntegrationTests::pinActionsPreserved() pin closed, 0 remaining
+PASS   : IntegrationTests::pinActionsPreserved()
+QINFO  : IntegrationTests::oversizedPinPlacement() pin created 6000x4000 group=默认
+QINFO  : IntegrationTests::oversizedPinPlacement() pin closed, 0 remaining
+PASS   : IntegrationTests::oversizedPinPlacement()
+QINFO  : IntegrationTests::capturePinGeometry(1-120-80) pin created 400x200 group=默认
+QINFO  : IntegrationTests::capturePinGeometry(1-120-80) pin closed, 0 remaining
+PASS   : IntegrationTests::capturePinGeometry(1-120-80)
+QINFO  : IntegrationTests::capturePinGeometry(1--1500--700) pin created 400x200 group=默认
+QINFO  : IntegrationTests::capturePinGeometry(1--1500--700) pin closed, 0 remaining
+PASS   : IntegrationTests::capturePinGeometry(1--1500--700)
+QINFO  : IntegrationTests::capturePinGeometry(1-0-0) pin created 400x200 group=默认
+QINFO  : IntegrationTests::capturePinGeometry(1-0-0) pin closed, 0 remaining
+PASS   : IntegrationTests::capturePinGeometry(1-0-0)
+QINFO  : IntegrationTests::capturePinGeometry(1-1520-880) pin created 400x200 group=默认
+QINFO  : IntegrationTests::capturePinGeometry(1-1520-880) pin closed, 0 remaining
+PASS   : IntegrationTests::capturePinGeometry(1-1520-880)
+QINFO  : IntegrationTests::capturePinGeometry(1.25-120-80) pin created 500x250 group=默认
+QINFO  : IntegrationTests::capturePinGeometry(1.25-120-80) pin closed, 0 remaining
+PASS   : IntegrationTests::capturePinGeometry(1.25-120-80)
+QINFO  : IntegrationTests::capturePinGeometry(1.25--1500--700) pin created 500x250 group=默认
+QINFO  : IntegrationTests::capturePinGeometry(1.25--1500--700) pin closed, 0 remaining
+PASS   : IntegrationTests::capturePinGeometry(1.25--1500--700)
+QINFO  : IntegrationTests::capturePinGeometry(1.25-0-0) pin created 500x250 group=默认
+QINFO  : IntegrationTests::capturePinGeometry(1.25-0-0) pin closed, 0 remaining
+PASS   : IntegrationTests::capturePinGeometry(1.25-0-0)
+QINFO  : IntegrationTests::capturePinGeometry(1.25-1520-880) pin created 500x250 group=默认
+QINFO  : IntegrationTests::capturePinGeometry(1.25-1520-880) pin closed, 0 remaining
+PASS   : IntegrationTests::capturePinGeometry(1.25-1520-880)
+QINFO  : IntegrationTests::capturePinGeometry(1.5-120-80) pin created 600x300 group=默认
+QINFO  : IntegrationTests::capturePinGeometry(1.5-120-80) pin closed, 0 remaining
+PASS   : IntegrationTests::capturePinGeometry(1.5-120-80)
+QINFO  : IntegrationTests::capturePinGeometry(1.5--1500--700) pin created 600x300 group=默认
+QINFO  : IntegrationTests::capturePinGeometry(1.5--1500--700) pin closed, 0 remaining
+PASS   : IntegrationTests::capturePinGeometry(1.5--1500--700)
+QINFO  : IntegrationTests::capturePinGeometry(1.5-0-0) pin created 600x300 group=默认
+QINFO  : IntegrationTests::capturePinGeometry(1.5-0-0) pin closed, 0 remaining
+PASS   : IntegrationTests::capturePinGeometry(1.5-0-0)
+QINFO  : IntegrationTests::capturePinGeometry(1.5-1520-880) pin created 600x300 group=默认
+QINFO  : IntegrationTests::capturePinGeometry(1.5-1520-880) pin closed, 0 remaining
+PASS   : IntegrationTests::capturePinGeometry(1.5-1520-880)
+QINFO  : IntegrationTests::capturePinGeometry(2-120-80) pin created 800x400 group=默认
+QINFO  : IntegrationTests::capturePinGeometry(2-120-80) pin closed, 0 remaining
+PASS   : IntegrationTests::capturePinGeometry(2-120-80)
+QINFO  : IntegrationTests::capturePinGeometry(2--1500--700) pin created 800x400 group=默认
+QINFO  : IntegrationTests::capturePinGeometry(2--1500--700) pin closed, 0 remaining
+PASS   : IntegrationTests::capturePinGeometry(2--1500--700)
+QINFO  : IntegrationTests::capturePinGeometry(2-0-0) pin created 800x400 group=默认
+QINFO  : IntegrationTests::capturePinGeometry(2-0-0) pin closed, 0 remaining
+PASS   : IntegrationTests::capturePinGeometry(2-0-0)
+QINFO  : IntegrationTests::capturePinGeometry(2-1520-880) pin created 800x400 group=默认
+QINFO  : IntegrationTests::capturePinGeometry(2-1520-880) pin closed, 0 remaining
+PASS   : IntegrationTests::capturePinGeometry(2-1520-880)
+QINFO  : IntegrationTests::automationHostSettingsAndDiagnostics() TaskPin Qt 0.4.3 started, rolled over 0 task(s)
+QINFO  : IntegrationTests::automationHostSettingsAndDiagnostics() card z-order: topmost (native topmost=0)
+QINFO  : IntegrationTests::automationHostSettingsAndDiagnostics() settings applied
+QINFO  : IntegrationTests::automationHostSettingsAndDiagnostics() card z-order: topmost (native topmost=0)
+QINFO  : IntegrationTests::automationHostSettingsAndDiagnostics() toast: 设置已保存
+QINFO  : IntegrationTests::automationHostSettingsAndDiagnostics() settings applied
+QINFO  : IntegrationTests::automationHostSettingsAndDiagnostics() card z-order: topmost (native topmost=0)
+QINFO  : IntegrationTests::automationHostSettingsAndDiagnostics() toast: 设置已保存
+QINFO  : IntegrationTests::automationHostSettingsAndDiagnostics() pin created 60x40 group=默认
+QINFO  : IntegrationTests::automationHostSettingsAndDiagnostics() toast: 已贴到桌面 60 × 40
+QINFO  : IntegrationTests::automationHostSettingsAndDiagnostics() pin closed, 0 remaining
+PASS   : IntegrationTests::automationHostSettingsAndDiagnostics()
+QINFO  : IntegrationTests::automationDialogSavePreservesAutostart(disabled) TaskPin Qt 0.4.3 started, rolled over 0 task(s)
+QINFO  : IntegrationTests::automationDialogSavePreservesAutostart(disabled) card z-order: topmost (native topmost=0)
+QWARN  : IntegrationTests::automationDialogSavePreservesAutostart(disabled) This plugin does not support propagateSizeHints()
+QWARN  : IntegrationTests::automationDialogSavePreservesAutostart(disabled) This plugin does not support raise()
+QINFO  : IntegrationTests::automationDialogSavePreservesAutostart(disabled) settings applied
+QINFO  : IntegrationTests::automationDialogSavePreservesAutostart(disabled) card z-order: topmost (native topmost=0)
+QINFO  : IntegrationTests::automationDialogSavePreservesAutostart(disabled) toast: 设置已保存
+PASS   : IntegrationTests::automationDialogSavePreservesAutostart(disabled)
+QINFO  : IntegrationTests::automationDialogSavePreservesAutostart(enabled) TaskPin Qt 0.4.3 started, rolled over 0 task(s)
+QINFO  : IntegrationTests::automationDialogSavePreservesAutostart(enabled) card z-order: topmost (native topmost=0)
+QWARN  : IntegrationTests::automationDialogSavePreservesAutostart(enabled) This plugin does not support propagateSizeHints()
+QWARN  : IntegrationTests::automationDialogSavePreservesAutostart(enabled) This plugin does not support raise()
+QINFO  : IntegrationTests::automationDialogSavePreservesAutostart(enabled) settings applied
+QINFO  : IntegrationTests::automationDialogSavePreservesAutostart(enabled) card z-order: topmost (native topmost=0)
+QINFO  : IntegrationTests::automationDialogSavePreservesAutostart(enabled) toast: 设置已保存
+PASS   : IntegrationTests::automationDialogSavePreservesAutostart(enabled)
+PASS   : IntegrationTests::separateProcesses()
+PASS   : IntegrationTests::cleanupTestCase()
+Totals: 48 passed, 0 failed, 0 skipped, 0 blacklisted, 859ms
+********* Finished testing of IntegrationTests *********

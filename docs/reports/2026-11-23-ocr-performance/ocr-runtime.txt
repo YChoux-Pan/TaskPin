@@ -1,129 +1,129 @@
-{
-  "ok": true,
-  "fixtures": [
-    {
-      "fixture": "english",
-      "regions": 7,
-      "matched": true,
-      "minimumConfidence": 0.90127,
-      "processSeconds": 2.612,
-      "stageMs": {
-        "import": 934.3460000091,
-        "prepareImage": 40.83820000232663,
-        "load": 359.59200000797864,
-        "inference": 1117.2056999930646,
-        "formatResult": 0.1373999984934926,
-        "readRequest": 12.136000004829839,
-        "verifyModels": 15.684300000430085,
-        "total": 2490.1485000009416,
-        "overhead": 10.2088999847183
-      }
-    },
-    {
-      "fixture": "chinese",
-      "regions": 2,
-      "matched": true,
-      "minimumConfidence": 0.99819,
-      "processSeconds": 2.231,
-      "stageMs": {
-        "import": 842.8541000030236,
-        "prepareImage": 38.71360000630375,
-        "load": 244.11690000852104,
-        "inference": 942.9129999916768,
-        "formatResult": 0.0875000114319846,
-        "readRequest": 9.481100001721643,
-        "verifyModels": 17.327299996395595,
-        "total": 2104.1345999983605,
-        "overhead": 8.641099979286082
-      }
-    },
-    {
-      "fixture": "dark-technical",
-      "regions": 3,
-      "matched": true,
-      "minimumConfidence": 0.95493,
-      "processSeconds": 2.015,
-      "stageMs": {
-        "import": 820.1082000014139,
-        "prepareImage": 38.69109999504872,
-        "load": 235.39349999919068,
-        "inference": 755.3608000016538,
-        "formatResult": 0.08720000914763659,
-        "readRequest": 9.711199993034825,
-        "verifyModels": 18.554599999333732,
-        "total": 1888.16190000216,
-        "overhead": 10.255300003336743
-      }
-    },
-    {
-      "fixture": "custom-v5-local",
-      "matched": true,
-      "processSeconds": 2.672,
-      "stageMs": {
-        "import": 853.9577000046847,
-        "prepareImage": 40.29129999980796,
-        "load": 241.40390001412015,
-        "inference": 1374.4796000100905,
-        "formatResult": 0.0543000060133636,
-        "readRequest": 9.839699996518902,
-        "verifyModels": 16.204100000322796,
-        "total": 2545.0693999882787,
-        "overhead": 8.838799956720322
-      }
-    },
-    {
-      "fixture": "worker-cold",
-      "matched": true,
-      "stageMs": {
-        "import": 855.2389999968,
-        "prepareImage": 41.454699996393174,
-        "load": 279.0328999981284,
-        "inference": 1421.4902999956394,
-        "formatResult": 0.06180000491440296,
-        "readRequest": 0.1441000058548525,
-        "verifyModels": 16.89230000192765,
-        "total": 2615.026700004819,
-        "overhead": 0.7116000051610172
-      }
-    },
-    {
-      "fixture": "worker-warm",
-      "matched": true,
-      "stageMs": {
-        "import": 1.077699998859316,
-        "prepareImage": 0.8359000057680532,
-        "load": 0,
-        "inference": 1622.5592999981018,
-        "formatResult": 0.05289999535307288,
-        "readRequest": 0.12409999908413738,
-        "verifyModels": 16.523199999937788,
-        "total": 1641.3517000037245,
-        "overhead": 0.17860000662039965
-      }
-    },
-    {
-      "fixture": "worker-switch",
-      "matched": true,
-      "stageMs": {
-        "import": 1.1178999993717298,
-        "prepareImage": 0.8206999918911606,
-        "load": 209.51830000558402,
-        "inference": 2187.2494999988703,
-        "formatResult": 0.05280000914353877,
-        "readRequest": 0.08860000525601208,
-        "verifyModels": 24.904500009142794,
-        "total": 2436.6835999971954,
-        "overhead": 12.93129997793585
-      }
-    },
-    {
-      "fixture": "16-million-pixel-blank",
-      "matched": true,
-      "processSeconds": 2.776
-    }
-  ],
-  "invalidInputCases": 4,
-  "tamperAndMissingModelRejected": true,
-  "networkInference": false,
-  "imageOrTranscriptFilesWritten": false
-}
+{
+  "ok": true,
+  "fixtures": [
+    {
+      "fixture": "english",
+      "regions": 7,
+      "matched": true,
+      "minimumConfidence": 0.90127,
+      "processSeconds": 2.612,
+      "stageMs": {
+        "import": 934.3460000091,
+        "prepareImage": 40.83820000232663,
+        "load": 359.59200000797864,
+        "inference": 1117.2056999930646,
+        "formatResult": 0.1373999984934926,
+        "readRequest": 12.136000004829839,
+        "verifyModels": 15.684300000430085,
+        "total": 2490.1485000009416,
+        "overhead": 10.2088999847183
+      }
+    },
+    {
+      "fixture": "chinese",
+      "regions": 2,
+      "matched": true,
+      "minimumConfidence": 0.99819,
+      "processSeconds": 2.231,
+      "stageMs": {
+        "import": 842.8541000030236,
+        "prepareImage": 38.71360000630375,
+        "load": 244.11690000852104,
+        "inference": 942.9129999916768,
+        "formatResult": 0.0875000114319846,
+        "readRequest": 9.481100001721643,
+        "verifyModels": 17.327299996395595,
+        "total": 2104.1345999983605,
+        "overhead": 8.641099979286082
+      }
+    },
+    {
+      "fixture": "dark-technical",
+      "regions": 3,
+      "matched": true,
+      "minimumConfidence": 0.95493,
+      "processSeconds": 2.015,
+      "stageMs": {
+        "import": 820.1082000014139,
+        "prepareImage": 38.69109999504872,
+        "load": 235.39349999919068,
+        "inference": 755.3608000016538,
+        "formatResult": 0.08720000914763659,
+        "readRequest": 9.711199993034825,
+        "verifyModels": 18.554599999333732,
+        "total": 1888.16190000216,
+        "overhead": 10.255300003336743
+      }
+    },
+    {
+      "fixture": "custom-v5-local",
+      "matched": true,
+      "processSeconds": 2.672,
+      "stageMs": {
+        "import": 853.9577000046847,
+        "prepareImage": 40.29129999980796,
+        "load": 241.40390001412015,
+        "inference": 1374.4796000100905,
+        "formatResult": 0.0543000060133636,
+        "readRequest": 9.839699996518902,
+        "verifyModels": 16.204100000322796,
+        "total": 2545.0693999882787,
+        "overhead": 8.838799956720322
+      }
+    },
+    {
+      "fixture": "worker-cold",
+      "matched": true,
+      "stageMs": {
+        "import": 855.2389999968,
+        "prepareImage": 41.454699996393174,
+        "load": 279.0328999981284,
+        "inference": 1421.4902999956394,
+        "formatResult": 0.06180000491440296,
+        "readRequest": 0.1441000058548525,
+        "verifyModels": 16.89230000192765,
+        "total": 2615.026700004819,
+        "overhead": 0.7116000051610172
+      }
+    },
+    {
+      "fixture": "worker-warm",
+      "matched": true,
+      "stageMs": {
+        "import": 1.077699998859316,
+        "prepareImage": 0.8359000057680532,
+        "load": 0,
+        "inference": 1622.5592999981018,
+        "formatResult": 0.05289999535307288,
+        "readRequest": 0.12409999908413738,
+        "verifyModels": 16.523199999937788,
+        "total": 1641.3517000037245,
+        "overhead": 0.17860000662039965
+      }
+    },
+    {
+      "fixture": "worker-switch",
+      "matched": true,
+      "stageMs": {
+        "import": 1.1178999993717298,
+        "prepareImage": 0.8206999918911606,
+        "load": 209.51830000558402,
+        "inference": 2187.2494999988703,
+        "formatResult": 0.05280000914353877,
+        "readRequest": 0.08860000525601208,
+        "verifyModels": 24.904500009142794,
+        "total": 2436.6835999971954,
+        "overhead": 12.93129997793585
+      }
+    },
+    {
+      "fixture": "16-million-pixel-blank",
+      "matched": true,
+      "processSeconds": 2.776
+    }
+  ],
+  "invalidInputCases": 4,
+  "tamperAndMissingModelRejected": true,
+  "networkInference": false,
+  "imageOrTranscriptFilesWritten": false
+}

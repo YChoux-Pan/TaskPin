@@ -1,39 +1,39 @@
-********* Start testing of IntegrationTests *********
-Config: Using QtTest library 6.4.3, Qt 6.4.3 (x86_64-little_endian-llp64 shared (dynamic) release build; by GCC 11.2.0), windows 11
-PASS   : IntegrationTests::initTestCase()
-QWARN  : IntegrationTests::editorTranslationHotkeyPersistsThroughDialog() QFontDatabase: Cannot find font directory [development]/pin-build/lib/fonts.
-Note that Qt no longer ships fonts. Deploy some (from https://dejavu-fonts.github.io/ for example) or switch to fontconfig.
-FAIL!  : IntegrationTests::editorTranslationHotkeyPersistsThroughDialog() 'translate' returned FALSE. ()
-[development]/pin-source/TaskPinQt/tests/tst_integration.cpp(160) : failure location
-FAIL!  : IntegrationTests::editorTranslationRejectsShortcutCollision(global-pin) 'translate' returned FALSE. ()
-[development]/pin-source/TaskPinQt/tests/tst_integration.cpp(207) : failure location
-FAIL!  : IntegrationTests::editorTranslationRejectsShortcutCollision(editor-copy) 'translate' returned FALSE. ()
-[development]/pin-source/TaskPinQt/tests/tst_integration.cpp(207) : failure location
-FAIL!  : IntegrationTests::editorTranslationRejectsShortcutCollision(editor-save) 'translate' returned FALSE. ()
-[development]/pin-source/TaskPinQt/tests/tst_integration.cpp(207) : failure location
-FAIL!  : IntegrationTests::editorTranslationRejectsShortcutCollision(pin-alias) 'translate' returned FALSE. ()
-[development]/pin-source/TaskPinQt/tests/tst_integration.cpp(207) : failure location
-QINFO  : IntegrationTests::pinHotkeyRoutesToEditorInsteadOfClipboard(selected) onHotkey id=4
-QINFO  : IntegrationTests::pinHotkeyRoutesToEditorInsteadOfClipboard(selected) pin created 20x10 group=默认
-QINFO  : IntegrationTests::pinHotkeyRoutesToEditorInsteadOfClipboard(selected) toast: 已贴到桌面 20 × 10
-FAIL!  : IntegrationTests::pinHotkeyRoutesToEditorInsteadOfClipboard(selected) Compared values are not the same
-   Actual   (PinWindow::all().size()): 1
-   Expected (before)                 : 0
-[development]/pin-source/TaskPinQt/tests/tst_integration.cpp(240) : failure location
-QINFO  : IntegrationTests::pinHotkeyRoutesToEditorInsteadOfClipboard(selected) pin closed, 0 remaining
-QINFO  : IntegrationTests::pinHotkeyRoutesToEditorInsteadOfClipboard(no-selection) onHotkey id=4
-QINFO  : IntegrationTests::pinHotkeyRoutesToEditorInsteadOfClipboard(no-selection) pin created 20x10 group=默认
-QINFO  : IntegrationTests::pinHotkeyRoutesToEditorInsteadOfClipboard(no-selection) toast: 已贴到桌面 20 × 10
-FAIL!  : IntegrationTests::pinHotkeyRoutesToEditorInsteadOfClipboard(no-selection) Compared values are not the same
-   Actual   (PinWindow::all().size()): 1
-   Expected (before)                 : 0
-[development]/pin-source/TaskPinQt/tests/tst_integration.cpp(240) : failure location
-QINFO  : IntegrationTests::pinHotkeyRoutesToEditorInsteadOfClipboard(no-selection) pin closed, 0 remaining
-QINFO  : IntegrationTests::pinHotkeyWithoutEditorKeepsClipboardBehavior() onHotkey id=4
-QINFO  : IntegrationTests::pinHotkeyWithoutEditorKeepsClipboardBehavior() pin created 20x10 group=默认
-QINFO  : IntegrationTests::pinHotkeyWithoutEditorKeepsClipboardBehavior() toast: 已贴到桌面 20 × 10
-QINFO  : IntegrationTests::pinHotkeyWithoutEditorKeepsClipboardBehavior() pin closed, 0 remaining
-PASS   : IntegrationTests::pinHotkeyWithoutEditorKeepsClipboardBehavior()
-PASS   : IntegrationTests::cleanupTestCase()
-Totals: 3 passed, 7 failed, 0 skipped, 0 blacklisted, 52ms
-********* Finished testing of IntegrationTests *********
+********* Start testing of IntegrationTests *********
+Config: Using QtTest library 6.4.3, Qt 6.4.3 (x86_64-little_endian-llp64 shared (dynamic) release build; by GCC 11.2.0), windows 11
+PASS   : IntegrationTests::initTestCase()
+QWARN  : IntegrationTests::editorTranslationHotkeyPersistsThroughDialog() QFontDatabase: Cannot find font directory [development]/pin-build/lib/fonts.
+Note that Qt no longer ships fonts. Deploy some (from https://dejavu-fonts.github.io/ for example) or switch to fontconfig.
+FAIL!  : IntegrationTests::editorTranslationHotkeyPersistsThroughDialog() 'translate' returned FALSE. ()
+[development]/pin-source/TaskPinQt/tests/tst_integration.cpp(160) : failure location
+FAIL!  : IntegrationTests::editorTranslationRejectsShortcutCollision(global-pin) 'translate' returned FALSE. ()
+[development]/pin-source/TaskPinQt/tests/tst_integration.cpp(207) : failure location
+FAIL!  : IntegrationTests::editorTranslationRejectsShortcutCollision(editor-copy) 'translate' returned FALSE. ()
+[development]/pin-source/TaskPinQt/tests/tst_integration.cpp(207) : failure location
+FAIL!  : IntegrationTests::editorTranslationRejectsShortcutCollision(editor-save) 'translate' returned FALSE. ()
+[development]/pin-source/TaskPinQt/tests/tst_integration.cpp(207) : failure location
+FAIL!  : IntegrationTests::editorTranslationRejectsShortcutCollision(pin-alias) 'translate' returned FALSE. ()
+[development]/pin-source/TaskPinQt/tests/tst_integration.cpp(207) : failure location
+QINFO  : IntegrationTests::pinHotkeyRoutesToEditorInsteadOfClipboard(selected) onHotkey id=4
+QINFO  : IntegrationTests::pinHotkeyRoutesToEditorInsteadOfClipboard(selected) pin created 20x10 group=默认
+QINFO  : IntegrationTests::pinHotkeyRoutesToEditorInsteadOfClipboard(selected) toast: 已贴到桌面 20 × 10
+FAIL!  : IntegrationTests::pinHotkeyRoutesToEditorInsteadOfClipboard(selected) Compared values are not the same
+   Actual   (PinWindow::all().size()): 1
+   Expected (before)                 : 0
+[development]/pin-source/TaskPinQt/tests/tst_integration.cpp(240) : failure location
+QINFO  : IntegrationTests::pinHotkeyRoutesToEditorInsteadOfClipboard(selected) pin closed, 0 remaining
+QINFO  : IntegrationTests::pinHotkeyRoutesToEditorInsteadOfClipboard(no-selection) onHotkey id=4
+QINFO  : IntegrationTests::pinHotkeyRoutesToEditorInsteadOfClipboard(no-selection) pin created 20x10 group=默认
+QINFO  : IntegrationTests::pinHotkeyRoutesToEditorInsteadOfClipboard(no-selection) toast: 已贴到桌面 20 × 10
+FAIL!  : IntegrationTests::pinHotkeyRoutesToEditorInsteadOfClipboard(no-selection) Compared values are not the same
+   Actual   (PinWindow::all().size()): 1
+   Expected (before)                 : 0
+[development]/pin-source/TaskPinQt/tests/tst_integration.cpp(240) : failure location
+QINFO  : IntegrationTests::pinHotkeyRoutesToEditorInsteadOfClipboard(no-selection) pin closed, 0 remaining
+QINFO  : IntegrationTests::pinHotkeyWithoutEditorKeepsClipboardBehavior() onHotkey id=4
+QINFO  : IntegrationTests::pinHotkeyWithoutEditorKeepsClipboardBehavior() pin created 20x10 group=默认
+QINFO  : IntegrationTests::pinHotkeyWithoutEditorKeepsClipboardBehavior() toast: 已贴到桌面 20 × 10
+QINFO  : IntegrationTests::pinHotkeyWithoutEditorKeepsClipboardBehavior() pin closed, 0 remaining
+PASS   : IntegrationTests::pinHotkeyWithoutEditorKeepsClipboardBehavior()
+PASS   : IntegrationTests::cleanupTestCase()
+Totals: 3 passed, 7 failed, 0 skipped, 0 blacklisted, 52ms
+********* Finished testing of IntegrationTests *********

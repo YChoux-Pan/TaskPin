@@ -1,38 +1,38 @@
-********* Start testing of ExperienceTests *********
-Config: Using QtTest library 6.4.3, Qt 6.4.3 (x86_64-little_endian-llp64 shared (dynamic) release build; by GCC 11.2.0), windows 11
-PASS   : ExperienceTests::initTestCase()
-QINFO  : ExperienceTests::wheelReversesPendingAnimation(shrink-after-growing) pin created 400x240 group=默认
-FAIL!  : ExperienceTests::wheelReversesPendingAnimation(shrink-after-growing) 'qAbs(displayed - 1.0) > .001' returned FALSE. ()
-[development]/pin-source/TaskPinQt/tests/tst_experience.cpp(157) : failure location
-QINFO  : ExperienceTests::wheelReversesPendingAnimation(shrink-after-growing) pin closed, 0 remaining
-QINFO  : ExperienceTests::wheelReversesPendingAnimation(grow-after-shrinking) pin created 400x240 group=默认
-FAIL!  : ExperienceTests::wheelReversesPendingAnimation(grow-after-shrinking) 'reverseAngle < 0 ? current <= previous + .0001 : current >= previous - .0001' returned FALSE. (The first reversed frame must move in the newly requested direction)
-[development]/pin-source/TaskPinQt/tests/tst_experience.cpp(163) : failure location
-QINFO  : ExperienceTests::wheelReversesPendingAnimation(grow-after-shrinking) pin closed, 0 remaining
-QINFO  : ExperienceTests::wheelKeepsImagePointUnderCursor(positive-origin) pin created 400x240 group=默认
-FAIL!  : ExperienceTests::wheelKeepsImagePointUnderCursor(positive-origin) 'QLineF(mapped, anchor).length() <= 2.0' returned FALSE. (The image point under a wheel event must stay within two logical pixels)
-[development]/pin-source/TaskPinQt/tests/tst_experience.cpp(196) : failure location
-QINFO  : ExperienceTests::wheelKeepsImagePointUnderCursor(positive-origin) pin closed, 0 remaining
-QINFO  : ExperienceTests::wheelKeepsImagePointUnderCursor(negative-origin-hidpi) pin created 800x480 group=默认
-FAIL!  : ExperienceTests::wheelKeepsImagePointUnderCursor(negative-origin-hidpi) 'QLineF(mapped, anchor).length() <= 2.0' returned FALSE. (The image point under a wheel event must stay within two logical pixels)
-[development]/pin-source/TaskPinQt/tests/tst_experience.cpp(196) : failure location
-QINFO  : ExperienceTests::wheelKeepsImagePointUnderCursor(negative-origin-hidpi) pin closed, 0 remaining
-QINFO  : ExperienceTests::shrinkingPinKeepsSmoothPixelsAndClearsPadding() pin created 2400x1200 group=默认
-FAIL!  : ExperienceTests::shrinkingPinKeepsSmoothPixelsAndClearsPadding() 'meanError < 2.0' returned FALSE. (Shrinking pixels must remain smoothly filtered; mean error 92.749)
-[development]/pin-source/TaskPinQt/tests/tst_experience.cpp(225) : failure location
-QINFO  : ExperienceTests::shrinkingPinKeepsSmoothPixelsAndClearsPadding() pin closed, 0 remaining
-QINFO  : ExperienceTests::comparisonIsOpaqueAndUsesHeightForText(light-pin) pin created 0x0 group=默认
-QWARN  : ExperienceTests::comparisonIsOpaqueAndUsesHeightForText(light-pin) QFontDatabase: Cannot find font directory [development]/pin-build/lib/fonts.
-Note that Qt no longer ships fonts. Deploy some (from https://dejavu-fonts.github.io/ for example) or switch to fontconfig.
-QWARN  : ExperienceTests::comparisonIsOpaqueAndUsesHeightForText(light-pin) This plugin does not support propagateSizeHints()
-FAIL!  : ExperienceTests::comparisonIsOpaqueAndUsesHeightForText(light-pin) 'dialog->width() <= available.width()' returned FALSE. ()
-[development]/pin-source/TaskPinQt/tests/tst_experience.cpp(260) : failure location
-QINFO  : ExperienceTests::comparisonIsOpaqueAndUsesHeightForText(light-pin) pin closed, 0 remaining
-QINFO  : ExperienceTests::comparisonIsOpaqueAndUsesHeightForText(dark-pin) pin created 0x0 group=默认
-QWARN  : ExperienceTests::comparisonIsOpaqueAndUsesHeightForText(dark-pin) This plugin does not support propagateSizeHints()
-FAIL!  : ExperienceTests::comparisonIsOpaqueAndUsesHeightForText(dark-pin) 'dialog->width() <= available.width()' returned FALSE. ()
-[development]/pin-source/TaskPinQt/tests/tst_experience.cpp(260) : failure location
-QINFO  : ExperienceTests::comparisonIsOpaqueAndUsesHeightForText(dark-pin) pin closed, 0 remaining
-PASS   : ExperienceTests::cleanupTestCase()
-Totals: 2 passed, 7 failed, 0 skipped, 0 blacklisted, 309ms
-********* Finished testing of ExperienceTests *********
+********* Start testing of ExperienceTests *********
+Config: Using QtTest library 6.4.3, Qt 6.4.3 (x86_64-little_endian-llp64 shared (dynamic) release build; by GCC 11.2.0), windows 11
+PASS   : ExperienceTests::initTestCase()
+QINFO  : ExperienceTests::wheelReversesPendingAnimation(shrink-after-growing) pin created 400x240 group=默认
+FAIL!  : ExperienceTests::wheelReversesPendingAnimation(shrink-after-growing) 'qAbs(displayed - 1.0) > .001' returned FALSE. ()
+[development]/pin-source/TaskPinQt/tests/tst_experience.cpp(157) : failure location
+QINFO  : ExperienceTests::wheelReversesPendingAnimation(shrink-after-growing) pin closed, 0 remaining
+QINFO  : ExperienceTests::wheelReversesPendingAnimation(grow-after-shrinking) pin created 400x240 group=默认
+FAIL!  : ExperienceTests::wheelReversesPendingAnimation(grow-after-shrinking) 'reverseAngle < 0 ? current <= previous + .0001 : current >= previous - .0001' returned FALSE. (The first reversed frame must move in the newly requested direction)
+[development]/pin-source/TaskPinQt/tests/tst_experience.cpp(163) : failure location
+QINFO  : ExperienceTests::wheelReversesPendingAnimation(grow-after-shrinking) pin closed, 0 remaining
+QINFO  : ExperienceTests::wheelKeepsImagePointUnderCursor(positive-origin) pin created 400x240 group=默认
+FAIL!  : ExperienceTests::wheelKeepsImagePointUnderCursor(positive-origin) 'QLineF(mapped, anchor).length() <= 2.0' returned FALSE. (The image point under a wheel event must stay within two logical pixels)
+[development]/pin-source/TaskPinQt/tests/tst_experience.cpp(196) : failure location
+QINFO  : ExperienceTests::wheelKeepsImagePointUnderCursor(positive-origin) pin closed, 0 remaining
+QINFO  : ExperienceTests::wheelKeepsImagePointUnderCursor(negative-origin-hidpi) pin created 800x480 group=默认
+FAIL!  : ExperienceTests::wheelKeepsImagePointUnderCursor(negative-origin-hidpi) 'QLineF(mapped, anchor).length() <= 2.0' returned FALSE. (The image point under a wheel event must stay within two logical pixels)
+[development]/pin-source/TaskPinQt/tests/tst_experience.cpp(196) : failure location
+QINFO  : ExperienceTests::wheelKeepsImagePointUnderCursor(negative-origin-hidpi) pin closed, 0 remaining
+QINFO  : ExperienceTests::shrinkingPinKeepsSmoothPixelsAndClearsPadding() pin created 2400x1200 group=默认
+FAIL!  : ExperienceTests::shrinkingPinKeepsSmoothPixelsAndClearsPadding() 'meanError < 2.0' returned FALSE. (Shrinking pixels must remain smoothly filtered; mean error 92.749)
+[development]/pin-source/TaskPinQt/tests/tst_experience.cpp(225) : failure location
+QINFO  : ExperienceTests::shrinkingPinKeepsSmoothPixelsAndClearsPadding() pin closed, 0 remaining
+QINFO  : ExperienceTests::comparisonIsOpaqueAndUsesHeightForText(light-pin) pin created 0x0 group=默认
+QWARN  : ExperienceTests::comparisonIsOpaqueAndUsesHeightForText(light-pin) QFontDatabase: Cannot find font directory [development]/pin-build/lib/fonts.
+Note that Qt no longer ships fonts. Deploy some (from https://dejavu-fonts.github.io/ for example) or switch to fontconfig.
+QWARN  : ExperienceTests::comparisonIsOpaqueAndUsesHeightForText(light-pin) This plugin does not support propagateSizeHints()
+FAIL!  : ExperienceTests::comparisonIsOpaqueAndUsesHeightForText(light-pin) 'dialog->width() <= available.width()' returned FALSE. ()
+[development]/pin-source/TaskPinQt/tests/tst_experience.cpp(260) : failure location
+QINFO  : ExperienceTests::comparisonIsOpaqueAndUsesHeightForText(light-pin) pin closed, 0 remaining
+QINFO  : ExperienceTests::comparisonIsOpaqueAndUsesHeightForText(dark-pin) pin created 0x0 group=默认
+QWARN  : ExperienceTests::comparisonIsOpaqueAndUsesHeightForText(dark-pin) This plugin does not support propagateSizeHints()
+FAIL!  : ExperienceTests::comparisonIsOpaqueAndUsesHeightForText(dark-pin) 'dialog->width() <= available.width()' returned FALSE. ()
+[development]/pin-source/TaskPinQt/tests/tst_experience.cpp(260) : failure location
+QINFO  : ExperienceTests::comparisonIsOpaqueAndUsesHeightForText(dark-pin) pin closed, 0 remaining
+PASS   : ExperienceTests::cleanupTestCase()
+Totals: 2 passed, 7 failed, 0 skipped, 0 blacklisted, 309ms
+********* Finished testing of ExperienceTests *********

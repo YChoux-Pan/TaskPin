@@ -1,12 +1,12 @@
-********* Start testing of TranslationTests *********
-Config: Using QtTest library 6.4.3, Qt 6.4.3 (x86_64-little_endian-llp64 shared (dynamic) release build; by GCC 11.2.0), windows 11
-PASS   : TranslationTests::initTestCase()
-QWARN  : TranslationTests::ocrProfileSelectionSavesAndCancelKeepsPrevious() QFontDatabase: Cannot find font directory [development]/pin-build/lib/fonts.
-Note that Qt no longer ships fonts. Deploy some (from https://dejavu-fonts.github.io/ for example) or switch to fontconfig.
-FAIL!  : TranslationTests::ocrProfileSelectionSavesAndCancelKeepsPrevious() 'choice&&path' returned FALSE. ()
-[development]/pin-source/TaskPinQt/tests/tst_translation.cpp(330) : failure location
-FAIL!  : TranslationTests::invalidOcrProfileDoesNotSaveEitherConfiguration() 'choice&&path' returned FALSE. ()
-[development]/pin-source/TaskPinQt/tests/tst_translation.cpp(354) : failure location
-PASS   : TranslationTests::cleanupTestCase()
-Totals: 2 passed, 2 failed, 0 skipped, 0 blacklisted, 13ms
-********* Finished testing of TranslationTests *********
+********* Start testing of TranslationTests *********
+Config: Using QtTest library 6.4.3, Qt 6.4.3 (x86_64-little_endian-llp64 shared (dynamic) release build; by GCC 11.2.0), windows 11
+PASS   : TranslationTests::initTestCase()
+QWARN  : TranslationTests::ocrProfileSelectionSavesAndCancelKeepsPrevious() QFontDatabase: Cannot find font directory [development]/pin-build/lib/fonts.
+Note that Qt no longer ships fonts. Deploy some (from https://dejavu-fonts.github.io/ for example) or switch to fontconfig.
+FAIL!  : TranslationTests::ocrProfileSelectionSavesAndCancelKeepsPrevious() 'choice&&path' returned FALSE. ()
+[development]/pin-source/TaskPinQt/tests/tst_translation.cpp(330) : failure location
+FAIL!  : TranslationTests::invalidOcrProfileDoesNotSaveEitherConfiguration() 'choice&&path' returned FALSE. ()
+[development]/pin-source/TaskPinQt/tests/tst_translation.cpp(354) : failure location
+PASS   : TranslationTests::cleanupTestCase()
+Totals: 2 passed, 2 failed, 0 skipped, 0 blacklisted, 13ms
+********* Finished testing of TranslationTests *********

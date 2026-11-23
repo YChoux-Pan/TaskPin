@@ -1,21 +1,21 @@
-********* Start testing of TranslationTests *********
-Config: Using QtTest library 6.4.3, Qt 6.4.3 (x86_64-little_endian-llp64 shared (dynamic) release build; by GCC 11.2.0), windows 11
-PASS   : TranslationTests::initTestCase()
-FAIL!  : TranslationTests::saturatedOcrQueueKeepsFailureIdDuringImmediateReplacement() Compared values are not the same
-   Actual   (failures[1][0].toString()): "replacement"
-   Expected (QString("outer-request")) : "outer-request"
-[development]/pin-source/TaskPinQt/tests/tst_translation.cpp(481) : failure location
-FAIL!  : TranslationTests::immediateOcrInputFailureKeepsCallerIdSnapshot() Compared values are not the same
-   Actual   (failures[0][0].toString()): "changed-by-slot"
-   Expected (QString("invalid-input")) : "invalid-input"
-[development]/pin-source/TaskPinQt/tests/tst_translation.cpp(487) : failure location
-QWARN  : TranslationTests::customOcrValidationKeepsUiResponsiveAndCancelPreservesFiles() QFontDatabase: Cannot find font directory [development]/pin-build/lib/fonts.
-Note that Qt no longer ships fonts. Deploy some (from https://dejavu-fonts.github.io/ for example) or switch to fontconfig.
-QWARN  : TranslationTests::customOcrValidationKeepsUiResponsiveAndCancelPreservesFiles() QSignalSpy: No such signal: 'saveReady()'
-FAIL!  : TranslationTests::customOcrValidationKeepsUiResponsiveAndCancelPreservesFiles() '!immediate' returned FALSE. ()
-[development]/pin-source/TaskPinQt/tests/tst_translation.cpp(403) : failure location
-FAIL!  : TranslationTests::ocrProfileSelectionSavesAndCancelKeepsPrevious() '!immediate' returned FALSE. ()
-[development]/pin-source/TaskPinQt/tests/tst_translation.cpp(368) : failure location
-PASS   : TranslationTests::cleanupTestCase()
-Totals: 2 passed, 4 failed, 0 skipped, 0 blacklisted, 465ms
-********* Finished testing of TranslationTests *********
+********* Start testing of TranslationTests *********
+Config: Using QtTest library 6.4.3, Qt 6.4.3 (x86_64-little_endian-llp64 shared (dynamic) release build; by GCC 11.2.0), windows 11
+PASS   : TranslationTests::initTestCase()
+FAIL!  : TranslationTests::saturatedOcrQueueKeepsFailureIdDuringImmediateReplacement() Compared values are not the same
+   Actual   (failures[1][0].toString()): "replacement"
+   Expected (QString("outer-request")) : "outer-request"
+[development]/pin-source/TaskPinQt/tests/tst_translation.cpp(481) : failure location
+FAIL!  : TranslationTests::immediateOcrInputFailureKeepsCallerIdSnapshot() Compared values are not the same
+   Actual   (failures[0][0].toString()): "changed-by-slot"
+   Expected (QString("invalid-input")) : "invalid-input"
+[development]/pin-source/TaskPinQt/tests/tst_translation.cpp(487) : failure location
+QWARN  : TranslationTests::customOcrValidationKeepsUiResponsiveAndCancelPreservesFiles() QFontDatabase: Cannot find font directory [development]/pin-build/lib/fonts.
+Note that Qt no longer ships fonts. Deploy some (from https://dejavu-fonts.github.io/ for example) or switch to fontconfig.
+QWARN  : TranslationTests::customOcrValidationKeepsUiResponsiveAndCancelPreservesFiles() QSignalSpy: No such signal: 'saveReady()'
+FAIL!  : TranslationTests::customOcrValidationKeepsUiResponsiveAndCancelPreservesFiles() '!immediate' returned FALSE. ()
+[development]/pin-source/TaskPinQt/tests/tst_translation.cpp(403) : failure location
+FAIL!  : TranslationTests::ocrProfileSelectionSavesAndCancelKeepsPrevious() '!immediate' returned FALSE. ()
+[development]/pin-source/TaskPinQt/tests/tst_translation.cpp(368) : failure location
+PASS   : TranslationTests::cleanupTestCase()
+Totals: 2 passed, 4 failed, 0 skipped, 0 blacklisted, 465ms
+********* Finished testing of TranslationTests *********
