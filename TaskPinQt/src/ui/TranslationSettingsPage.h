@@ -3,6 +3,9 @@
 #include "translation/OcrProfiles.h"
 #include <QWidget>
 #include <QPointer>
+#include <QJsonObject>
+#include <QJsonArray>
+#include <QMap>
 class QComboBox; class QCheckBox; class QSpinBox; class QLabel; class QPushButton; class QLineEdit;
 class QProcess; class QTimer;
 namespace Translation { class Client; }
@@ -26,6 +29,9 @@ private:
     void cancelOcrValidation(bool notify);
     void failOcrValidation(const QString &message);
     void invalidateOcrValidation();
+    void refreshOcrCatalog();
+    void finishOcrCatalog(const QJsonArray &models,const QString &error=QString());
+    void cancelOcrCatalog();
     void testConnection();
     QComboBox *m_mode;
     QComboBox *m_ocrProfile;
@@ -42,4 +48,10 @@ private:
     QTimer *m_ocrValidationTimeout;
     QByteArray m_validationOutput,m_validationDraft,m_validatedDraft;
     quint64 m_validationGeneration=0;
+    QPointer<QProcess> m_ocrCatalog;
+    QTimer *m_catalogTimeout;
+    QPushButton *m_ocrRefresh;
+    QByteArray m_catalogOutput;
+    QMap<QString,QJsonObject> m_catalogEntries;
+    quint64 m_catalogGeneration=0;
 };

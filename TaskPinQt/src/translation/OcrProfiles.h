@@ -8,6 +8,8 @@ struct OcrProfiles {
     QString profile = QStringLiteral("builtin-ppocrv5-mobile");
     QString customProfilePath;
     static QString settingsPath();
+    static QString modelDirectory();
+    static bool isLocalProfile(const QString &id);
     static OcrProfiles load(QString *error = nullptr);
     QString profilePath() const;
     bool validate(QString *error = nullptr,bool verifyHashes = true) const;

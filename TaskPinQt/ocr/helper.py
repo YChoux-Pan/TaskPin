@@ -14,6 +14,7 @@ import socket
 import struct
 import sys
 import time
+import model_catalog
 
 MAX_PIXELS = 16_000_000
 MAX_PNG_BYTES = 64 * 1024 * 1024
@@ -30,9 +31,14 @@ LIGHTWEIGHT_MODELS = {
     "det": ("ch_PP-OCRv4_det_mobile.onnx", "d2a7720d45a54257208b1e13e36a8479894cb74155a5efe29462512d42f49da9"),
     "rec": ("ch_PP-OCRv4_rec_mobile.onnx", "48fc40f24f6d2a207a2b1091d3437eb3cc3eb6b676dc3ef9c37384005483683b"),
 }
+TINY_MODELS = {
+    "det": ("PP-OCRv6_det_tiny.onnx", "f42c0fbd294d95eac1a550e131b277dac97462c8025fa4b6c3cec1b7894bd3d5"),
+    "rec": ("PP-OCRv6_rec_tiny.onnx", "e16e242de5937ad92609223f19bc2aff3727ee40b095f996907c24749bad251b"),
+}
 BUILTIN_PROFILES = {
     "builtin-ppocrv5-mobile": ("PP-OCRv5", EXPECTED_MODELS, "models"),
     "builtin-ppocrv4-mobile": ("PP-OCRv4", LIGHTWEIGHT_MODELS, "lightweightModels"),
+    "builtin-ppocrv6-tiny": ("PP-OCRv6", TINY_MODELS, "tinyModels"),
 }
 
 
@@ -92,14 +98,27 @@ def verify_models(root: Path, profile_id: str = "builtin-ppocrv5-mobile") -> dic
     return paths
 
 
-def selected_profile(root: Path, path: str | None, profile_id: str = "builtin-ppocrv5-mobile") -> dict:
-    if path is None:
+def selected_profile(root: Path, path: str | None, profile_id: str = "builtin-ppocrv5-mobile", model_directory: str | None = None) -> dict:
+    if model_directory is not None:
+        try:
+            profile=model_catalog.resolve(model_directory,profile_id)
+        except model_catalog.CatalogError as error:
+            raise OcrFailure(error.code) from None
+        for task in ("det","rec"):
+            model=profile[task];weight=Path(model['path'])
+            try:actual=sha256(weight)
+            except OSError:raise OcrFailure('model_missing') from None
+            if model.get('sha256') and actual!=model['sha256'].lower():raise OcrFailure('model_hash_mismatch')
+            model['sha256']=actual;model['path']=weight.resolve()
+    elif path is None:
         family, expected_models, _ = BUILTIN_PROFILES[profile_id]
         models = verify_models(root, profile_id)
-        profile = {"id": profile_id, "modelVersion": family + "_mobile/RapidOCR-v3.10.0", "language": "multi",
-                   "cpu": {"intraOpThreads": 2, "interOpThreads": 1}}
+        kind='tiny' if family=='PP-OCRv6' else 'mobile'
+        profile = {"id": profile_id, "modelVersion": family + "_"+kind+"/RapidOCR-v3.10.0", "language": "multi",
+                   "cpu": {"intraOpThreads": 4 if family=='PP-OCRv6' else 2, "interOpThreads": 1},
+                   "detector":{"limitType":"max" if family=='PP-OCRv6' else "min","limitSideLen":960 if family=='PP-OCRv6' else 736}}
         for task, (_, digest) in expected_models.items():
-            profile[task] = {"path": models[task], "sha256": digest, "ocrVersion": family, "modelType": "mobile"}
+            profile[task] = {"path": models[task], "sha256": digest, "ocrVersion": family, "modelType": kind,"language":"ch"}
     else:
         try:
             location = Path(path)
@@ -108,7 +127,7 @@ def selected_profile(root: Path, path: str | None, profile_id: str = "builtin-pp
             if location.stat().st_size > 64 * 1024:
                 raise OcrFailure("profile_invalid")
             profile = json.loads(location.read_text(encoding="utf-8-sig"))
-            if not isinstance(profile, dict) or set(profile) - {"schemaVersion", "id", "modelVersion", "language", "det", "rec", "cpu"}:
+            if not isinstance(profile, dict) or set(profile) - {"schemaVersion", "id", "modelVersion", "language", "det", "rec", "cpu", "detector"}:
                 raise OcrFailure("profile_invalid")
             if isinstance(profile.get("schemaVersion"), bool) or profile.get("schemaVersion") != 1:
                 raise OcrFailure("profile_invalid")
@@ -126,12 +145,19 @@ def selected_profile(root: Path, path: str | None, profile_id: str = "builtin-pp
                 if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value) or value != math.floor(value) or not 1 <= value <= maximum:
                     raise OcrFailure("profile_unsupported")
                 cpu[name] = int(value)
+            try:
+                _,profile['detector']=model_catalog.options(profile)
+            except model_catalog.CatalogError:
+                raise OcrFailure('profile_unsupported') from None
             for task in ("det", "rec"):
                 model = profile.get(task)
-                if not isinstance(model, dict) or set(model) != {"path", "sha256", "ocrVersion", "modelType"}:
+                if not isinstance(model, dict) or not {"path","sha256","ocrVersion","modelType"}<=set(model) or set(model)-{"path", "sha256", "ocrVersion", "modelType","language"}:
                     raise OcrFailure("profile_invalid")
-                if model["ocrVersion"] not in ("PP-OCRv4", "PP-OCRv5") or model["modelType"] not in ("mobile", "server"):
+                if not model_catalog.compatible(model['ocrVersion'],model['modelType']):
                     raise OcrFailure("profile_unsupported")
+                language=model.get('language','ch')
+                if language not in ('ch','en','multi','zh'):raise OcrFailure('profile_unsupported')
+                model['language']='ch' if language=='zh' else language
                 if not isinstance(model["path"], str) or not model["path"] or not isinstance(model["sha256"], str) or not re.fullmatch(r"[a-fA-F0-9]{64}", model["sha256"]):
                     raise OcrFailure("profile_invalid")
             # Validate all options before touching model bytes. There is no implicit
@@ -155,22 +181,28 @@ def selected_profile(root: Path, path: str | None, profile_id: str = "builtin-pp
             raise OcrFailure("profile_invalid") from None
     identity = {task: {key: value for key, value in profile[task].items() if key != "path"} for task in ("det", "rec")}
     identity["cpu"] = profile["cpu"]
+    identity['detector']=profile['detector']
     profile["modelIdentity"] = "sha256:" + hashlib.sha256(json.dumps(identity, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
     return profile
 
 
-def read_request(data: bytes | None = None, worker: bool = False) -> tuple[bytes, str | None, str]:
+def read_request(data: bytes | None = None, worker: bool = False) -> tuple[bytes, str | None, str, str | None]:
     if data is None:
         data = sys.stdin.buffer.read(MAX_INPUT_BYTES + 1)
     if len(data) > MAX_INPUT_BYTES:
         raise OcrFailure("input_too_large")
     try:
         request = json.loads(data)
-        if not isinstance(request, dict) or set(request) - ({"image", "profilePath", "profileId", "requestId"} if worker else {"image", "profilePath", "profileId"}):
+        if not isinstance(request, dict) or set(request) - ({"image", "profilePath", "profileId", "modelDirectory", "requestId"} if worker else {"image", "profilePath", "profileId", "modelDirectory"}):
             raise ValueError
         profile_id = request.get("profileId", "builtin-ppocrv5-mobile")
-        if not isinstance(profile_id, str) or profile_id not in BUILTIN_PROFILES or ("profilePath" in request and "profileId" in request):
+        model_directory=request.get('modelDirectory')
+        local=isinstance(profile_id,str) and model_catalog.LOCAL_ID.fullmatch(profile_id)
+        if not isinstance(profile_id, str) or (profile_id not in BUILTIN_PROFILES and not local) or ("profilePath" in request and ("profileId" in request or 'modelDirectory' in request)):
             raise ValueError
+        if local:
+            if not isinstance(model_directory,str) or not model_directory or len(model_directory)>32768 or not Path(model_directory).is_absolute():raise ValueError
+        elif 'modelDirectory' in request:raise ValueError
         profile_path = request.get("profilePath")
         if profile_path is not None and (not isinstance(profile_path, str) or not profile_path or len(profile_path) > 32768):
             raise ValueError
@@ -193,7 +225,7 @@ def read_request(data: bytes | None = None, worker: bool = False) -> tuple[bytes
         raise OcrFailure("invalid_image")
     if width * height > MAX_PIXELS or max(width, height) > 16_384:
         raise OcrFailure("image_too_large")
-    return png, profile_path, profile_id
+    return png, profile_path, profile_id, model_directory
 
 
 def deny_network(*_args, **_kwargs):
@@ -222,7 +254,7 @@ def infer(root: Path, profile: dict, png: bytes | None, cache: dict | None = Non
             import cv2
             import numpy as np
             from PIL import Image
-            from rapidocr import RapidOCR, ModelType, OCRVersion
+            from rapidocr import RapidOCR, ModelType, OCRVersion, LangDet, LangRec
             from rapidocr.utils.download_file import DownloadFile
             DownloadFile.run = staticmethod(deny_network)
         except OcrFailure:
@@ -262,6 +294,10 @@ def infer(root: Path, profile: dict, png: bytes | None, cache: dict | None = Non
             "Rec.ocr_version": OCRVersion(profile["rec"]["ocrVersion"]),
             "Det.model_type": ModelType(profile["det"]["modelType"]),
             "Rec.model_type": ModelType(profile["rec"]["modelType"]),
+            "Det.lang_type":LangDet(profile['det'].get('language','ch')),
+            "Rec.lang_type":LangRec('ch' if profile['rec'].get('language','ch')=='multi' else profile['rec'].get('language','ch')),
+            "Det.limit_type":profile['detector']['limitType'],
+            "Det.limit_side_len":profile['detector']['limitSideLen'],
             "EngineConfig.onnxruntime.intra_op_num_threads": threads,
             "EngineConfig.onnxruntime.inter_op_num_threads": profile["cpu"]["interOpThreads"],
             "EngineConfig.onnxruntime.use_cuda": False,
@@ -341,10 +377,10 @@ def process_request(root: Path, data: bytes | None = None, cache: dict | None = 
                     raise ValueError
             except (ValueError, TypeError, KeyError):
                 raise OcrFailure("invalid_request") from None
-        png, profile_path, profile_id = (None, None, "builtin-ppocrv5-mobile") if self_check else read_request(data, cache is not None)
+        png, profile_path, profile_id, model_directory = (None, None, "builtin-ppocrv5-mobile", None) if self_check else read_request(data, cache is not None)
         read_ms = (time.perf_counter() - started) * 1000
         verify_started = time.perf_counter()
-        profile = selected_profile(root, profile_path, profile_id)
+        profile = selected_profile(root, profile_path, profile_id, model_directory)
         verify_ms = (time.perf_counter() - verify_started) * 1000
         reply = infer(root, profile, png, cache)
         reply["stageMs"].update(readRequest=read_ms, verifyModels=verify_ms, total=(time.perf_counter() - started) * 1000)
@@ -381,6 +417,15 @@ def process_request(root: Path, data: bytes | None = None, cache: dict | None = 
 def main() -> int:
     root = Path(__file__).resolve().parent
     arguments = sys.argv[1:]
+    if len(arguments)==3 and arguments[:2]==['--catalog','--model-dir']:
+        try:
+            output=model_catalog.catalog(arguments[2],root);code=0
+        except model_catalog.CatalogError as error:
+            output={'ok':False,'errorCode':error.code,'error':error.message};code=1
+        except Exception:
+            output={'ok':False,'errorCode':'model_directory_invalid','error':'无法扫描模型目录。'};code=1
+        os.write(1,json.dumps(output,ensure_ascii=False).encode('utf-8')+b'\n')
+        return code
     if arguments == ["--worker"]:
         cache = {}
         while True:

@@ -1,0 +1,29 @@
+{
+  "date": "2026-11-23",
+  "version": "0.4.5",
+  "native": {
+    "Screenshot": 59,
+    "Integration": 48,
+    "Experience": 30,
+    "Translation": 65,
+    "TranslationCanvas": 18
+  },
+  "total": 220,
+  "selftest": 53,
+  "playwright": {
+    "startTime": "2026-11-23T05:55:20.655Z",
+    "duration": 53078.437,
+    "expected": 13,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "actualBuiltins": [
+    "PP-OCRv4 mobile",
+    "PP-OCRv5 mobile",
+    "PP-OCRv6 tiny"
+  ],
+  "realFilenameOnlyFolderTest": true,
+  "noDesktopInputSimulation": true,
+  "ciPaidService": false
+}

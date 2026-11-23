@@ -4,20 +4,20 @@
   <p><strong>Keep the picture. Capture the thought.</strong></p>
   <p>Screenshots, desktop image pins and daily tasks in one compact Windows tool.</p>
   <p>
-    <a href="https://github.com/YChoux-Pan/TaskPin/releases/tag/v0.4.4"><img src="https://img.shields.io/badge/preview-v0.4.4-4C9AFF" alt="0.4.4 preview" /></a>
+    <a href="https://github.com/YChoux-Pan/TaskPin/releases/tag/v0.4.5"><img src="https://img.shields.io/badge/preview-v0.4.5-4C9AFF" alt="0.4.5 preview" /></a>
     <img src="https://img.shields.io/badge/platform-Windows%2010%20%2F%2011-0078D4" alt="Windows 10 / 11 x64" />
     <img src="https://img.shields.io/badge/C%2B%2B-17-00599C" alt="C++17" />
     <a href="https://github.com/YChoux-Pan/TaskPin/actions/workflows/windows.yml"><img src="https://github.com/YChoux-Pan/TaskPin/actions/workflows/windows.yml/badge.svg?branch=main" alt="Windows build and test" /></a>
     <a href="LICENSE"><img src="https://img.shields.io/badge/license-Unlicense-3EC46B" alt="Unlicense" /></a>
   </p>
-  <p><a href="https://github.com/YChoux-Pan/TaskPin/releases/tag/v0.4.4"><strong>Download for Windows</strong></a> · <a href="README.md">简体中文</a> · <a href="CHANGELOG.md">Changelog</a> · <a href="https://github.com/YChoux-Pan/TaskPin/issues">Report an issue</a></p>
+  <p><a href="https://github.com/YChoux-Pan/TaskPin/releases/tag/v0.4.5"><strong>Download for Windows</strong></a> · <a href="README.md">简体中文</a> · <a href="CHANGELOG.md">Changelog</a> · <a href="https://github.com/YChoux-Pan/TaskPin/issues">Report an issue</a></p>
 </div>
 
 ---
 
 TaskPin connects **capture → annotate or pin → recognize as a task → review on a card or calendar**. Use its screenshot tools on their own, or keep daily tasks within reach on the desktop. Screenshots, tasks and PaddleOCR are processed locally; AI is optional.
 
-**0.4.4: bundled lightweight PaddleOCR.** Settings → Screenshot translation → Local OCR now offers **PP-OCRv4 mobile (14.9 MiB)** alongside the default **PP-OCRv5 mobile (20.5 MiB)**. Both run offline with no extra download or hand-written configuration, shared by notes OCR and screenshot translation. Custom profiles, F1/F3 and the configurable Ctrl+T shortcut remain available. [Comparison and acceptance](docs/reports/2026-11-23-lightweight-ocr-0.4.4.md).
+**0.4.5: PP-OCRv6 tiny and model folders.** Copy a compatible ONNX detection/recognition pair into one subfolder of `ocr-models`, restart or refresh Settings, and select it without rebuilding TaskPin. Bundled v6 tiny joins v4/v5; existing selections are preserved and shared by notes OCR and screenshot translation. Saving a folder model validates actual loading in the background. [Model folder guide](docs/OCR-MODELS.md).
 
 ## Features
 
@@ -58,14 +58,14 @@ Successful save and quick-save copy the **absolute file path** to the clipboard.
 
 **Windows 10 / 11 x64. The interface is primarily Chinese.**
 
-1. Download <code>TaskPin-0.4.4-windows-x64.zip</code> from the [0.4.4 release](https://github.com/YChoux-Pan/TaskPin/releases/tag/v0.4.4).
+1. Download <code>TaskPin-0.4.5-windows-x64.zip</code> from the [0.4.5 release](https://github.com/YChoux-Pan/TaskPin/releases/tag/v0.4.5).
 2. Extract the complete folder and run <code>TaskPinQt.exe</code>. Keep all DLLs and plugin directories. No Qt SDK is required.
 3. Press **F1** to capture or **F3** to pin a clipboard image. Open Settings, Calendar and other tools from the tray.
 
-Version 0.4.4 is a preview. The release also includes source, icons, change notes, test reports and SHA256SUMS.txt. Exit through the tray before replacing application files. User data stays in the local user profile.
+Version 0.4.5 is a preview. The release also includes source, icons, change notes, test reports and SHA256SUMS.txt. Exit through the tray before replacing application files. User data stays in the local user profile.
 
 ~~~powershell
-Get-FileHash -Algorithm SHA256 -LiteralPath .\TaskPin-0.4.4-windows-x64.zip
+Get-FileHash -Algorithm SHA256 -LiteralPath .\TaskPin-0.4.5-windows-x64.zip
 ~~~
 
 Compare the result with the matching checksum entry.

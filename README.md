@@ -4,20 +4,20 @@
   <p><strong>留住画面，记下灵感。</strong></p>
   <p>截图、桌面贴图与每日待办，放在同一个轻巧的 Windows 工具里。</p>
   <p>
-    <a href="https://github.com/YChoux-Pan/TaskPin/releases/tag/v0.4.4"><img src="https://img.shields.io/badge/preview-v0.4.4-4C9AFF" alt="0.4.4 预览版" /></a>
+    <a href="https://github.com/YChoux-Pan/TaskPin/releases/tag/v0.4.5"><img src="https://img.shields.io/badge/preview-v0.4.5-4C9AFF" alt="0.4.5 预览版" /></a>
     <img src="https://img.shields.io/badge/platform-Windows%2010%20%2F%2011-0078D4" alt="Windows 10 / 11 x64" />
     <img src="https://img.shields.io/badge/C%2B%2B-17-00599C" alt="C++17" />
     <a href="https://github.com/YChoux-Pan/TaskPin/actions/workflows/windows.yml"><img src="https://github.com/YChoux-Pan/TaskPin/actions/workflows/windows.yml/badge.svg?branch=main" alt="Windows 构建与测试" /></a>
     <a href="LICENSE"><img src="https://img.shields.io/badge/license-Unlicense-3EC46B" alt="Unlicense" /></a>
   </p>
-  <p><a href="https://github.com/YChoux-Pan/TaskPin/releases/tag/v0.4.4"><strong>下载 Windows 便携版</strong></a> · <a href="README.en.md">English</a> · <a href="CHANGELOG.md">更新日志</a> · <a href="https://github.com/YChoux-Pan/TaskPin/issues">反馈问题</a></p>
+  <p><a href="https://github.com/YChoux-Pan/TaskPin/releases/tag/v0.4.5"><strong>下载 Windows 便携版</strong></a> · <a href="README.en.md">English</a> · <a href="CHANGELOG.md">更新日志</a> · <a href="https://github.com/YChoux-Pan/TaskPin/issues">反馈问题</a></p>
 </div>
 
 ---
 
 TaskPin 把截图后的几个动作接在一起：**截取画面 → 标注或固定 → 识别为任务 → 在便签与日历中回看**。可以只用截图和贴图，也可以把桌面卡片作为每天的待办入口。截图、任务和 PaddleOCR 在本地处理，AI 按需开启。
 
-**0.4.4：新增内置 PaddleOCR 轻量模型。** 在「设置 → 截图翻译 → 本地 OCR」直接切换 **PP-OCRv4 mobile（14.9 MiB）** 与默认 **PP-OCRv5 mobile（20.5 MiB）**；无需另行下载或手写配置，便签 OCR 与截图翻译共用。两组模型均离线运行，保留自定义模型入口。F1 框选、F3 贴图与可配置的 Ctrl+T 翻译延续原有行为。[模型对比与验收](docs/reports/2026-11-23-lightweight-ocr-0.4.4.md)。
+**0.4.5：PP-OCRv6 tiny 与模型文件夹。** 新增 **PaddleOCR PP-OCRv6 tiny**。将兼容的检测/识别 ONNX 文件放入 `ocr-models/每组一个文件夹`，重启或在设置中刷新即可选择，无需每次重新编译。原有模型选择保留，便签与截图翻译共用；保存前后台实际加载验证。[添加模型指南](docs/OCR-MODELS.md)。
 
 [功能](#功能一览) · [预览](#界面预览) · [开始使用](#开始使用) · [快捷键](#快捷键) · [开发](#构建与参与) · [文档](#文档导航)
 
@@ -60,17 +60,17 @@ TaskPin 把截图后的几个动作接在一起：**截取画面 → 标注或�
 
 **系统：Windows 10 / 11 x64。当前界面主要为中文。**
 
-1. 在 [0.4.4 发行页](https://github.com/YChoux-Pan/TaskPin/releases/tag/v0.4.4) 下载 <code>TaskPin-0.4.4-windows-x64.zip</code>。
+1. 在 [0.4.5 发行页](https://github.com/YChoux-Pan/TaskPin/releases/tag/v0.4.5) 下载 <code>TaskPin-0.4.5-windows-x64.zip</code>。
 2. 完整解压，保留 DLL 和插件子目录，双击 <code>TaskPinQt.exe</code>。无需安装 Qt 或开发工具。
 3. 按 **F1** 开始截图，按 **F3** 贴住剪贴板图片，通过托盘打开设置、日历与其他工具。
 
-0.4.4 为预览版。[发行页](https://github.com/YChoux-Pan/TaskPin/releases)同时提供源码、图标包、改动记录、测试报告和 SHA256SUMS.txt。升级时先通过托盘退出程序，再替换程序文件。用户数据默认保存在本机用户目录。
+0.4.5 为预览版。[发行页](https://github.com/YChoux-Pan/TaskPin/releases)同时提供源码、图标包、改动记录、测试报告和 SHA256SUMS.txt。升级时先通过托盘退出程序，再替换程序文件。用户数据默认保存在本机用户目录。
 
 <details>
 <summary>校验下载文件</summary>
 
 ~~~powershell
-Get-FileHash -Algorithm SHA256 -LiteralPath .\TaskPin-0.4.4-windows-x64.zip
+Get-FileHash -Algorithm SHA256 -LiteralPath .\TaskPin-0.4.5-windows-x64.zip
 ~~~
 
 将结果与发行附件 SHA256SUMS.txt 中的同名条目比较。

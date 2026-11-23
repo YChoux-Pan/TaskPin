@@ -1,6 +1,7 @@
 #include "translation/OcrProfiles.h"
 #include "core/Settings.h"
 #include <QCryptographicHash>
+#include <QCoreApplication>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
@@ -30,6 +31,15 @@ bool integerInRange(const QJsonValue &value,int low,int high)
 }
 }
 QString OcrProfiles::settingsPath(){return Settings::dataDir()+"/ocr.json";}
+QString OcrProfiles::modelDirectory()
+{
+    const auto configured=qEnvironmentVariable("TASKPIN_OCR_MODELS");
+    return QDir::cleanPath(QFileInfo(configured.isEmpty()?QCoreApplication::applicationDirPath()+"/ocr-models":configured).absoluteFilePath());
+}
+bool OcrProfiles::isLocalProfile(const QString &id)
+{
+    return QRegularExpression("\\Alocal-[a-f0-9]{64}\\z").match(id).hasMatch();
+}
 OcrProfiles OcrProfiles::load(QString *error)
 {
     if(error)error->clear();
@@ -45,7 +55,7 @@ OcrProfiles OcrProfiles::load(QString *error)
     if(parse.error!=QJsonParseError::NoError || !document.isObject() || !knownKeys(object,{"schemaVersion","profile","customProfilePath"}) ||
        !integerInRange(object.value("schemaVersion"),1,1) || !object.value("profile").isString() ||
        (object.contains("customProfilePath") && !object.value("customProfilePath").isString()) ||
-       (selection.profile!="builtin-ppocrv5-mobile" && selection.profile!="builtin-ppocrv4-mobile" && selection.profile!="custom")) {
+       (selection.profile!="builtin-ppocrv5-mobile" && selection.profile!="builtin-ppocrv4-mobile" && selection.profile!="builtin-ppocrv6-tiny" && selection.profile!="custom" && !isLocalProfile(selection.profile))) {
         selection.profile.clear();reject(error,QStringLiteral("本地 OCR 配置无效或版本不受支持，请重新选择模型。"));
     }
     return selection;
@@ -59,7 +69,7 @@ QString OcrProfiles::profilePath() const
 bool OcrProfiles::validate(QString *error,bool verifyHashes) const
 {
     if(error)error->clear();
-    if(profile=="builtin-ppocrv5-mobile" || profile=="builtin-ppocrv4-mobile")return true;
+    if(profile=="builtin-ppocrv5-mobile" || profile=="builtin-ppocrv4-mobile" || profile=="builtin-ppocrv6-tiny" || isLocalProfile(profile))return true;
     if(profile!="custom")return reject(error,QStringLiteral("本地 OCR 配置无效，请重新选择模型。"));
     if(customProfilePath.trimmed().isEmpty())return reject(error,QStringLiteral("请选择本地 OCR 模型配置 JSON 文件。"));
     const QFileInfo configFile(profilePath());QFile file(configFile.absoluteFilePath());
@@ -68,11 +78,18 @@ bool OcrProfiles::validate(QString *error,bool verifyHashes) const
     QJsonParseError parse;const auto document=QJsonDocument::fromJson(file.readAll(),&parse);const auto object=document.object();
     const QString invalid=QStringLiteral("OCR 模型配置 JSON 无效，或包含不支持的字段。请查看本地模型配置说明。");
     if(parse.error!=QJsonParseError::NoError || !document.isObject() || !integerInRange(object.value("schemaVersion"),1,1) ||
-       !knownKeys(object,{"schemaVersion","id","modelVersion","language","det","rec","cpu"}) ||
+       !knownKeys(object,{"schemaVersion","id","modelVersion","language","det","rec","cpu","detector"}) ||
        !QRegularExpression("\\A[A-Za-z0-9][A-Za-z0-9._-]{0,63}\\z").match(object.value("id").toString()).hasMatch() ||
        !object.value("modelVersion").isString() || object.value("modelVersion").toString().trimmed().isEmpty() || object.value("modelVersion").toString().size()>128)
         return reject(error,invalid);
     if(!QStringList{"multi","zh","en","zh+en"}.contains(object.value("language").toString()))return reject(error,QStringLiteral("OCR 配置的语言元数据不受支持。"));
+    if(object.contains("detector")) {
+        if(!object.value("detector").isObject())return reject(error,invalid);
+        const auto detector=object.value("detector").toObject();
+        if(!knownKeys(detector,{"limitType","limitSideLen"}) ||
+           (detector.contains("limitType") && !QStringList{"min","max"}.contains(detector.value("limitType").toString())) ||
+           (detector.contains("limitSideLen") && !integerInRange(detector.value("limitSideLen"),32,8192)))return reject(error,invalid);
+    }
     if(object.contains("cpu")) {
         if(!object.value("cpu").isObject())return reject(error,invalid);
         const auto cpu=object.value("cpu").toObject();
@@ -85,12 +102,14 @@ bool OcrProfiles::validate(QString *error,bool verifyHashes) const
     for(const auto &task:QStringList{"det","rec"}) {
         if(!object.value(task).isObject())return reject(error,invalid);
         const auto model=object.value(task).toObject();
-        if(model.size()!=4 || !knownKeys(model,{"path","sha256","ocrVersion","modelType"}) ||
+        if(model.size()<4 || !knownKeys(model,{"path","sha256","ocrVersion","modelType","language"}) ||
            !model.value("path").isString() || model.value("path").toString().isEmpty() ||
            !QRegularExpression("\\A[a-fA-F0-9]{64}\\z").match(model.value("sha256").toString()).hasMatch())return reject(error,invalid);
-        if(!QStringList{"PP-OCRv4","PP-OCRv5"}.contains(model.value("ocrVersion").toString()) ||
-           !QStringList{"mobile","server"}.contains(model.value("modelType").toString()))
-            return reject(error,QStringLiteral("OCR 模型家族或类型不受支持；当前支持 PP-OCRv4/v5 的 mobile/server ONNX。"));
+        const auto family=model.value("ocrVersion").toString();
+        const bool supported=family=="PP-OCRv6"?QStringList{"tiny","small","medium"}.contains(model.value("modelType").toString()):
+            QStringList{"PP-OCRv4","PP-OCRv5"}.contains(family) && QStringList{"mobile","server"}.contains(model.value("modelType").toString());
+        if(!supported)return reject(error,QStringLiteral("OCR 模型家族或类型不受支持；支持 PP-OCRv4/v5 mobile/server 和 v6 tiny/small/medium ONNX。"));
+        if(model.contains("language") && !QStringList{"ch","en","multi","zh"}.contains(model.value("language").toString()))return reject(error,invalid);
     }
     for(const auto &task:QStringList{"det","rec"}) {
         const auto model=object.value(task).toObject();

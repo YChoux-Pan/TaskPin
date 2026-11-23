@@ -140,3 +140,31 @@ test('Isolated application selftest keeps data and platform contracts', async ({
   expect(bytes.toString('latin1')).toContain('53 passed, 0 failed');
   await info.attach('Selftest', { path: path.join(output, 'selftest.txt'), contentType: 'text/plain' });
 });
+
+test('PP-OCRv6 tiny recognizes the real selected image and creates a translation pin', async ({}, info) => {
+  const output = await workspace();
+  expect(await native('TaskPinTranslationProbe', [output, '--tiny', '--paragraph'], output)).toBe(0);
+  const report = JSON.parse(await fs.readFile(path.join(output, 'native-probe.json'), 'utf8'));
+  expect(report.profileId).toBe('builtin-ppocrv6-tiny');
+  expect(report.ocrEngine).toBe('PaddleOCR PP-OCRv6');
+  expect(report.state).toBe('PRESENTING');
+  expect(report.framelessPin).toBe(true);
+  expect(report.positionAndZoomPreserved).toBe(true);
+  expect(report.cloudCalled).toBe(false);
+  await info.attach('Actual v6 OCR metadata', { path: path.join(output, 'native-probe.json'), contentType: 'application/json' });
+  await info.attach('V6 translation pin', { path: path.join(output, 'translation-pin-mock.png'), contentType: 'image/png' });
+});
+
+test('Copying a model pair after build discovers and uses it without recompilation', async ({}, info) => {
+  await qt('TaskPinTranslationTests', ['v6OcrSelectionSavesAndReopens',
+    'ocrFolderRefreshPreservesDraftAndMissingSelection', 'folderOcrLoadsOnSaveAndRoutesSharedWorker',
+    'folderOcrValidationRejectsPackageMembershipChanges', 'customV6SchemaAndLocalIdsAreStrict'], info);
+  const output = await workspace();
+  expect(await native('TaskPinTranslationProbe', [output, '--folder-model'], output)).toBe(0);
+  const report = JSON.parse(await fs.readFile(path.join(output, 'native-probe.json'), 'utf8'));
+  expect(report.profileId).toMatch(/^local-[a-f0-9]{64}$/);
+  expect(report.ocrEngine).toBe('PaddleOCR PP-OCRv6');
+  expect(report.state).toBe('PRESENTING');
+  expect(report.positionAndZoomPreserved).toBe(true);
+  await info.attach('Dropped filename-only pair metadata', { path: path.join(output, 'native-probe.json'), contentType: 'application/json' });
+});

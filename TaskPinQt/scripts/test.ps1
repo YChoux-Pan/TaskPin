@@ -24,6 +24,10 @@ try {
     if ($env:TASKPIN_TEST_FONT) { $ocrArgs += @('--font', $env:TASKPIN_TEST_FONT) }
     & (Join-Path $ocrRuntime 'python.exe') @ocrArgs *> (Join-Path $reports 'ocr-runtime.txt')
     if ($LASTEXITCODE -ne 0) { throw "PaddleOCR behavior tests failed. See $reports/ocr-runtime.txt" }
+    $catalogArgs=@('-I','-B',(Join-Path $PSScriptRoot '../ocr/test_model_catalog.py'),'--runtime',$ocrRuntime)
+    if ($env:TASKPIN_TEST_FONT) {$catalogArgs+=@('--font',$env:TASKPIN_TEST_FONT)}
+    & (Join-Path $ocrRuntime 'python.exe') @catalogArgs *> (Join-Path $reports 'ocr-catalog.txt')
+    if ($LASTEXITCODE -ne 0) { throw "PaddleOCR model folder tests failed. See $reports/ocr-catalog.txt" }
     try {
         Invoke-Checked $ctest @('--test-dir', $build, '--build-config', 'Release', '--output-on-failure', '--no-tests=error',
             '--verbose', '--output-log', (Join-Path $reports 'ctest.log'), '--output-junit', (Join-Path $reports 'ctest.xml'))

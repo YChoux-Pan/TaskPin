@@ -69,6 +69,7 @@ static int benchmark(QApplication &app,const QString &output,const Translation::
         QJsonObject payload{{"image",QString::fromLatin1(png.toBase64())}};
         if(selection.profile=="custom")payload.insert("profilePath",selection.profilePath());
         else payload.insert("profileId",selection.profile);
+        if(Translation::OcrProfiles::isLocalProfile(selection.profile))payload.insert("modelDirectory",Translation::OcrProfiles::modelDirectory());
         legacy.write(QJsonDocument(payload).toJson(QJsonDocument::Compact));legacy.closeWriteChannel();
     });
     QObject::connect(&legacy,qOverload<int,QProcess::ExitStatus>(&QProcess::finished),&app,[&](int code,QProcess::ExitStatus status){
@@ -113,6 +114,26 @@ int main(int argc,char **argv)
     if(args.contains("--lightweight")) {
         Translation::OcrProfiles profile;profile.profile="builtin-ppocrv4-mobile";
         if(!profile.save(&error))return 14;
+    }
+    if(args.contains("--tiny")) {
+        Translation::OcrProfiles profile;profile.profile="builtin-ppocrv6-tiny";
+        if(!profile.save(&error))return 14;
+    }
+    if(args.contains("--folder-model")) {
+        const QString root=output+"/model-packages",folder=root+"/added-v6";
+        if(!QDir().mkpath(folder))return 15;
+        qputenv("TASKPIN_OCR_MODELS",root.toUtf8());
+        for(const auto &task:QStringList{"det","rec"}) {
+            const QString name="PP-OCRv6_"+task+"_tiny.onnx";
+            if(!QFile::copy(Translation::Ocr::runtimeDirectory()+"/models/"+name,folder+"/"+name))return 15;
+        }
+        QProcess catalog;catalog.setProgram(Translation::Ocr::runtimeDirectory()+"/python.exe");
+        catalog.setArguments({"-I","-B",Translation::Ocr::runtimeDirectory()+"/helper.py","--catalog","--model-dir",root});
+        catalog.start();if(!catalog.waitForFinished(15000) || catalog.exitCode()!=0)return 15;
+        const auto entries=QJsonDocument::fromJson(catalog.readAllStandardOutput()).object().value("models").toArray();
+        Translation::OcrProfiles profile;profile.profile.clear();
+        for(const auto &entry:entries)if(entry.toObject().value("source")=="folder" && entry.toObject().value("enabled").toBool())profile.profile=entry.toObject().value("id").toString();
+        if(!profile.save(&error))return 15;
     }
     if(args.contains("--benchmark"))return benchmark(app,output,config,args.contains("--single-sample")?1:3,args.contains("--oneshot-ocr"));
     const bool paragraph=args.contains("--paragraph");

@@ -1,6 +1,6 @@
-TaskPin 0.4.4 - Windows 10/11 x64
+TaskPin 0.4.5 - Windows 10/11 x64
 
-Extract the whole TaskPin-0.4.4 folder and run TaskPinQt.exe.
+Extract the whole TaskPin-0.4.5 folder and run TaskPinQt.exe.
 Keep the DLLs and plugin folders beside the executable. No Qt SDK is required.
 Use the system tray menu for Settings and Exit.
 
@@ -44,3 +44,5 @@ Project, instructions, source and limitations:
 https://github.com/YChoux-Pan/TaskPin
 
 Choose Settings > Screenshot translation > Local OCR > PP-OCRv4 mobile for the bundled lightweight model (14.9 MiB of weights). Both OCR entry points share this selection. Existing default/custom selections are retained on upgrade.
+
+PP-OCRv6 tiny is bundled. Add compatible model pairs to ocr-models/<one-folder-per-pair>, then restart or refresh Settings. Preserve ocr-models/ during upgrades. See https://github.com/YChoux-Pan/TaskPin/blob/main/docs/OCR-MODELS.md for filename and optional model.json examples.

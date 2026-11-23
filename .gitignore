@@ -32,3 +32,5 @@ node_modules/
 test-results/
 playwright-report/
 .superpowers/
+__pycache__/
+*.py[cod]
