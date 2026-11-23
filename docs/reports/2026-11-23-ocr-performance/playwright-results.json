@@ -1,0 +1,622 @@
+{
+  "config": {
+    "argv": [
+      "C:\\Program Files\\WindowsApps\\OpenAI.CodexPrimaryRuntime.v26-1119-907-0_26.1119.907.0_x64__3k8sg7r9htsxt\\dependencies\\node\\bin\\node.exe",
+      "E:\\Codex工作区\\taskpin-ocr-experience\\repo\\node_modules\\@playwright\\test\\cli.js",
+      "test",
+      "--config",
+      "tests/playwright/playwright.config.ts"
+    ],
+    "configFile": "E:\\Codex工作区\\taskpin-ocr-experience\\repo\\tests\\playwright\\playwright.config.ts",
+    "rootDir": "[source]/tests/playwright",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "[source]/docs/artifacts/playwright/results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "",
+        "name": "",
+        "testDir": "[source]/tests/playwright",
+        "testIgnore": [],
+        "testMatch": [
+          "native.spec.ts"
+        ],
+        "timeout": 180000
+      }
+    ],
+    "filteredProjects": [
+      {
+        "grep": {},
+        "grepInvert": null,
+        "outputDir": "E:\\Codex工作区\\taskpin-ocr-experience\\repo\\docs\\artifacts\\playwright\\results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "name": "",
+        "testDir": "E:\\Codex工作区\\taskpin-ocr-experience\\repo\\tests\\playwright",
+        "snapshotDir": "E:\\Codex工作区\\taskpin-ocr-experience\\repo\\tests\\playwright",
+        "testIgnore": [],
+        "testMatch": "native.spec.ts",
+        "timeout": 180000,
+        "use": {},
+        "dependencies": [],
+        "ignoreSnapshots": false,
+        "__projectId": ""
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list",
+        null
+      ],
+      [
+        "html",
+        {
+          "outputFolder": "E:\\Codex工作区\\taskpin-ocr-experience\\repo\\docs\\artifacts\\playwright\\html",
+          "open": "never"
+        }
+      ],
+      [
+        "junit",
+        {
+          "outputFile": "E:\\Codex工作区\\taskpin-ocr-experience\\repo\\docs\\artifacts\\playwright\\junit.xml"
+        }
+      ],
+      [
+        "json",
+        {
+          "outputFile": "E:\\Codex工作区\\taskpin-ocr-experience\\repo\\docs\\artifacts\\playwright\\results.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "default",
+    "updateSourceMethod": "patch",
+    "version": "1.65.1",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "native.spec.ts",
+      "file": "native.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "F1 editor → real PaddleOCR → translation pin, no result popup",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2902,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-23T01:01:52.197Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "TaskPinTranslationProbe process output",
+                      "contentType": "text/plain",
+                      "path": "E:\\Codex工作区\\taskpin-ocr-experience\\repo\\docs\\artifacts\\playwright\\results\\native-F1-editor-→-real-Pa-b02b6-slation-pin-no-result-popup\\attachments\\TaskPinTranslationProbe-process-output-d9176fb8fc5f08c6e515d5aceff80722753b1380.txt"
+                    },
+                    {
+                      "name": "Stage timings and native state",
+                      "contentType": "application/json",
+                      "path": "E:\\Codex工作区\\taskpin-ocr-experience\\repo\\docs\\artifacts\\playwright\\results\\native-F1-editor-→-real-Pa-b02b6-slation-pin-no-result-popup\\attachments\\Stage-timings-and-native-state-dc21d701b79b66bb7cf66ce2a9b786c7fe1f6171.json"
+                    },
+                    {
+                      "name": "translation-pin-mock.png",
+                      "contentType": "image/png",
+                      "path": "E:\\Codex工作区\\taskpin-ocr-experience\\repo\\docs\\artifacts\\playwright\\results\\native-F1-editor-→-real-Pa-b02b6-slation-pin-no-result-popup\\attachments\\translation-pin-mock-png-2196b05148ab12623082a2ac39e7cbbeda9d5304.png"
+                    },
+                    {
+                      "name": "comparison.png",
+                      "contentType": "image/png",
+                      "path": "E:\\Codex工作区\\taskpin-ocr-experience\\repo\\docs\\artifacts\\playwright\\results\\native-F1-editor-→-real-Pa-b02b6-slation-pin-no-result-popup\\attachments\\comparison-png-08f062894b3fed8f15c6380357ac30277e7273e6.png"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "dadda6b3ddfdf57c4974-0a144e5ade86d62ca44c",
+          "file": "native.spec.ts",
+          "line": 55,
+          "column": 1
+        },
+        {
+          "title": "Wheel reversal, cursor anchor and cache stability at display scale 1",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2827,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-23T01:01:55.130Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "TaskPinExperienceTests process output",
+                      "contentType": "text/plain",
+                      "path": "E:\\Codex工作区\\taskpin-ocr-experience\\repo\\docs\\artifacts\\playwright\\results\\native-Wheel-reversal-curs-3520e-tability-at-display-scale-1\\attachments\\TaskPinExperienceTests-process-output-4d04757225ed064c8db2623bba997cd132edc1b0.txt"
+                    },
+                    {
+                      "name": "Qt native assertions",
+                      "contentType": "text/plain",
+                      "path": "E:\\Codex工作区\\taskpin-ocr-experience\\repo\\docs\\artifacts\\playwright\\results\\native-Wheel-reversal-curs-3520e-tability-at-display-scale-1\\attachments\\Qt-native-assertions-3e1ba3543ad5fc3998013ad57251cc917a8f3f9d.txt"
+                    },
+                    {
+                      "name": "Qt JUnit",
+                      "contentType": "application/xml",
+                      "path": "E:\\Codex工作区\\taskpin-ocr-experience\\repo\\docs\\artifacts\\playwright\\results\\native-Wheel-reversal-curs-3520e-tability-at-display-scale-1\\attachments\\Qt-JUnit-4440843eaaac8499152765cf9525d24df0e65e2e.xml"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "dadda6b3ddfdf57c4974-8c9afaaca9cd65b60833",
+          "file": "native.spec.ts",
+          "line": 80,
+          "column": 3
+        },
+        {
+          "title": "Wheel reversal, cursor anchor and cache stability at display scale 1.25",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2776,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-23T01:01:57.979Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "TaskPinExperienceTests process output",
+                      "contentType": "text/plain",
+                      "path": "E:\\Codex工作区\\taskpin-ocr-experience\\repo\\docs\\artifacts\\playwright\\results\\native-Wheel-reversal-curs-5bbca-ility-at-display-scale-1-25\\attachments\\TaskPinExperienceTests-process-output-fb17f0e51c546e21ccd0297b1643b9d12ecb833b.txt"
+                    },
+                    {
+                      "name": "Qt native assertions",
+                      "contentType": "text/plain",
+                      "path": "E:\\Codex工作区\\taskpin-ocr-experience\\repo\\docs\\artifacts\\playwright\\results\\native-Wheel-reversal-curs-5bbca-ility-at-display-scale-1-25\\attachments\\Qt-native-assertions-adb28b735424ed38c43fc4efc937681ae40aa2e8.txt"
+                    },
+                    {
+                      "name": "Qt JUnit",
+                      "contentType": "application/xml",
+                      "path": "E:\\Codex工作区\\taskpin-ocr-experience\\repo\\docs\\artifacts\\playwright\\results\\native-Wheel-reversal-curs-5bbca-ility-at-display-scale-1-25\\attachments\\Qt-JUnit-21b697e413a8f47c2d377926d49df583181039f7.xml"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "dadda6b3ddfdf57c4974-f4b9974597ec052615ee",
+          "file": "native.spec.ts",
+          "line": 80,
+          "column": 3
+        },
+        {
+          "title": "Wheel reversal, cursor anchor and cache stability at display scale 1.5",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2897,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-23T01:02:00.764Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "TaskPinExperienceTests process output",
+                      "contentType": "text/plain",
+                      "path": "E:\\Codex工作区\\taskpin-ocr-experience\\repo\\docs\\artifacts\\playwright\\results\\native-Wheel-reversal-curs-75550-bility-at-display-scale-1-5\\attachments\\TaskPinExperienceTests-process-output-e357fbb5f147e83e59cd45f24ff660b7da8913ab.txt"
+                    },
+                    {
+                      "name": "Qt native assertions",
+                      "contentType": "text/plain",
+                      "path": "E:\\Codex工作区\\taskpin-ocr-experience\\repo\\docs\\artifacts\\playwright\\results\\native-Wheel-reversal-curs-75550-bility-at-display-scale-1-5\\attachments\\Qt-native-assertions-72f1a6cd882051b16c5b89d5d64292d8a307528e.txt"
+                    },
+                    {
+                      "name": "Qt JUnit",
+                      "contentType": "application/xml",
+                      "path": "E:\\Codex工作区\\taskpin-ocr-experience\\repo\\docs\\artifacts\\playwright\\results\\native-Wheel-reversal-curs-75550-bility-at-display-scale-1-5\\attachments\\Qt-JUnit-fd758035705194468220c5987537d697870ee63f.xml"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "dadda6b3ddfdf57c4974-f0d2b07c2cfa900f84ce",
+          "file": "native.spec.ts",
+          "line": 80,
+          "column": 3
+        },
+        {
+          "title": "Wheel reversal, cursor anchor and cache stability at display scale 2",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2754,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-23T01:02:03.679Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "TaskPinExperienceTests process output",
+                      "contentType": "text/plain",
+                      "path": "E:\\Codex工作区\\taskpin-ocr-experience\\repo\\docs\\artifacts\\playwright\\results\\native-Wheel-reversal-curs-e7c62-tability-at-display-scale-2\\attachments\\TaskPinExperienceTests-process-output-5e4974931d991bec9d385364ae9321af36308a35.txt"
+                    },
+                    {
+                      "name": "Qt native assertions",
+                      "contentType": "text/plain",
+                      "path": "E:\\Codex工作区\\taskpin-ocr-experience\\repo\\docs\\artifacts\\playwright\\results\\native-Wheel-reversal-curs-e7c62-tability-at-display-scale-2\\attachments\\Qt-native-assertions-5fd5e2fbf67abaaa2c04a2df6e5892713dfc0131.txt"
+                    },
+                    {
+                      "name": "Qt JUnit",
+                      "contentType": "application/xml",
+                      "path": "E:\\Codex工作区\\taskpin-ocr-experience\\repo\\docs\\artifacts\\playwright\\results\\native-Wheel-reversal-curs-e7c62-tability-at-display-scale-2\\attachments\\Qt-JUnit-cd19df9ac23080e8047da7fdd1adbc17669bd2cc.xml"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "dadda6b3ddfdf57c4974-2107d81392b2d61ae77f",
+          "file": "native.spec.ts",
+          "line": 80,
+          "column": 3
+        },
+        {
+          "title": "Comparison stays opaque and proportional on light/dark pins",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 157,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-23T01:02:06.451Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "TaskPinExperienceTests process output",
+                      "contentType": "text/plain",
+                      "path": "E:\\Codex工作区\\taskpin-ocr-experience\\repo\\docs\\artifacts\\playwright\\results\\native-Comparison-stays-op-4e0ca-ortional-on-light-dark-pins\\attachments\\TaskPinExperienceTests-process-output-e7889b0fe5436721ece95a382d1b241fa68b6bbd.txt"
+                    },
+                    {
+                      "name": "Qt native assertions",
+                      "contentType": "text/plain",
+                      "path": "E:\\Codex工作区\\taskpin-ocr-experience\\repo\\docs\\artifacts\\playwright\\results\\native-Comparison-stays-op-4e0ca-ortional-on-light-dark-pins\\attachments\\Qt-native-assertions-fa49521c135bb744d67ae30eab692220a3df5127.txt"
+                    },
+                    {
+                      "name": "Qt JUnit",
+                      "contentType": "application/xml",
+                      "path": "E:\\Codex工作区\\taskpin-ocr-experience\\repo\\docs\\artifacts\\playwright\\results\\native-Comparison-stays-op-4e0ca-ortional-on-light-dark-pins\\attachments\\Qt-JUnit-fc15adebb353a1744ab435e6ca5f676249d073ba.xml"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "dadda6b3ddfdf57c4974-ea7fa1a40e0cdac75038",
+          "file": "native.spec.ts",
+          "line": 87,
+          "column": 1
+        },
+        {
+          "title": "F3 and custom editor shortcuts export the selected image",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 99,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-23T01:02:06.620Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "TaskPinScreenshotTests process output",
+                      "contentType": "text/plain",
+                      "path": "E:\\Codex工作区\\taskpin-ocr-experience\\repo\\docs\\artifacts\\playwright\\results\\native-F3-and-custom-edito-00427-s-export-the-selected-image\\attachments\\TaskPinScreenshotTests-process-output-f03863adca33908b8036999fc10e5de4bde9d466.txt"
+                    },
+                    {
+                      "name": "Qt native assertions",
+                      "contentType": "text/plain",
+                      "path": "E:\\Codex工作区\\taskpin-ocr-experience\\repo\\docs\\artifacts\\playwright\\results\\native-F3-and-custom-edito-00427-s-export-the-selected-image\\attachments\\Qt-native-assertions-e16b8bf905ee9faffbd12e833909f35e81085c7f.txt"
+                    },
+                    {
+                      "name": "Qt JUnit",
+                      "contentType": "application/xml",
+                      "path": "E:\\Codex工作区\\taskpin-ocr-experience\\repo\\docs\\artifacts\\playwright\\results\\native-F3-and-custom-edito-00427-s-export-the-selected-image\\attachments\\Qt-JUnit-3a0a7882da226664d2d775ed443388e6974c1507.xml"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "dadda6b3ddfdf57c4974-6041ea842bdbc7e08dce",
+          "file": "native.spec.ts",
+          "line": 91,
+          "column": 1
+        },
+        {
+          "title": "Host hotkey routing, persistence and collision checks match settings",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 147,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-23T01:02:06.735Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "TaskPinIntegrationTests process output",
+                      "contentType": "text/plain",
+                      "path": "E:\\Codex工作区\\taskpin-ocr-experience\\repo\\docs\\artifacts\\playwright\\results\\native-Host-hotkey-routing-67215-ision-checks-match-settings\\attachments\\TaskPinIntegrationTests-process-output-dfc0fc83efb09c97d84f892d119057b8eb747cab.txt"
+                    },
+                    {
+                      "name": "Qt native assertions",
+                      "contentType": "text/plain",
+                      "path": "E:\\Codex工作区\\taskpin-ocr-experience\\repo\\docs\\artifacts\\playwright\\results\\native-Host-hotkey-routing-67215-ision-checks-match-settings\\attachments\\Qt-native-assertions-39c20390e22fbbf3c2779ca1ad52bde27557bfb6.txt"
+                    },
+                    {
+                      "name": "Qt JUnit",
+                      "contentType": "application/xml",
+                      "path": "E:\\Codex工作区\\taskpin-ocr-experience\\repo\\docs\\artifacts\\playwright\\results\\native-Host-hotkey-routing-67215-ision-checks-match-settings\\attachments\\Qt-JUnit-f4ad771ee15299b0f30f936b956b8740740bd9f8.xml"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "dadda6b3ddfdf57c4974-66ea88f85846b7b8a2f1",
+          "file": "native.spec.ts",
+          "line": 97,
+          "column": 1
+        },
+        {
+          "title": "OCR profile validation, save and cancel preserve configuration",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 9848,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-23T01:02:06.892Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "TaskPinTranslationTests process output",
+                      "contentType": "text/plain",
+                      "path": "E:\\Codex工作区\\taskpin-ocr-experience\\repo\\docs\\artifacts\\playwright\\results\\native-OCR-profile-validat-edf33-ncel-preserve-configuration\\attachments\\TaskPinTranslationTests-process-output-880df6a2d8397116aad5a6850fb7d794ae1f7ffa.txt"
+                    },
+                    {
+                      "name": "Qt native assertions",
+                      "contentType": "text/plain",
+                      "path": "E:\\Codex工作区\\taskpin-ocr-experience\\repo\\docs\\artifacts\\playwright\\results\\native-OCR-profile-validat-edf33-ncel-preserve-configuration\\attachments\\Qt-native-assertions-1d7ae7fce59be829af76d4f6183ae5c7853fb7f1.txt"
+                    },
+                    {
+                      "name": "Qt JUnit",
+                      "contentType": "application/xml",
+                      "path": "E:\\Codex工作区\\taskpin-ocr-experience\\repo\\docs\\artifacts\\playwright\\results\\native-OCR-profile-validat-edf33-ncel-preserve-configuration\\attachments\\Qt-JUnit-a2e16cef329bff463fe751650696512ebc9b9b66.xml"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "dadda6b3ddfdf57c4974-9c900773ba26499ca7c3",
+          "file": "native.spec.ts",
+          "line": 103,
+          "column": 1
+        },
+        {
+          "title": "Isolated application selftest keeps data and platform contracts",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 75,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-23T01:02:16.764Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "TaskPinQt process output",
+                      "contentType": "text/plain",
+                      "path": "E:\\Codex工作区\\taskpin-ocr-experience\\repo\\docs\\artifacts\\playwright\\results\\native-Isolated-applicatio-ca3e6-data-and-platform-contracts\\attachments\\TaskPinQt-process-output-468886a077ca4dfeb3cbd5c788a8315363720d71.txt"
+                    },
+                    {
+                      "name": "Selftest",
+                      "contentType": "text/plain",
+                      "path": "E:\\Codex工作区\\taskpin-ocr-experience\\repo\\docs\\artifacts\\playwright\\results\\native-Isolated-applicatio-ca3e6-data-and-platform-contracts\\attachments\\Selftest-616f129c21f356ec82fcd191973a666fb6ac2cfc.txt"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "dadda6b3ddfdf57c4974-10d6681598471e10e81d",
+          "file": "native.spec.ts",
+          "line": 111,
+          "column": 1
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-11-23T01:01:51.733Z",
+    "duration": 25149.92,
+    "expected": 10,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

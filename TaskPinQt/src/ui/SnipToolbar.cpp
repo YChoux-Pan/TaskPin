@@ -1,4 +1,5 @@
 #include "ui/SnipToolbar.h"
+#include "core/Settings.h"
 
 namespace
 {
@@ -22,9 +23,9 @@ const Definition definitions[] = {
     { "tool:eraser", "橡皮", "E" },
     { "undo", "撤销", "Ctrl+Z" },
     { "redo", "重做", "Ctrl+Y" },
-    { "pin", "贴到桌面", "Ctrl+P" },
+    { "pin", "贴到桌面", "" },
     { "ocr", "识别为任务", "Ctrl+R" },
-    { "translate", "翻译", "Ctrl+T" },
+    { "translate", "翻译", "" },
     { "save", "保存", "Ctrl+S" },
     { "copy", "复制", "Enter" },
     { "close", "取消截图", "Esc" },
@@ -50,6 +51,8 @@ QString SnipToolbar::label(const QString &id)
 
 QString SnipToolbar::shortcut(const QString &id)
 {
+    if (id == "pin") return Settings::instance().chordFor("pin");
+    if (id == "translate") return Settings::instance().chordFor("editorTranslate");
     for (const auto &definition : definitions)
         if (id == QLatin1String(definition.id)) return QString::fromUtf8(definition.shortcut);
     return {};

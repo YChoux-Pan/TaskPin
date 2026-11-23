@@ -328,7 +328,10 @@ void AppHost::registerHotkeys()
 {
     if (!m_hotkeys) return;
     m_hotkeys->unbindAll();
-    if (taskPinAutomation()) return;
+    if (taskPinAutomation()) {
+        if (m_snip) m_snip->setPinShortcut(Settings::instance().chordFor("pin"));
+        return;
+    }
     int registered = 0;
     for (const auto &pair : hotkeyActions()) {
         const QString wanted = Settings::instance().chordFor(pair.first);
@@ -346,6 +349,7 @@ void AppHost::registerHotkeys()
               ok ? "(registered)" : "(FAILED)", ok && actual != wanted ? " [degraded]" : "");
     }
     qInfo("hotkeys: %d/%d registered", registered, int(hotkeyActions().size()));
+    if (m_snip) m_snip->setPinShortcut(m_hotkeys->label(Hotkeys::Pin));
 }
 
 void AppHost::onHotkey(int id)
@@ -355,7 +359,10 @@ void AppHost::onHotkey(int id)
     case Hotkeys::Snip: startSnip(); break;
     case Hotkeys::Full: captureFull(); break;
     case Hotkeys::Last: startLastRegion(); break;
-    case Hotkeys::Pin: pinFromClipboard(); break;
+    case Hotkeys::Pin:
+        if (m_snip) m_snip->pinSelection();
+        else pinFromClipboard();
+        break;
     case Hotkeys::Pins: togglePins(); break;
     case Hotkeys::QuickAdd: quickAdd(); break;
     case Hotkeys::ToggleCard: toggleCard(); break;
@@ -433,6 +440,7 @@ void AppHost::captureAndEdit(bool preselectLast)
     qInfo("startSnip: capture ok %dx%d dpr=%.2f", shot.logicalRect.width(), shot.logicalRect.height(), shot.dpr);
 
     auto *overlay = new SnipOverlay(shot);
+    if (m_hotkeys) overlay->setPinShortcut(m_hotkeys->label(Hotkeys::Pin));
     m_snip = overlay;
     if (preselectLast) {
         const QRect last = Settings::instance().lastRegionRect();

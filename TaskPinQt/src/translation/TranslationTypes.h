@@ -2,6 +2,7 @@
 #include <QImage>
 #include <QList>
 #include <QMap>
+#include <QJsonObject>
 #include <QMetaType>
 #include <QRectF>
 #include <QStringList>
@@ -19,6 +20,9 @@ struct OcrResult {
     QSize imageSize;
     QString warning;
     QString engine,modelVersion;
+    QString profileId,modelIdentity;
+    QJsonObject stageMs;
+    bool workerReused=false;
 };
 struct Block {
     QString id, kind, source, protectedText;

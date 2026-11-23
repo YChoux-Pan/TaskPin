@@ -1,0 +1,35 @@
+********* Start testing of ScreenshotTests *********
+Config: Using QtTest library 6.4.3, Qt 6.4.3 (x86_64-little_endian-llp64 shared (dynamic) release build; by GCC 11.2.0), windows 11
+PASS   : ScreenshotTests::initTestCase()
+QWARN  : ScreenshotTests::configuredPinExportsAnnotatedSelection(default-F3) QFontDatabase: Cannot find font directory [development]/pin-build/lib/fonts.
+Note that Qt no longer ships fonts. Deploy some (from https://dejavu-fonts.github.io/ for example) or switch to fontconfig.
+FAIL!  : ScreenshotTests::configuredPinExportsAnnotatedSelection(default-F3) Compared values are not the same
+   Actual   (action(w, "pin").shortcut): "Ctrl+P"
+   Expected (chord)                    : "F3"
+[development]/pin-source/TaskPinQt/tests/tst_screenshot.cpp(118) : failure location
+FAIL!  : ScreenshotTests::configuredPinExportsAnnotatedSelection(custom) Compared values are not the same
+   Actual   (action(w, "pin").shortcut): "Ctrl+P"
+   Expected (chord)                    : "Ctrl+Shift+F6"
+[development]/pin-source/TaskPinQt/tests/tst_screenshot.cpp(118) : failure location
+FAIL!  : ScreenshotTests::configuredTranslationReplacesDefaultShortcut() Compared values are not the same
+   Actual   (action(w, "translate").shortcut): "Ctrl+T"
+   Expected (QString("Alt+F8"))              : "Alt+F8"
+[development]/pin-source/TaskPinQt/tests/tst_screenshot.cpp(137) : failure location
+FAIL!  : ScreenshotTests::bareCustomTranslationDoesNotConsumeTextInput() Compared values are not the same
+   Actual   (translated.count()): 0
+   Expected (1)                 : 1
+[development]/pin-source/TaskPinQt/tests/tst_screenshot.cpp(170) : failure location
+FAIL!  : ScreenshotTests::configuredOutputCommitsFocusedText(pin) Compared values are not the same
+   Actual   (translate ? translated.count() : pinned.count()): 0
+   Expected (1)                                              : 1
+[development]/pin-source/TaskPinQt/tests/tst_screenshot.cpp(191) : failure location
+FAIL!  : ScreenshotTests::configuredOutputCommitsFocusedText(translation) Compared values are not the same
+   Actual   (translate ? translated.count() : pinned.count()): 0
+   Expected (1)                                              : 1
+[development]/pin-source/TaskPinQt/tests/tst_screenshot.cpp(191) : failure location
+QWARN  : ScreenshotTests::actualPinFallbackAppearsAndWorksInEditor() QMetaObject::invokeMethod: No such method SnipOverlay::setPinShortcut(QString)
+FAIL!  : ScreenshotTests::actualPinFallbackAppearsAndWorksInEditor() 'QMetaObject::invokeMethod(&w, "setPinShortcut", Qt::DirectConnection, Q_ARG(QString, QString("Ctrl+Shift+F12")))' returned FALSE. ()
+[development]/pin-source/TaskPinQt/tests/tst_screenshot.cpp(147) : failure location
+PASS   : ScreenshotTests::cleanupTestCase()
+Totals: 2 passed, 7 failed, 0 skipped, 0 blacklisted, 54ms
+********* Finished testing of ScreenshotTests *********

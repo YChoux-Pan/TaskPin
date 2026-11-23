@@ -1,0 +1,92 @@
+{
+  "clock": "QElapsedTimer monotonic",
+  "cloudCalled": true,
+  "fixtureOnly": true,
+  "ocrMode": "one-shot",
+  "samples": [
+    {
+      "characters": 107,
+      "fixture": "small",
+      "modelVersion": "PP-OCRv5_mobile/RapidOCR-v3.10.0",
+      "ocrEngine": "PaddleOCR PP-OCRv5",
+      "ocrMs": 4405,
+      "ocrStageMs": {},
+      "profileId": "",
+      "renderMs": 4,
+      "sample": 1,
+      "totalMs": 5666,
+      "translationMs": 1255,
+      "workerReused": false
+    },
+    {
+      "characters": 107,
+      "fixture": "small",
+      "modelVersion": "PP-OCRv5_mobile/RapidOCR-v3.10.0",
+      "ocrEngine": "PaddleOCR PP-OCRv5",
+      "ocrMs": 2253,
+      "ocrStageMs": {},
+      "profileId": "",
+      "renderMs": 1,
+      "sample": 2,
+      "totalMs": 2899,
+      "translationMs": 644,
+      "workerReused": false
+    },
+    {
+      "characters": 107,
+      "fixture": "small",
+      "modelVersion": "PP-OCRv5_mobile/RapidOCR-v3.10.0",
+      "ocrEngine": "PaddleOCR PP-OCRv5",
+      "ocrMs": 2244,
+      "ocrStageMs": {},
+      "profileId": "",
+      "renderMs": 0,
+      "sample": 3,
+      "totalMs": 3256,
+      "translationMs": 1011,
+      "workerReused": false
+    },
+    {
+      "characters": 537,
+      "fixture": "paragraph",
+      "modelVersion": "PP-OCRv5_mobile/RapidOCR-v3.10.0",
+      "ocrEngine": "PaddleOCR PP-OCRv5",
+      "ocrMs": 2407,
+      "ocrStageMs": {},
+      "profileId": "",
+      "renderMs": 11,
+      "sample": 1,
+      "totalMs": 3569,
+      "translationMs": 1149,
+      "workerReused": false
+    },
+    {
+      "characters": 537,
+      "fixture": "paragraph",
+      "modelVersion": "PP-OCRv5_mobile/RapidOCR-v3.10.0",
+      "ocrEngine": "PaddleOCR PP-OCRv5",
+      "ocrMs": 2380,
+      "ocrStageMs": {},
+      "profileId": "",
+      "renderMs": 4,
+      "sample": 2,
+      "totalMs": 3530,
+      "translationMs": 1144,
+      "workerReused": false
+    },
+    {
+      "characters": 537,
+      "fixture": "paragraph",
+      "modelVersion": "PP-OCRv5_mobile/RapidOCR-v3.10.0",
+      "ocrEngine": "PaddleOCR PP-OCRv5",
+      "ocrMs": 2425,
+      "ocrStageMs": {},
+      "profileId": "",
+      "renderMs": 3,
+      "sample": 3,
+      "totalMs": 3400,
+      "translationMs": 970,
+      "workerReused": false
+    }
+  ]
+}

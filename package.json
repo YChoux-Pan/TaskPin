@@ -1,0 +1,13 @@
+{
+  "name": "taskpin-native-acceptance",
+  "version": "0.4.3",
+  "private": true,
+  "scripts": {
+    "test:native": "playwright test --config tests/playwright/playwright.config.ts",
+    "test:native:report": "playwright show-report docs/artifacts/playwright/html"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.65.1"
+  },
+  "packageManager": "pnpm@11.25.0"
+}

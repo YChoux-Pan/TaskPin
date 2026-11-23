@@ -32,9 +32,11 @@ ocr/LICENSE.txt
 ocr/licenses/...
 ```
 
-Qt launches `python.exe -I -B helper.py`, writes one UTF-8 JSON request to stdin,
-and closes stdin. The helper writes exactly one UTF-8 JSON object plus a newline
-to stdout and exits. It accepts `{ "image": "<base64 PNG>" }`. Successful output:
+The one-shot protocol launches `python.exe -I -B helper.py`, writes one UTF-8
+JSON request to stdin, and closes stdin. The helper writes exactly one UTF-8
+JSON object plus a newline to stdout and exits. It accepts
+`{ "image": "<base64 PNG>" }`, optionally with a local `profilePath`.
+Successful output includes these fields:
 
 ```json
 {"ok":true,"engine":"PaddleOCR PP-OCRv5","language":"multi","modelVersion":"PP-OCRv5_mobile/RapidOCR-v3.10.0","lines":[{"text":"Example","x":10,"y":20,"width":100,"height":24,"confidence":0.97}]}
@@ -53,8 +55,26 @@ Limits are 16,000,000 image pixels, 16,384 pixels per dimension, 64 MiB PNG byte
 Excess output fails instead of silently truncating text. Empty images return
 `lines: []`. Recognition uses two intra-operation CPU threads and one
 inter-operation thread, with OpenCV/BLAS/OpenMP also capped at two threads.
-Each invocation loads the models again; cold-start time depends on the machine
-and input. All input/recognition data stays in memory. The helper never saves
+The application uses `--worker`: one JSON request/reply per line, with a
+`requestId` echoed in each reply. A shared Qt queue serves notes and translation
+with one worker and at most one cached model. Cancelling a queued owner removes
+its request; cancelling/closing the active owner kills that worker and restarts
+for the next owner. Responses are accepted only for the current request. The
+application allows up to eight waiting requests and releases an idle worker after
+60 seconds. Each active request times out after 90 seconds. The one-shot protocol
+and `--self-check` remain available for deployment checks.
+
+Successful replies report `profileId`, `modelIdentity` (SHA256 of model hashes,
+family/type and CPU options), `workerReused`, and `stageMs`. Timings use a monotonic
+clock and include `readRequest`, `verifyModels`, dependency `import`, `prepareImage`,
+model `load`, `inference`, `formatResult`, `overhead`, and helper `total`. A warm
+request reports `load: 0`. Helper `total` excludes interpreter startup,
+worker pipe waiting/reading and JSON output
+serialization. Qt adds `queue`, `process`, `requestTotal` and `bridgeOverhead`
+(`process` minus helper `total`, bounded at zero). Cold-start
+and inference times depend on the machine, input and CPU contention.
+
+All input/recognition data stays in memory. The helper never saves
 images or text, emits no dependency logs, verifies both model hashes before
 loading, disables RapidOCR's downloader, and blocks Python socket connections
 and name lookup. No API keys, cloud service, automatic model download, or font
@@ -65,8 +85,63 @@ Failure is a nonzero exit with `{"ok":false,"errorCode":"..."}`. Stable codes:
 `model_missing`, `model_hash_mismatch`, `runtime_incomplete`,
 `runtime_incompatible`, `runtime_unavailable`, `network_disabled`,
 `inference_failed`, `invalid_model_output`, `output_too_large`,
+`profile_missing`, `profile_invalid`, `profile_unsupported`, `model_incompatible`,
 `invalid_arguments`, and `internal_error`. No user contents or exception strings
 are written to stderr.
+
+## Local model profiles
+
+Settings → Screenshot translation selects the bundled PP-OCRv5 mobile profile or
+a custom local JSON file. Both notes OCR and screenshot translation use this
+selection. `ocr.json` in the isolated TaskPin data directory stores only
+`schemaVersion: 1`, `profile` (`builtin-ppocrv5-mobile` or `custom`) and
+`customProfilePath`. Editing settings is a draft until Save; Cancel preserves
+the previous selection. A malformed saved selection fails visibly.
+
+A custom profile uses this schema (replace paths and hashes with actual files):
+
+```json
+{
+  "schemaVersion": 1,
+  "id": "my-local-v5",
+  "modelVersion": "PP-OCRv5 local export 2026-11",
+  "language": "multi",
+  "det": {
+    "path": "models/det.onnx",
+    "sha256": "<64 hexadecimal characters>",
+    "ocrVersion": "PP-OCRv5",
+    "modelType": "mobile"
+  },
+  "rec": {
+    "path": "models/rec.onnx",
+    "sha256": "<64 hexadecimal characters>",
+    "ocrVersion": "PP-OCRv5",
+    "modelType": "mobile"
+  },
+  "cpu": {"intraOpThreads": 2, "interOpThreads": 1}
+}
+```
+
+Paths are absolute or relative to the profile file. Only ONNX files are accepted.
+Each task declares its own family (`PP-OCRv4` or `PP-OCRv5`) and type (`mobile` or
+`server`). These are the RapidOCR 3.10 options exposed by this schema; they do not
+guarantee compatibility of arbitrary ONNX exports. Recognition models must carry
+the character dictionary expected by RapidOCR in ONNX metadata. Incompatible
+weights or missing dictionaries fail; no downloads or fallback are attempted.
+`language` describes output metadata (`multi`, `zh`, `en`, `zh+en`), rather than
+changing model weights. `id` is 1–64 ASCII letters/digits/dot/underscore/hyphen,
+starting with a letter or digit; `modelVersion` is a nonempty label up to 128
+characters. Optional CPU values are integer intra-operation threads 1–8 and
+inter-operation threads 1–4 (defaults 2 and 1). Unknown fields/options are rejected.
+The settings UI checks profile syntax and starts a cancellable helper process to
+verify SHA256 and actually load the selected ONNX models before saving. The GUI
+does not hash large weights. The inference helper repeats verification before every
+request, including warm reuse. A profile hash is an integrity check supplied by
+the model owner, not an independent trust/signature claim. New model families
+require a tested schema/runtime update; changing a label cannot add engine support.
+
+Custom weights are user supplied and are not bundled, downloaded, or covered by
+the bundled model receipt. Keep their upstream attribution and license with them.
 
 Offline model self-check (also run by the builder):
 

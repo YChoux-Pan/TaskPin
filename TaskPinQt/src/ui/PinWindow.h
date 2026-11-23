@@ -69,9 +69,8 @@ protected:
 private:
     void relayout();
     void setZoom(qreal zoom);
-    void displayZoom(qreal zoom, const QPointF &center);
+    void displayZoom(qreal zoom, const QPointF &anchor, const QPointF &imagePoint);
     void rebuildCache();
-    void rebuildPreview();
     int padding() const;
     void setPinOpacity(qreal opacity);
     void resetDisplay();
@@ -89,10 +88,10 @@ private:
     QString m_group;
     qreal m_zoom = 1.0;
     qreal m_targetZoom = 1.0;
-    QPointF m_zoomCenter;
+    QPointF m_zoomAnchor;
+    QPointF m_zoomImagePoint;
     QVariantAnimation m_zoomAnimation;
     QTimer m_qualityTimer;
-    QImage m_preview;
     QImage m_cache;
     int m_shadowStrength = 18;
     int m_borderWidth = 1;

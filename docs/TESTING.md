@@ -1,5 +1,7 @@
 # Testing and evidence
 
+Latest performance and interaction work: [0.4.3 report](reports/2026-11-21-ocr-performance-0.4.3.md). Final local Release: QtTest 212/0/0 (screenshot59, integration48, experience30, translation57, canvas18), selftest53/0 and Playwright10/10. Playwright Test orchestrates native Qt fixtures and real local OCR, and both Windows CI and tag releases require the acceptance gate. No physical desktop input is injected. See [automation details](AUTOMATED-ACCEPTANCE.md) for commands, scope, HTML/JUnit and native screenshots. Versioned evidence retains its own test counts and limitations.
+
 Latest integrated translation/PaddleOCR evidence: [0.4.2 report](reports/2026-11-21-translation-pin-paddle.md). Screenshot 52/0, integration 35/0, experience 20/0, translation 46/0, canvas 18/0; CTest 5/5 and selftest 53/0, zero skips. Translation enters through the F1 editor, outputs a desktop pin and shares PaddleOCR PP-OCRv5 with note recognition. Real model behavior tests and a DeepSeek fixture chain also pass; historical Windows OCR reports below do not describe the new engine.
 
 Latest 0.4.1 repair: [2026-11-21 report](reports/2026-11-21-translation-repair.md). Five CTest targets cover screenshot, integration, experience, translation and image canvas. It adds shared-key save/reload/cancel, nonmodal settings/reentry, endpoint-consent draft preservation, uncached connection tests and a real DeepSeek synthetic OCR→translation→image run. Earlier records below retain their own scope and limitations.

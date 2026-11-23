@@ -1,11 +1,11 @@
 #pragma once
 #include "translation/TranslationTypes.h"
+#include <QElapsedTimer>
 #include <QObject>
 #include <QPointer>
 
-class QProcess;
-class QTimer;
 namespace Translation {
+class OcrWorker;
 class Ocr : public QObject {
     Q_OBJECT
 public:
@@ -13,7 +13,7 @@ public:
     ~Ocr() override;
     void recognize(const QString &taskId, const QImage &image);
     void cancel();
-    bool busy() const { return !m_process.isNull(); }
+    bool busy() const { return !m_requestId.isEmpty(); }
     static bool available();
     static QString runtimeDirectory();
     static bool decode(const QByteArray &json, const QSize &imageSize, OcrResult *result, QString *error);
@@ -21,12 +21,11 @@ signals:
     void finished(const QString &taskId, const Translation::OcrResult &result);
     void failed(const QString &taskId, const QString &message);
 private:
-    void fail(const QString &message);
-    QPointer<QProcess> m_process;
-    QTimer *m_timer;
+    friend class OcrWorker;
+    void accept(const QString &requestId,const QByteArray &json,const QSize &size,const QJsonObject &bridgeTimings);
+    void reject(const QString &requestId,const QString &message);
     QString m_taskId;
-    QSize m_size;
-    QByteArray m_output;
-    quint64 m_generation = 0;
+    QString m_requestId;
+    QElapsedTimer m_started;
 };
 }

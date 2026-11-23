@@ -63,3 +63,7 @@ The Qt application remains C++17. Both note recognition and the F1 editor Transl
 For manual CMake builds, run `scripts/prepare-ocr-runtime.ps1 -OutputDir <build>/ocr -BootstrapPython <python.exe>` after compiling. `TASKPIN_OCR_RUNTIME` may select an absolute development runtime path. Portable releases always contain the complete `ocr/` folder and work without system Python, CUDA or Windows OCR language packs. Model and wheel URLs/hashes are locked under `TaskPinQt/ocr/`; never replace files in a published release without recomputing its checksums.
 
 The preparation script and model probe must run successfully before distribution. Unit fixtures do not substitute for loading the actual bundled model. Do not package development caches, fixture databases, API keys or personal screenshots.
+
+## Automated native acceptance (0.4.3)
+
+After QtTest/selftest, run the [Playwright Test acceptance](AUTOMATED-ACCEPTANCE.md). It orchestrates the real offscreen Qt executable, model and native fixtures; no browser installation or desktop mouse is required. Windows CI and the tag release both require this gate. The node dependency lock is checked with `pnpm install --frozen-lockfile --ignore-scripts`; reports and native screenshots are uploaded separately.

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(TaskPinQt VERSION 0.4.2 LANGUAGES CXX)
+project(TaskPinQt VERSION 0.4.3 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -25,6 +25,7 @@ if(BUILD_TESTING)
         src/core/InstanceNames.h src/core/InstanceNames.cpp
         src/core/FileNaming.h src/core/FileNaming.cpp
         src/platform/WindowPicker.h src/platform/WindowPicker.cpp)
+    target_sources(TaskPinScreenshotTests PRIVATE src/platform/HotkeyText.h src/platform/HotkeyText.cpp)
     target_include_directories(TaskPinScreenshotTests PRIVATE src)
     target_link_libraries(TaskPinScreenshotTests PRIVATE Qt6::Test Qt6::Widgets Qt6::Svg user32 dwmapi)
     add_test(NAME TaskPinScreenshotTests COMMAND TaskPinScreenshotTests -o -,txt
@@ -49,6 +50,7 @@ qt_add_executable(TaskPinQt WIN32
     src/translation/TranslationConfig.h src/translation/TranslationConfig.cpp
     src/translation/TranslationClient.h src/translation/TranslationClient.cpp
     src/translation/TranslationOcr.h src/translation/TranslationOcr.cpp
+    src/translation/OcrProfiles.h src/translation/OcrProfiles.cpp
     src/ui/TranslationWindow.h src/ui/TranslationWindow.cpp
     src/ui/TranslationCanvas.h src/ui/TranslationCanvas.cpp
     src/ui/TranslationSettingsPage.h src/ui/TranslationSettingsPage.cpp
@@ -112,7 +114,6 @@ if(BUILD_TESTING)
     target_compile_definitions(TaskPinExperienceTests PRIVATE TASKPIN_VERSION="${PROJECT_VERSION}")
     target_link_libraries(TaskPinExperienceTests PRIVATE Qt6::Test Qt6::Widgets Qt6::Sql Qt6::Network
         Qt6::PrintSupport Qt6::Svg user32 gdi32 shell32 dwmapi advapi32)
-    add_dependencies(TaskPinExperienceTests TaskPinIntegrationTests)
     add_test(NAME TaskPinExperienceTests COMMAND TaskPinExperienceTests -o -,txt
         -o "${CMAKE_BINARY_DIR}/TaskPinExperienceTests.txt,txt"
         -o "${CMAKE_BINARY_DIR}/TaskPinExperienceTests.xml,junitxml")
@@ -122,7 +123,6 @@ if(BUILD_TESTING)
     target_compile_definitions(TaskPinTranslationTests PRIVATE TASKPIN_VERSION="${PROJECT_VERSION}")
     target_link_libraries(TaskPinTranslationTests PRIVATE Qt6::Test Qt6::Widgets Qt6::Sql Qt6::Network
         Qt6::PrintSupport Qt6::Svg user32 gdi32 shell32 dwmapi advapi32)
-    add_dependencies(TaskPinTranslationTests TaskPinExperienceTests)
     add_test(NAME TaskPinTranslationTests COMMAND TaskPinTranslationTests -o -,txt
         -o "${CMAKE_BINARY_DIR}/TaskPinTranslationTests.txt,txt"
         -o "${CMAKE_BINARY_DIR}/TaskPinTranslationTests.xml,junitxml")
@@ -131,7 +131,6 @@ if(BUILD_TESTING)
         src/ui/TranslationCanvas.h src/ui/TranslationCanvas.cpp)
     target_include_directories(TaskPinTranslationCanvasTests PRIVATE src)
     target_link_libraries(TaskPinTranslationCanvasTests PRIVATE Qt6::Test Qt6::Widgets)
-    add_dependencies(TaskPinTranslationCanvasTests TaskPinTranslationTests)
     add_test(NAME TaskPinTranslationCanvasTests COMMAND TaskPinTranslationCanvasTests -o -,txt
         -o "${CMAKE_BINARY_DIR}/TaskPinTranslationCanvasTests.txt,txt"
         -o "${CMAKE_BINARY_DIR}/TaskPinTranslationCanvasTests.xml,junitxml")

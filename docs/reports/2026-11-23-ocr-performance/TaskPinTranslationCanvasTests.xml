@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuite name="TranslationCanvasTests" timestamp="2026&#x002D;11&#x002D;23T09:00:30" hostname="XYC&#x002D;PYC" tests="18" failures="0" errors="0" skipped="0" time="0.259">
+  <properties>
+    <property name="QTestVersion" value="6.4.3"/>
+    <property name="QtVersion" value="6.4.3"/>
+    <property name="QtBuild" value="Qt 6.4.3 (x86_64&#x002D;little_endian&#x002D;llp64 shared (dynamic) release build; by GCC 11.2.0)"/>
+  </properties>
+  <testcase name="initTestCase" classname="TranslationCanvasTests" time="0.001"/>
+  <testcase name="emptyContentIsSafe" classname="TranslationCanvasTests" time="0.000"/>
+  <testcase name="originalIsAnIndependentPhysicalPixelImage" classname="TranslationCanvasTests" time="0.002">
+    <system-err>
+      <![CDATA[QFontDatabase: Cannot find font directory [development]/pin-build/lib/fonts.
+Note that Qt no longer ships fonts. Deploy some (from https://dejavu-fonts.github.io/ for example) or switch to fontconfig.]]>
+    </system-err>
+  </testcase>
+  <testcase name="successfulBlockReplacesTextInsideItsBounds(white)" classname="TranslationCanvasTests" time="0.001"/>
+  <testcase name="successfulBlockReplacesTextInsideItsBounds(dark)" classname="TranslationCanvasTests" time="0.001"/>
+  <testcase name="borderMedianIgnoresSparseForeground" classname="TranslationCanvasTests" time="0.000"/>
+  <testcase name="failedPendingCodeAndFormulaRemainOriginal" classname="TranslationCanvasTests" time="0.000"/>
+  <testcase name="unchangedTranslationKeepsOriginalPixels" classname="TranslationCanvasTests" time="0.000"/>
+  <testcase name="resultsUseIdsAndClampPhysicalCoordinates" classname="TranslationCanvasTests" time="0.001"/>
+  <testcase name="longTranslationCompletesBelowImageAndPreservesNeighbor" classname="TranslationCanvasTests" time="0.002"/>
+  <testcase name="overlappingCodeIsProtected" classname="TranslationCanvasTests" time="0.001"/>
+  <testcase name="markupIsRenderedAsLiteralText" classname="TranslationCanvasTests" time="0.001"/>
+  <testcase name="mockIsVisiblyMarked" classname="TranslationCanvasTests" time="0.001"/>
+  <testcase name="zoomAndOriginalModeUseCurrentCachedImageSize" classname="TranslationCanvasTests" time="0.001"/>
+  <testcase name="excessiveCalloutsUseVisibleNoticeWithinPixelBudget(32&#x002D;long&#x002D;blocks)" classname="TranslationCanvasTests" time="0.061"/>
+  <testcase name="excessiveCalloutsUseVisibleNoticeWithinPixelBudget(128&#x002D;long&#x002D;blocks)" classname="TranslationCanvasTests" time="0.177"/>
+  <testcase name="displayedPixelsMatchCachedExport" classname="TranslationCanvasTests" time="0.003"/>
+  <testcase name="cleanupTestCase" classname="TranslationCanvasTests" time="0.000"/>
+</testsuite>

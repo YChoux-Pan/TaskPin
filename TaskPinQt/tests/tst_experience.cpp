@@ -8,18 +8,22 @@
 #include "ui/PinWindow.h"
 #include "ui/SettingsDialog.h"
 #include "ui/SnipOverlay.h"
+#include "ui/TranslationWindow.h"
 #include <QColorDialog>
 #include <QClipboard>
 #include <QContextMenuEvent>
 #include <QDialogButtonBox>
+#include <QDialog>
 #include <QJsonDocument>
+#include <QLineF>
 #include <QListWidget>
 #include <QMenu>
 #include <QPlainTextEdit>
 #include <QPushButton>
-#include <QScopeGuard>
 #include <QSignalSpy>
 #include <QSlider>
+#include <QScreen>
+#include <QSplitter>
 #include <QSqlDatabase>
 #include <QSqlQuery>
 #include <QTcpServer>
@@ -30,14 +34,19 @@
 #include <QtTest>
 #include <QFontDatabase>
 #include <QPainter>
+#include <QtMath>
 #include <algorithm>
 
 namespace {
-void wheel(QWidget &w, int angle, QPoint pixels = {})
+void wheelAt(QWidget &w, const QPointF &global, int angle, QPoint pixels = {})
 {
-    QWheelEvent e(QPointF(60, 50), w.mapToGlobal(QPoint(60, 50)), pixels, {0, angle},
+    QWheelEvent e(global - QPointF(w.mapToGlobal(QPoint())), global, pixels, {0, angle},
                   Qt::NoButton, Qt::NoModifier, Qt::NoScrollPhase, false);
     QApplication::sendEvent(&w, &e);
+}
+void wheel(QWidget &w, int angle, QPoint pixels = {})
+{
+    wheelAt(w, w.mapToGlobal(QPoint(60, 50)), angle, pixels);
 }
 QAction *action(QMenu *menu, const QString &name)
 {
@@ -130,6 +139,201 @@ private slots:
         wheel(pin, 0, {0, 15});
         QTRY_VERIFY(pin.zoom() > 1.0 && pin.zoom() < 1.1);
     }
+    void wheelReversesPendingAnimation_data()
+    {
+        QTest::addColumn<int>("initialAngle");
+        QTest::addColumn<int>("reverseAngle");
+        QTest::newRow("shrink-after-growing") << 1200 << -120;
+        QTest::newRow("grow-after-shrinking") << -1200 << 120;
+    }
+    void wheelReversesPendingAnimation()
+    {
+        QFETCH(int, initialAngle);
+        QFETCH(int, reverseAngle);
+        PinWindow pin(QImage(400, 240, QImage::Format_RGB32));
+        wheel(pin, initialAngle);
+        QElapsedTimer animationStart;
+        animationStart.start();
+        while (qAbs(pin.zoom() - 1.0) <= .001 && animationStart.elapsed() < 250)
+            QTest::qWait(1);
+        const qreal displayed = pin.zoom();
+        QVERIFY(qAbs(displayed - 1.0) > .001);
+        wheel(pin, reverseAngle);
+        qreal previous = displayed;
+        for (int frame = 0; frame < 9; ++frame) {
+            QTest::qWait(16);
+            const qreal current = pin.zoom();
+            QVERIFY2(reverseAngle < 0 ? current <= previous + .0001 : current >= previous - .0001,
+                     "The first reversed frame must move in the newly requested direction");
+            previous = current;
+        }
+        QVERIFY(reverseAngle < 0 ? pin.zoom() < displayed : pin.zoom() > displayed);
+    }
+    void wheelKeepsImagePointUnderCursor_data()
+    {
+        QTest::addColumn<QRect>("region");
+        QTest::addColumn<qreal>("pixelRatio");
+        QTest::newRow("positive-origin") << QRect(100, 80, 400, 240) << qreal(1);
+        QTest::newRow("positive-origin-fractional-125") << QRect(100, 80, 400, 240) << qreal(1.25);
+        QTest::newRow("negative-origin-fractional-150") << QRect(-920, -360, 400, 240) << qreal(1.5);
+        QTest::newRow("negative-origin-hidpi") << QRect(-920, -360, 400, 240) << qreal(2);
+    }
+    void wheelKeepsImagePointUnderCursor()
+    {
+        QFETCH(QRect, region);
+        QFETCH(qreal, pixelRatio);
+        QImage image(region.size() * pixelRatio, QImage::Format_RGB32);
+        image.fill(Qt::white);
+        image.setDevicePixelRatio(pixelRatio);
+        PinWindow pin(image, {}, nullptr, region);
+        const QPointF imagePoint(67, 179);
+        const QPointF anchor = QPointF(region.topLeft()) + imagePoint;
+        for (int angle : {240, -120, 120}) {
+            const QRect content = pin.contentGeometry();
+            const QPointF point((anchor.x() - content.x()) / content.width(),
+                                (anchor.y() - content.y()) / content.height());
+            wheelAt(pin, anchor, angle);
+            for (int frame = 0; frame < 9; ++frame) {
+                QTest::qWait(16);
+                const QRect current = pin.contentGeometry();
+                const QPointF mapped = QPointF(current.topLeft()) +
+                    QPointF(point.x() * current.width(), point.y() * current.height());
+                QVERIFY2(QLineF(mapped, anchor).length() <= 2.0,
+                         "The image point under a wheel event must stay within two logical pixels");
+            }
+        }
+    }
+    void shrinkingPinKeepsSmoothPixelsAndClearsPadding()
+    {
+        QImage image(2400, 1200, QImage::Format_RGB32);
+        for (int y = 0; y < image.height(); ++y) {
+            auto *row = reinterpret_cast<QRgb *>(image.scanLine(y));
+            for (int x = 0; x < image.width(); ++x)
+                row[x] = ((x + y) % 3) ? qRgb(255, 255, 255) : qRgb(0, 0, 0);
+        }
+        PinWindow pin(image, {}, nullptr, QRect(20, 30, 480, 240));
+        pin.applyAppearance(18, 0, Qt::black);
+        wheel(pin, -120);
+        QTest::qWait(20);
+        const QImage frame = pin.grab().toImage();
+        const QRect content(pin.mapFromGlobal(pin.contentGeometry().topLeft()), pin.contentGeometry().size());
+        const qreal dpr = frame.devicePixelRatio();
+        QImage expected(frame.size(), QImage::Format_ARGB32_Premultiplied);
+        expected.setDevicePixelRatio(dpr);
+        expected.fill(Qt::transparent);
+        QPainter reference(&expected);
+        reference.setRenderHint(QPainter::SmoothPixmapTransform);
+        reference.drawImage(content, image);
+        reference.end();
+        // grab() stores physical pixels; keep the logical offset and fractional-DPR phase.
+        const QRect inside(QPoint(qCeil((content.x() + 1) * dpr), qCeil((content.y() + 1) * dpr)),
+                           QPoint(qFloor((content.x() + content.width() - 1) * dpr) - 1,
+                                  qFloor((content.y() + content.height() - 1) * dpr) - 1));
+        qint64 error = 0;
+        for (int y = inside.top(); y <= inside.bottom(); ++y)
+            for (int x = inside.left(); x <= inside.right(); ++x)
+                error += qAbs(frame.pixelColor(x, y).red() - expected.pixelColor(x, y).red());
+        const double meanError = double(error) / (inside.width() * inside.height());
+        QVERIFY2(meanError < 2.0, qPrintable(QString("Shrinking pixels must remain smoothly filtered; mean error %1").arg(meanError)));
+        // Only the configured faint shadow may remain in transparent padding.
+        QVERIFY(frame.pixelColor(0, 0).alpha() <= 18);
+        QVERIFY(frame.pixelColor(frame.width() - 1, frame.height() - 1).alpha() <= 18);
+    }
+    void cacheSettlingKeepsPixelsStable()
+    {
+        QImage image(2400, 1200, QImage::Format_RGB32);
+        for (int y = 0; y < image.height(); ++y) {
+            auto *row = reinterpret_cast<QRgb *>(image.scanLine(y));
+            for (int x = 0; x < image.width(); ++x)
+                row[x] = ((x + y) % 3) ? qRgb(255, 255, 255) : qRgb(0, 0, 0);
+        }
+        // Odd content dimensions and six-pixel padding expose fractional device-pixel phases.
+        PinWindow pin(image, {}, nullptr, QRect(20, 30, 481, 241));
+        pin.applyAppearance(18, 0, Qt::black);
+        bool found;
+        menuAction(pin, QStringLiteral("75%"), &found);
+        QVERIFY(found);
+        const QImage live = pin.grab().toImage();
+        const QRect geometry = pin.geometry();
+        QTest::qWait(220);
+        const QImage settled = pin.grab().toImage();
+        QCOMPARE(pin.geometry(), geometry);
+        QCOMPARE(settled.size(), live.size());
+        QCOMPARE(settled.devicePixelRatio(), live.devicePixelRatio());
+        qint64 error = 0;
+        for (int y = 0; y < live.height(); ++y)
+            for (int x = 0; x < live.width(); ++x) {
+                const QColor before = live.pixelColor(x, y), after = settled.pixelColor(x, y);
+                error += qAbs(before.red() - after.red()) + qAbs(before.green() - after.green()) +
+                         qAbs(before.blue() - after.blue()) + qAbs(before.alpha() - after.alpha());
+            }
+        const double meanError = double(error) / (4 * live.width() * live.height());
+        QVERIFY2(meanError < 1.0,
+                 qPrintable(QString("Settling must preserve the live pixels at DPR %1; mean channel error %2")
+                            .arg(live.devicePixelRatio()).arg(meanError)));
+    }
+    void comparisonIsOpaqueAndUsesHeightForText_data()
+    {
+        QTest::addColumn<QColor>("parentColor");
+        QTest::newRow("light-pin") << QColor(245, 245, 245, 40);
+        QTest::newRow("dark-pin") << QColor(20, 24, 32, 40);
+    }
+    void comparisonIsOpaqueAndUsesHeightForText()
+    {
+        QFETCH(QColor, parentColor);
+        Settings::instance().pinOpacity = .35;
+        TranslationWindow pin;
+        QPalette parentPalette = pin.palette();
+        parentPalette.setColor(QPalette::Window, parentColor);
+        pin.setPalette(parentPalette);
+        Translation::OcrResult result;
+        result.engine = "PaddleOCR";
+        result.imageSize = {1200, 900};
+        result.lines = {{"paragraph", QStringLiteral("Generated OCR paragraph for comparison and resizing. ").repeated(80),
+                         {10, 10, 1100, 840}, {}}};
+        pin.presentOcr(pin.taskId(), result);
+        pin.showComparison();
+        auto *source = pin.findChild<QPlainTextEdit *>("translationSource");
+        auto *target = pin.findChild<QPlainTextEdit *>("translationTarget");
+        QVERIFY(source && target);
+        auto *dialog = qobject_cast<QDialog *>(source->window());
+        QVERIFY(dialog);
+        QCoreApplication::processEvents();
+        QCOMPARE(dialog->windowOpacity(), 1.0);
+        QVERIFY(!dialog->testAttribute(Qt::WA_TranslucentBackground));
+        const QRect available = dialog->screen()->availableGeometry();
+        QVERIFY(dialog->width() <= available.width());
+        QVERIFY(dialog->height() <= available.height());
+        for (const QSize &size : {dialog->size(), QSize(640, 400), QSize(1000, 680)}) {
+            dialog->resize(size.boundedTo(available.size()));
+            QCoreApplication::processEvents();
+            QVERIFY2(source->height() > dialog->contentsRect().height() * .60,
+                     "OCR and Chinese text panes must occupy most of the dialog height");
+            QCOMPARE(source->height(), target->height());
+            QVERIFY2(qAbs(source->width() - target->width()) <= 2,
+                     qPrintable(QString("Source/target widths %1/%2 in dialog %3x%4")
+                                .arg(source->width()).arg(target->width()).arg(dialog->width()).arg(dialog->height())));
+            for (const QString &name : {QString("translationSourceCopy"), QString("translationTargetCopy")}) {
+                auto *copy = pin.findChild<QPushButton *>(name);
+                QVERIFY(copy && copy->isVisible());
+                QVERIFY(copy->height() < 50);
+                QVERIFY(copy->width() <= 180);
+            }
+            QImage rendered(dialog->size() * dialog->devicePixelRatioF(), QImage::Format_ARGB32_Premultiplied);
+            rendered.setDevicePixelRatio(dialog->devicePixelRatioF());
+            rendered.fill(Qt::transparent);
+            dialog->render(&rendered);
+            for (int y = 0; y < rendered.height(); ++y)
+                for (int x = 0; x < rendered.width(); ++x)
+                    QVERIFY2(rendered.pixelColor(x, y).alpha() == 255,
+                             "Comparison must paint an opaque surface independent of the translucent pin");
+        }
+        auto *splitter = dialog->findChild<QSplitter *>();
+        QVERIFY(splitter && !splitter->childrenCollapsible());
+        splitter->setSizes({200, 500});
+        QCoreApplication::processEvents();
+        QVERIFY(target->width() > source->width());
+    }
     void plainPinHasExactContentAndNoHalo()
     {
         QImage image(200, 100, QImage::Format_RGB32);
@@ -146,11 +350,10 @@ private slots:
     }
     void magnifierFollowsCursorBeforeFirstMove()
     {
-        const QPoint previous = QCursor::pos();
-        const auto restore = qScopeGuard([previous] { QCursor::setPos(previous); });
-        QCursor::setPos(240, 180);
+        const QPoint cursor = QCursor::pos();
+        const QRect screen(cursor - QPoint(240, 180), QSize(800, 600));
         QPixmap pixels(800, 600); pixels.fill(Qt::white);
-        SnipOverlay overlay({pixels, QRect(0, 0, 800, 600), 1, "synthetic"});
+        SnipOverlay overlay({pixels, screen, 1, "synthetic"});
         const QImage frame = overlay.grab().toImage();
         // Interior of the magnifier must be undimmed white on the very first paint.
         QCOMPARE(frame.pixelColor(274, 214), QColor(Qt::white));
@@ -387,13 +590,16 @@ private slots:
     {
         Ocr ocr;
         QSignalSpy failed(&ocr, &Ocr::failed);
+        QSignalSpy finished(&ocr, &Ocr::finished);
         QImage image(100, 60, QImage::Format_RGB32); image.fill(Qt::white);
         ocr.recognize(image);
-        auto *timer = ocr.findChild<QTimer *>(); QVERIFY(timer); timer->start(100);
+        QVERIFY(ocr.busy());
+        auto *timer = qApp->findChild<QTimer *>("paddleOcrRequestTimeout"); QVERIFY(timer); timer->start(1);
         QTRY_COMPARE_WITH_TIMEOUT(failed.count(), 1, 5000);
         QVERIFY(!ocr.busy());
         QTest::qWait(100);
         QCOMPARE(failed.count(), 1);
+        QCOMPARE(finished.count(), 0);
     }
     void calendarTaskOpensDetailsAndCanRestore()
     {

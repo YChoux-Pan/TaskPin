@@ -4,20 +4,20 @@
   <p><strong>Keep the picture. Capture the thought.</strong></p>
   <p>Screenshots, desktop image pins and daily tasks in one compact Windows tool.</p>
   <p>
-    <a href="https://github.com/YChoux-Pan/TaskPin/releases/tag/v0.4.2"><img src="https://img.shields.io/badge/preview-v0.4.2-4C9AFF" alt="0.4.2 preview" /></a>
+    <a href="https://github.com/YChoux-Pan/TaskPin/releases/tag/v0.4.3"><img src="https://img.shields.io/badge/preview-v0.4.3-4C9AFF" alt="0.4.3 preview" /></a>
     <img src="https://img.shields.io/badge/platform-Windows%2010%20%2F%2011-0078D4" alt="Windows 10 / 11 x64" />
     <img src="https://img.shields.io/badge/C%2B%2B-17-00599C" alt="C++17" />
     <a href="https://github.com/YChoux-Pan/TaskPin/actions/workflows/windows.yml"><img src="https://github.com/YChoux-Pan/TaskPin/actions/workflows/windows.yml/badge.svg?branch=main" alt="Windows build and test" /></a>
     <a href="LICENSE"><img src="https://img.shields.io/badge/license-Unlicense-3EC46B" alt="Unlicense" /></a>
   </p>
-  <p><a href="https://github.com/YChoux-Pan/TaskPin/releases/tag/v0.4.2"><strong>Download for Windows</strong></a> · <a href="README.md">简体中文</a> · <a href="CHANGELOG.md">Changelog</a> · <a href="https://github.com/YChoux-Pan/TaskPin/issues">Report an issue</a></p>
+  <p><a href="https://github.com/YChoux-Pan/TaskPin/releases/tag/v0.4.3"><strong>Download for Windows</strong></a> · <a href="README.md">简体中文</a> · <a href="CHANGELOG.md">Changelog</a> · <a href="https://github.com/YChoux-Pan/TaskPin/issues">Report an issue</a></p>
 </div>
 
 ---
 
 TaskPin connects **capture → annotate or pin → recognize as a task → review on a card or calendar**. Use its screenshot tools on their own, or keep daily tasks within reach on the desktop. Screenshots, tasks and PaddleOCR are processed locally; AI is optional.
 
-**0.4.2: [translation inside region capture](docs/SCREEN-TRANSLATION.md).** Press **F1**, select a region and choose **Translate** (Ctrl+T). The translated image becomes a draggable desktop pin with the existing zoom, opacity and appearance controls. OCR uses bundled local **PaddleOCR PP-OCRv5** models; translation shares the AI settings connection.
+**0.4.3: faster repeated OCR and consistent screenshot controls.** Loaded PaddleOCR models are reused, with a default PP-OCRv5 profile and configurable compatible local profiles. After F1 selection, F3 pins the selection and Ctrl+T translates it; the translation shortcut is editable in Settings → Hotkeys. Wheel reversal, cursor anchoring and the opaque balanced comparison window are fixed. [Timings and acceptance](docs/reports/2026-11-21-ocr-performance-0.4.3.md).
 
 ## Features
 
@@ -35,6 +35,8 @@ TaskPin connects **capture → annotate or pin → recognize as a task → revie
 Successful save and quick-save copy the **absolute file path** to the clipboard. Cancellation and errors leave the clipboard unchanged.
 
 ## Preview
+
+![TaskPin 0.4.3 opaque balanced text comparison](docs/screenshots/taskpin-0.4.3-comparison.png)
 
 ![Translated image overlay using PaddleOCR PP-OCRv5 and real DeepSeek fixture](docs/screenshots/taskpin-0.4.2-translation-pin.png)
 
@@ -56,14 +58,14 @@ Successful save and quick-save copy the **absolute file path** to the clipboard.
 
 **Windows 10 / 11 x64. The interface is primarily Chinese.**
 
-1. Download <code>TaskPin-0.4.2-windows-x64.zip</code> from the [0.4.2 release](https://github.com/YChoux-Pan/TaskPin/releases/tag/v0.4.2).
+1. Download <code>TaskPin-0.4.3-windows-x64.zip</code> from the [0.4.3 release](https://github.com/YChoux-Pan/TaskPin/releases/tag/v0.4.3).
 2. Extract the complete folder and run <code>TaskPinQt.exe</code>. Keep all DLLs and plugin directories. No Qt SDK is required.
 3. Press **F1** to capture or **F3** to pin a clipboard image. Open Settings, Calendar and other tools from the tray.
 
-Version 0.4.2 is a preview. The release also includes source, icons, change notes, test reports and SHA256SUMS.txt. Exit through the tray before replacing application files. User data stays in the local user profile.
+Version 0.4.3 is a preview. The release also includes source, icons, change notes, test reports and SHA256SUMS.txt. Exit through the tray before replacing application files. User data stays in the local user profile.
 
 ~~~powershell
-Get-FileHash -Algorithm SHA256 -LiteralPath .\TaskPin-0.4.2-windows-x64.zip
+Get-FileHash -Algorithm SHA256 -LiteralPath .\TaskPin-0.4.3-windows-x64.zip
 ~~~
 
 Compare the result with the matching checksum entry.
@@ -111,7 +113,7 @@ Read the [contributing guide](CONTRIBUTING.md) before submitting a focused impro
 | Project and usage | Development and verification |
 |---|---|
 | [Changelog](CHANGELOG.md) | [Build and package](docs/BUILDING.md) |
-| [Screen translation](docs/SCREEN-TRANSLATION.md) | [0.4.2 translation pin verification](docs/reports/2026-11-21-translation-pin-paddle.md) |
+| [Screen translation](docs/SCREEN-TRANSLATION.md) | [0.4.3 translation pin verification](docs/reports/2026-11-21-ocr-performance-0.4.3.md) |
 | [Save paths and shortcuts](docs/SAVE-PATH-HOTKEYS.md) | [Architecture](docs/ARCHITECTURE.md) |
 | [Canva design provenance](docs/BRANDING.md) | [Testing and limitations](docs/TESTING.md) |
 | [Issue tracker](https://github.com/YChoux-Pan/TaskPin/issues) | [Release process](docs/RELEASING.md) |

@@ -9,9 +9,11 @@ import json
 import math
 import os
 from pathlib import Path
+import re
 import socket
 import struct
 import sys
+import time
 
 MAX_PIXELS = 16_000_000
 MAX_PNG_BYTES = 64 * 1024 * 1024
@@ -81,12 +83,84 @@ def verify_models(root: Path) -> dict[str, Path]:
     return paths
 
 
-def read_request() -> bytes:
-    data = sys.stdin.buffer.read(MAX_INPUT_BYTES + 1)
+def selected_profile(root: Path, path: str | None) -> dict:
+    if path is None:
+        models = verify_models(root)
+        profile = {"id": "builtin-ppocrv5-mobile", "modelVersion": MODEL_VERSION, "language": "multi",
+                   "cpu": {"intraOpThreads": 2, "interOpThreads": 1}}
+        for task, (_, digest) in EXPECTED_MODELS.items():
+            profile[task] = {"path": models[task], "sha256": digest, "ocrVersion": "PP-OCRv5", "modelType": "mobile"}
+    else:
+        try:
+            location = Path(path)
+            if not location.is_file():
+                raise OcrFailure("profile_missing")
+            if location.stat().st_size > 64 * 1024:
+                raise OcrFailure("profile_invalid")
+            profile = json.loads(location.read_text(encoding="utf-8-sig"))
+            if not isinstance(profile, dict) or set(profile) - {"schemaVersion", "id", "modelVersion", "language", "det", "rec", "cpu"}:
+                raise OcrFailure("profile_invalid")
+            if isinstance(profile.get("schemaVersion"), bool) or profile.get("schemaVersion") != 1:
+                raise OcrFailure("profile_invalid")
+            if not isinstance(profile.get("id"), str) or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{0,63}", profile["id"]):
+                raise OcrFailure("profile_invalid")
+            if not isinstance(profile.get("modelVersion"), str) or not profile["modelVersion"].strip() or len(profile["modelVersion"]) > 128:
+                raise OcrFailure("profile_invalid")
+            if profile.get("language") not in ("multi", "zh", "en", "zh+en"):
+                raise OcrFailure("profile_unsupported")
+            cpu = profile.setdefault("cpu", {"intraOpThreads": 2, "interOpThreads": 1})
+            if not isinstance(cpu, dict) or set(cpu) - {"intraOpThreads", "interOpThreads"}:
+                raise OcrFailure("profile_invalid")
+            for name, default, maximum in (("intraOpThreads", 2, 8), ("interOpThreads", 1, 4)):
+                value = cpu.setdefault(name, default)
+                if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value) or value != math.floor(value) or not 1 <= value <= maximum:
+                    raise OcrFailure("profile_unsupported")
+                cpu[name] = int(value)
+            for task in ("det", "rec"):
+                model = profile.get(task)
+                if not isinstance(model, dict) or set(model) != {"path", "sha256", "ocrVersion", "modelType"}:
+                    raise OcrFailure("profile_invalid")
+                if model["ocrVersion"] not in ("PP-OCRv4", "PP-OCRv5") or model["modelType"] not in ("mobile", "server"):
+                    raise OcrFailure("profile_unsupported")
+                if not isinstance(model["path"], str) or not model["path"] or not isinstance(model["sha256"], str) or not re.fullmatch(r"[a-fA-F0-9]{64}", model["sha256"]):
+                    raise OcrFailure("profile_invalid")
+            # Validate all options before touching model bytes. There is no implicit
+            # default or remote model resolution for a custom profile.
+            for task in ("det", "rec"):
+                model = profile[task]
+                weight = Path(model["path"])
+                if not weight.is_absolute():
+                    weight = location.parent / weight
+                if weight.suffix.lower() != ".onnx":
+                    raise OcrFailure("profile_invalid")
+                if not weight.is_file():
+                    raise OcrFailure("model_missing")
+                if sha256(weight) != model["sha256"].lower():
+                    raise OcrFailure("model_hash_mismatch")
+                model["path"] = weight.resolve()
+                model["sha256"] = model["sha256"].lower()
+        except OcrFailure:
+            raise
+        except (OSError, ValueError, TypeError, KeyError):
+            raise OcrFailure("profile_invalid") from None
+    identity = {task: {key: value for key, value in profile[task].items() if key != "path"} for task in ("det", "rec")}
+    identity["cpu"] = profile["cpu"]
+    profile["modelIdentity"] = "sha256:" + hashlib.sha256(json.dumps(identity, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+    return profile
+
+
+def read_request(data: bytes | None = None, worker: bool = False) -> tuple[bytes, str | None]:
+    if data is None:
+        data = sys.stdin.buffer.read(MAX_INPUT_BYTES + 1)
     if len(data) > MAX_INPUT_BYTES:
         raise OcrFailure("input_too_large")
     try:
         request = json.loads(data)
+        if not isinstance(request, dict) or set(request) - ({"image", "profilePath", "requestId"} if worker else {"image", "profilePath"}):
+            raise ValueError
+        profile_path = request.get("profilePath")
+        if profile_path is not None and (not isinstance(profile_path, str) or not profile_path or len(profile_path) > 32768):
+            raise ValueError
         encoded = request["image"]
         if not isinstance(encoded, str) or not encoded:
             raise ValueError
@@ -106,24 +180,27 @@ def read_request() -> bytes:
         raise OcrFailure("invalid_image")
     if width * height > MAX_PIXELS or max(width, height) > 16_384:
         raise OcrFailure("image_too_large")
-    return png
+    return png, profile_path
 
 
 def deny_network(*_args, **_kwargs):
     raise OcrFailure("network_disabled")
 
 
-def infer(root: Path, models: dict[str, Path], png: bytes | None) -> dict:
+def infer(root: Path, profile: dict, png: bytes | None, cache: dict | None = None) -> dict:
     # Set before importing any native library. The process never changes user settings.
-    os.environ["OMP_NUM_THREADS"] = "2"
-    os.environ["OPENBLAS_NUM_THREADS"] = "2"
-    os.environ["MKL_NUM_THREADS"] = "2"
+    threads = profile["cpu"]["intraOpThreads"]
+    os.environ["OMP_NUM_THREADS"] = str(threads)
+    os.environ["OPENBLAS_NUM_THREADS"] = str(threads)
+    os.environ["MKL_NUM_THREADS"] = str(threads)
     # Explicit paths already prevent model downloads. Also fail closed if a future
     # dependency attempts an HTTP connection, font download, or other socket use.
     socket.socket.connect = deny_network
     socket.socket.connect_ex = deny_network
     socket.create_connection = deny_network
     socket.getaddrinfo = deny_network
+    stages = {}
+    started = time.perf_counter()
     with quiet_dependencies():
         try:
             from importlib.metadata import version
@@ -139,8 +216,9 @@ def infer(root: Path, models: dict[str, Path], png: bytes | None) -> dict:
             raise
         except Exception:
             raise OcrFailure("runtime_unavailable") from None
-
-        cv2.setNumThreads(2)
+        stages["import"] = (time.perf_counter() - started) * 1000
+        started = time.perf_counter()
+        cv2.setNumThreads(threads)
         if png is None:
             image = np.full((64, 128, 3), 255, dtype=np.uint8)
         else:
@@ -158,36 +236,54 @@ def infer(root: Path, models: dict[str, Path], png: bytes | None) -> dict:
                     image = cv2.cvtColor(np.asarray(rgb), cv2.COLOR_RGB2BGR)
             except Exception:
                 raise OcrFailure("invalid_image") from None
-
+        stages["prepareImage"] = (time.perf_counter() - started) * 1000
         params = {
             "Global.log_level": "critical",
             "Global.model_root_dir": str(root / "models"),
             "Global.use_cls": False,
             "Global.return_word_box": False,
             "Global.return_single_char_box": False,
-            "Det.model_path": str(models["det"]),
-            "Rec.model_path": str(models["rec"]),
-            "Det.ocr_version": OCRVersion.PPOCRV5,
-            "Rec.ocr_version": OCRVersion.PPOCRV5,
-            "Det.model_type": ModelType.MOBILE,
-            "Rec.model_type": ModelType.MOBILE,
-            "EngineConfig.onnxruntime.intra_op_num_threads": 2,
-            "EngineConfig.onnxruntime.inter_op_num_threads": 1,
+            "Det.model_path": str(profile["det"]["path"]),
+            "Rec.model_path": str(profile["rec"]["path"]),
+            "Det.ocr_version": OCRVersion(profile["det"]["ocrVersion"]),
+            "Rec.ocr_version": OCRVersion(profile["rec"]["ocrVersion"]),
+            "Det.model_type": ModelType(profile["det"]["modelType"]),
+            "Rec.model_type": ModelType(profile["rec"]["modelType"]),
+            "EngineConfig.onnxruntime.intra_op_num_threads": threads,
+            "EngineConfig.onnxruntime.inter_op_num_threads": profile["cpu"]["interOpThreads"],
             "EngineConfig.onnxruntime.use_cuda": False,
             "EngineConfig.onnxruntime.use_dml": False,
             "EngineConfig.onnxruntime.use_cann": False,
         }
+        reused = cache is not None and cache.get("identity") == profile["modelIdentity"]
+        if reused:
+            engine = cache["engine"]
+            stages["load"] = 0
+        else:
+            if cache is not None:
+                cache.clear()  # Release the previous model before loading another.
+            started = time.perf_counter()
+            try:
+                engine = RapidOCR(params=params)
+                # Models are lazy in RapidOCR 3.10; load both even for a blank image.
+                engine._load_det_model()
+                engine._load_rec_model()
+            except OcrFailure:
+                raise
+            except Exception:
+                raise OcrFailure("model_incompatible") from None
+            stages["load"] = (time.perf_counter() - started) * 1000
+            if cache is not None:
+                cache.update(identity=profile["modelIdentity"], engine=engine)
+        started = time.perf_counter()
         try:
-            engine = RapidOCR(params=params)
-            # Models are lazy in RapidOCR 3.10; load both even for a blank image.
-            engine._load_det_model()
-            engine._load_rec_model()
             result = engine(image)
         except OcrFailure:
             raise
         except Exception:
             raise OcrFailure("inference_failed") from None
-
+        stages["inference"] = (time.perf_counter() - started) * 1000
+        started = time.perf_counter()
         lines = []
         characters = 0
         if result.txts is not None:
@@ -213,32 +309,75 @@ def infer(root: Path, models: dict[str, Path], png: bytes | None) -> dict:
                 lines.append({"text": text, "x": x, "y": y, "width": right - x,
                               "height": bottom - y, "confidence": confidence})
                 characters += len(text)
-    return {"ok": True, "engine": "PaddleOCR PP-OCRv5", "language": "multi",
-            "modelVersion": MODEL_VERSION, "lines": lines}
+        stages["formatResult"] = (time.perf_counter() - started) * 1000
+    families = "+".join(dict.fromkeys(profile[task]["ocrVersion"] for task in ("det", "rec")))
+    return {"ok": True, "engine": "PaddleOCR " + families, "language": profile["language"],
+            "modelVersion": profile["modelVersion"], "profileId": profile["id"],
+            "modelIdentity": profile["modelIdentity"], "stageMs": stages, "workerReused": reused, "lines": lines}
 
 
-def main() -> int:
+def process_request(root: Path, data: bytes | None = None, cache: dict | None = None, self_check: bool = False) -> tuple[bytes, int]:
+    identifier = None
     try:
-        root = Path(__file__).resolve().parent
-        self_check = sys.argv[1:] == ["--self-check"]
-        if sys.argv[1:] and not self_check:
-            raise OcrFailure("invalid_arguments")
-        png = None if self_check else read_request()
-        models = verify_models(root)
-        reply = infer(root, models, png)
+        started = time.perf_counter()
+        if cache is not None:
+            try:
+                identifier = json.loads(data)["requestId"]
+                if not isinstance(identifier, str) or not re.fullmatch(r"[A-Za-z0-9._-]{1,64}", identifier):
+                    identifier = None
+                    raise ValueError
+            except (ValueError, TypeError, KeyError):
+                raise OcrFailure("invalid_request") from None
+        png, profile_path = (None, None) if self_check else read_request(data, cache is not None)
+        read_ms = (time.perf_counter() - started) * 1000
+        verify_started = time.perf_counter()
+        profile = selected_profile(root, profile_path)
+        verify_ms = (time.perf_counter() - verify_started) * 1000
+        reply = infer(root, profile, png, cache)
+        reply["stageMs"].update(readRequest=read_ms, verifyModels=verify_ms, total=(time.perf_counter() - started) * 1000)
+        reply["stageMs"]["overhead"] = max(0, reply["stageMs"]["total"] - sum(value for key, value in reply["stageMs"].items() if key != "total"))
         if self_check:
             reply["runtimeReady"] = True
+        if identifier is not None:
+            reply["requestId"] = identifier
         output = json.dumps(reply, ensure_ascii=False, allow_nan=False, separators=(",", ":")).encode("utf-8")
         if len(output) > MAX_OUTPUT_BYTES:
             raise OcrFailure("output_too_large")
         code = 0
     except OcrFailure as error:
-        output = json.dumps({"ok": False, "errorCode": error.code}, separators=(",", ":")).encode("ascii")
+        reply = {"ok": False, "errorCode": error.code}
+        if identifier is not None:
+            reply["requestId"] = identifier
+        output = json.dumps(reply, separators=(",", ":")).encode("ascii")
         code = 1
     except Exception:
-        output = b'{"ok":false,"errorCode":"internal_error"}'
+        reply = {"ok": False, "errorCode": "internal_error"}
+        if identifier is not None:
+            reply["requestId"] = identifier
+        output = json.dumps(reply, separators=(",", ":")).encode("ascii")
         code = 1
-    # No exception messages, user text, image bytes, or filesystem paths are logged.
+    return output, code
+
+
+def main() -> int:
+    root = Path(__file__).resolve().parent
+    arguments = sys.argv[1:]
+    if arguments == ["--worker"]:
+        cache = {}
+        while True:
+            data = sys.stdin.buffer.readline(MAX_INPUT_BYTES + 1)
+            if not data:
+                return 0
+            output, _ = process_request(root, data, cache)
+            # No exception messages, image bytes, or filesystem paths are logged.
+            os.write(1, output + b"\n")
+            if len(data) > MAX_INPUT_BYTES:
+                return 1
+            del data, output  # Retain model state only, never request/transcript history.
+    if arguments not in ([], ["--self-check"]):
+        os.write(1, b'{"ok":false,"errorCode":"invalid_arguments"}\n')
+        return 1
+    output, code = process_request(root, self_check=bool(arguments))
     os.write(1, output + b"\n")
     return code
 

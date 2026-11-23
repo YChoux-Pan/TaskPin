@@ -1,0 +1,42 @@
+{
+  "cloudCalled": false,
+  "comparisonCreated": false,
+  "comparisonUi": {},
+  "editorEntry": "F1 toolbar translation",
+  "elapsedMs": 3122,
+  "fixture": "small",
+  "fixtureOnly": true,
+  "framelessPin": true,
+  "ocr": "The operator segments regions by a watershed.\n\ninner_circle (Region, Row, Column, Radius)\n\nmax(W-B1,W-B2)< Threshold",
+  "ocrEngine": "PaddleOCR PP-OCRv4",
+  "ocrModelVersion": "PP-OCRv4_mobile/RapidOCR-v3.10.0",
+  "ocrMs": 3070,
+  "ocrStageMs": {
+    "bridgeOverhead": 63.224499989300966,
+    "formatResult": 0.08179998258128762,
+    "import": 999.4373000226915,
+    "inference": 1656.187399988994,
+    "load": 276.93659998476505,
+    "overhead": 0.9300000383518636,
+    "prepareImage": 47.06199996871874,
+    "process": 3060,
+    "queue": 0,
+    "readRequest": 0.2528000040911138,
+    "requestTotal": 3061,
+    "total": 2996.775500010699,
+    "verifyModels": 15.887600020505488
+  },
+  "physicalPixels": 308000,
+  "positionAndZoomPreserved": true,
+  "profileId": "verified-local-v4",
+  "recognitionScores": [
+    0.99697,
+    0.99782,
+    0.98012
+  ],
+  "result": "[离线测试，非真实译文] The operator segments regions by a watershed.\n\ninner_circle (Region, Row, Column, Radius)\n\nmax(W-B1,W-B2)< Threshold",
+  "sourceCharacters": 116,
+  "state": "PRESENTING",
+  "translationMs": 24,
+  "workerReused": false
+}

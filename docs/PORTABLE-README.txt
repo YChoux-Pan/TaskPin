@@ -1,6 +1,6 @@
-TaskPin 0.4.2 - Windows 10/11 x64
+TaskPin 0.4.3 - Windows 10/11 x64
 
-Extract the whole TaskPin-0.4.2 folder and run TaskPinQt.exe.
+Extract the whole TaskPin-0.4.3 folder and run TaskPinQt.exe.
 Keep the DLLs and plugin folders beside the executable. No Qt SDK is required.
 Use the system tray menu for Settings and Exit.
 

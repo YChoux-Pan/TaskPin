@@ -1,0 +1,124 @@
+{
+  "idle-baseline": {
+    "small": {
+      "ocrMs": 2253,
+      "translationMs": 1011,
+      "renderMs": 1,
+      "totalMs": 3256,
+      "samples": [
+        {
+          "sample": 1,
+          "ocrMs": 4405,
+          "translationMs": 1255,
+          "totalMs": 5666,
+          "workerReused": false
+        },
+        {
+          "sample": 2,
+          "ocrMs": 2253,
+          "translationMs": 644,
+          "totalMs": 2899,
+          "workerReused": false
+        },
+        {
+          "sample": 3,
+          "ocrMs": 2244,
+          "translationMs": 1011,
+          "totalMs": 3256,
+          "workerReused": false
+        }
+      ]
+    },
+    "paragraph": {
+      "ocrMs": 2407,
+      "translationMs": 1144,
+      "renderMs": 4,
+      "totalMs": 3530,
+      "samples": [
+        {
+          "sample": 1,
+          "ocrMs": 2407,
+          "translationMs": 1149,
+          "totalMs": 3569,
+          "workerReused": false
+        },
+        {
+          "sample": 2,
+          "ocrMs": 2380,
+          "translationMs": 1144,
+          "totalMs": 3530,
+          "workerReused": false
+        },
+        {
+          "sample": 3,
+          "ocrMs": 2425,
+          "translationMs": 970,
+          "totalMs": 3400,
+          "workerReused": false
+        }
+      ]
+    }
+  },
+  "idle-worker": {
+    "small": {
+      "ocrMs": 1094,
+      "translationMs": 1278,
+      "renderMs": 1,
+      "totalMs": 2269,
+      "samples": [
+        {
+          "sample": 1,
+          "ocrMs": 2184,
+          "translationMs": 1283,
+          "totalMs": 3472,
+          "workerReused": false
+        },
+        {
+          "sample": 2,
+          "ocrMs": 988,
+          "translationMs": 1278,
+          "totalMs": 2269,
+          "workerReused": true
+        },
+        {
+          "sample": 3,
+          "ocrMs": 1094,
+          "translationMs": 1168,
+          "totalMs": 2264,
+          "workerReused": true
+        }
+      ],
+      "warmMedianOcrMs": 1041.0
+    },
+    "paragraph": {
+      "ocrMs": 1269,
+      "translationMs": 1232,
+      "renderMs": 3,
+      "totalMs": 2627,
+      "samples": [
+        {
+          "sample": 1,
+          "ocrMs": 1497,
+          "translationMs": 1232,
+          "totalMs": 2740,
+          "workerReused": true
+        },
+        {
+          "sample": 2,
+          "ocrMs": 1269,
+          "translationMs": 1353,
+          "totalMs": 2627,
+          "workerReused": true
+        },
+        {
+          "sample": 3,
+          "ocrMs": 1225,
+          "translationMs": 946,
+          "totalMs": 2176,
+          "workerReused": true
+        }
+      ],
+      "warmMedianOcrMs": 1269
+    }
+  }
+}
