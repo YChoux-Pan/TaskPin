@@ -1,4 +1,4 @@
-# 区域截图中的翻译贴图 · TaskPin 0.4.3
+# 区域截图中的翻译贴图 · TaskPin 0.4.4
 
 按 **F1** 框选画面，在截图工具栏点击 **翻译**（或框选后按 **Ctrl+T**）。它与「识别为任务」并列，直接使用当前选区和标注，不需要第二次截图。
 
@@ -18,7 +18,7 @@
 
 ## PaddleOCR 本地识别
 
-默认文字识别使用 **PaddleOCR PP-OCRv5** 检测与识别模型，以 RapidOCR 执行封装和 ONNX Runtime CPU 推理。设置 → 截图翻译可选择自定义兼容 PP-OCRv4/v5 mobile/server ONNX 配置；模型路径、家族、类型、SHA256 和 CPU 线程参数见 [配置格式](../TaskPinQt/ocr/README.md#local-model-profiles)。实际模型版本显示在识别结果中。RapidOCR 是模型调用与预后处理组件，实际识别模型为 PaddleOCR 系列；没有调用 Windows.Media.Ocr，也没有云端 OCR。
+默认文字识别使用 **PaddleOCR PP-OCRv5** 检测与识别模型，以 RapidOCR 执行封装和 ONNX Runtime CPU 推理。设置 → 截图翻译可直接选择内置 **PP-OCRv4 mobile 轻量模型（14.9 MiB）**，默认 v5 mobile 为 20.5 MiB；两组模型均随包提供、离线运行、便签与翻译共用，原有选择保留。也可选择自定义兼容 PP-OCRv4/v5 mobile/server ONNX 配置；模型路径、家族、类型、SHA256 和 CPU 线程参数见 [配置格式](../TaskPinQt/ocr/README.md#local-model-profiles)。实际模型版本显示在识别结果中。RapidOCR 是模型调用与预后处理组件，实际识别模型为 PaddleOCR 系列；没有调用 Windows.Media.Ocr，也没有云端 OCR。
 
 应用按需启动一个本地识别进程，连续截图复用已加载模型；空闲 60 秒释放，切换模型重新加载。便签和翻译共享队列，取消/关闭后丢弃迟到结果。自定义模型保存先做可取消的后台加载验证，验证中不写设置；取消保留原配置。兼容性由实际引擎验证，未来模型家族需要适配，修改配置标签不会自动获得新引擎能力。
 

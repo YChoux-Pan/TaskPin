@@ -1,0 +1,18 @@
+{
+  "date": "2026-11-23",
+  "version": "0.4.4",
+  "nativeTests": 214,
+  "nativeFailed": 0,
+  "nativeSkipped": 0,
+  "selftest": 53,
+  "playwright": {
+    "startTime": "2026-11-23T02:01:39.949Z",
+    "duration": 39374.248,
+    "expected": 11,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "osInputSimulation": false,
+  "paidServiceCalled": false
+}

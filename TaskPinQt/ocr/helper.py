@@ -26,6 +26,14 @@ EXPECTED_MODELS = {
     "det": ("ch_PP-OCRv5_det_mobile.onnx", "4d97c44a20d30a81aad087d6a396b08f786c4635742afc391f6621f5c6ae78ae"),
     "rec": ("ch_PP-OCRv5_rec_mobile.onnx", "5825fc7ebf84ae7a412be049820b4d86d77620f204a041697b0494669b1742c5"),
 }
+LIGHTWEIGHT_MODELS = {
+    "det": ("ch_PP-OCRv4_det_mobile.onnx", "d2a7720d45a54257208b1e13e36a8479894cb74155a5efe29462512d42f49da9"),
+    "rec": ("ch_PP-OCRv4_rec_mobile.onnx", "48fc40f24f6d2a207a2b1091d3437eb3cc3eb6b676dc3ef9c37384005483683b"),
+}
+BUILTIN_PROFILES = {
+    "builtin-ppocrv5-mobile": ("PP-OCRv5", EXPECTED_MODELS, "models"),
+    "builtin-ppocrv4-mobile": ("PP-OCRv4", LIGHTWEIGHT_MODELS, "lightweightModels"),
+}
 
 
 class OcrFailure(Exception):
@@ -60,20 +68,21 @@ def sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
-def verify_models(root: Path) -> dict[str, Path]:
+def verify_models(root: Path, profile_id: str = "builtin-ppocrv5-mobile") -> dict[str, Path]:
+    _, expected_models, manifest_key = BUILTIN_PROFILES[profile_id]
     try:
         manifest = json.loads((root / "runtime-lock.json").read_text(encoding="utf-8"))
         if manifest["modelVersion"] != MODEL_VERSION:
             raise OcrFailure("runtime_incompatible")
-        declared = {model["task"]: (model["filename"], model["sha256"]) for model in manifest["models"]}
-        if declared != EXPECTED_MODELS:
+        declared = {model["task"]: (model["filename"], model["sha256"]) for model in manifest[manifest_key]}
+        if declared != expected_models:
             raise OcrFailure("runtime_incompatible")
     except OcrFailure:
         raise
     except (OSError, ValueError, KeyError, TypeError):
         raise OcrFailure("runtime_incomplete") from None
     paths = {}
-    for task, (name, expected) in EXPECTED_MODELS.items():
+    for task, (name, expected) in expected_models.items():
         path = root / "models" / name
         if not path.is_file():
             raise OcrFailure("model_missing")
@@ -83,13 +92,14 @@ def verify_models(root: Path) -> dict[str, Path]:
     return paths
 
 
-def selected_profile(root: Path, path: str | None) -> dict:
+def selected_profile(root: Path, path: str | None, profile_id: str = "builtin-ppocrv5-mobile") -> dict:
     if path is None:
-        models = verify_models(root)
-        profile = {"id": "builtin-ppocrv5-mobile", "modelVersion": MODEL_VERSION, "language": "multi",
+        family, expected_models, _ = BUILTIN_PROFILES[profile_id]
+        models = verify_models(root, profile_id)
+        profile = {"id": profile_id, "modelVersion": family + "_mobile/RapidOCR-v3.10.0", "language": "multi",
                    "cpu": {"intraOpThreads": 2, "interOpThreads": 1}}
-        for task, (_, digest) in EXPECTED_MODELS.items():
-            profile[task] = {"path": models[task], "sha256": digest, "ocrVersion": "PP-OCRv5", "modelType": "mobile"}
+        for task, (_, digest) in expected_models.items():
+            profile[task] = {"path": models[task], "sha256": digest, "ocrVersion": family, "modelType": "mobile"}
     else:
         try:
             location = Path(path)
@@ -149,14 +159,17 @@ def selected_profile(root: Path, path: str | None) -> dict:
     return profile
 
 
-def read_request(data: bytes | None = None, worker: bool = False) -> tuple[bytes, str | None]:
+def read_request(data: bytes | None = None, worker: bool = False) -> tuple[bytes, str | None, str]:
     if data is None:
         data = sys.stdin.buffer.read(MAX_INPUT_BYTES + 1)
     if len(data) > MAX_INPUT_BYTES:
         raise OcrFailure("input_too_large")
     try:
         request = json.loads(data)
-        if not isinstance(request, dict) or set(request) - ({"image", "profilePath", "requestId"} if worker else {"image", "profilePath"}):
+        if not isinstance(request, dict) or set(request) - ({"image", "profilePath", "profileId", "requestId"} if worker else {"image", "profilePath", "profileId"}):
+            raise ValueError
+        profile_id = request.get("profileId", "builtin-ppocrv5-mobile")
+        if not isinstance(profile_id, str) or profile_id not in BUILTIN_PROFILES or ("profilePath" in request and "profileId" in request):
             raise ValueError
         profile_path = request.get("profilePath")
         if profile_path is not None and (not isinstance(profile_path, str) or not profile_path or len(profile_path) > 32768):
@@ -180,7 +193,7 @@ def read_request(data: bytes | None = None, worker: bool = False) -> tuple[bytes
         raise OcrFailure("invalid_image")
     if width * height > MAX_PIXELS or max(width, height) > 16_384:
         raise OcrFailure("image_too_large")
-    return png, profile_path
+    return png, profile_path, profile_id
 
 
 def deny_network(*_args, **_kwargs):
@@ -328,15 +341,21 @@ def process_request(root: Path, data: bytes | None = None, cache: dict | None = 
                     raise ValueError
             except (ValueError, TypeError, KeyError):
                 raise OcrFailure("invalid_request") from None
-        png, profile_path = (None, None) if self_check else read_request(data, cache is not None)
+        png, profile_path, profile_id = (None, None, "builtin-ppocrv5-mobile") if self_check else read_request(data, cache is not None)
         read_ms = (time.perf_counter() - started) * 1000
         verify_started = time.perf_counter()
-        profile = selected_profile(root, profile_path)
+        profile = selected_profile(root, profile_path, profile_id)
         verify_ms = (time.perf_counter() - verify_started) * 1000
         reply = infer(root, profile, png, cache)
         reply["stageMs"].update(readRequest=read_ms, verifyModels=verify_ms, total=(time.perf_counter() - started) * 1000)
         reply["stageMs"]["overhead"] = max(0, reply["stageMs"]["total"] - sum(value for key, value in reply["stageMs"].items() if key != "total"))
         if self_check:
+            checked = [reply["profileId"]]
+            for builtin in BUILTIN_PROFILES:
+                if builtin != profile_id:
+                    infer(root, selected_profile(root, None, builtin), None)
+                    checked.append(builtin)
+            reply["builtinProfilesVerified"] = checked
             reply["runtimeReady"] = True
         if identifier is not None:
             reply["requestId"] = identifier

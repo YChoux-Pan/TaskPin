@@ -24,6 +24,7 @@
 #include "ui/TaskDialogs.h"
 #include "ui/AppIcon.h"
 #include "ui/TranslationWindow.h"
+#include "translation/OcrProfiles.h"
 
 #include <QAction>
 #include <QApplication>
@@ -1010,7 +1011,11 @@ QJsonObject AppHost::dumpState() const
     ocr["busy"] = m_captureBusy;
     ocr["queued"] = m_captureQueue.size();
     ocr["aiPending"] = !m_pendingTaskId.isEmpty();
-    ocr["engine"] = QStringLiteral("PaddleOCR PP-OCRv5");
+    const auto ocrSelection=Translation::OcrProfiles::load();
+    ocr["profile"] = ocrSelection.profile;
+    ocr["engine"] = ocrSelection.profile=="builtin-ppocrv4-mobile"?QStringLiteral("PaddleOCR PP-OCRv4"):
+        ocrSelection.profile=="builtin-ppocrv5-mobile"?QStringLiteral("PaddleOCR PP-OCRv5"):
+        ocrSelection.profile=="custom"?QStringLiteral("PaddleOCR · 自定义模型"):QStringLiteral("PaddleOCR · 配置无效");
     o["ocr"] = ocr;
 
     syncTrayHints();   // the dump reflects the chords the tray menu would show

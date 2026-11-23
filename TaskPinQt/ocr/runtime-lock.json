@@ -245,7 +245,7 @@
     "registry": "https://github.com/RapidAI/RapidOCR/blob/38ed48d802cfb9f91d24153258427beef2b3d50c/rapidocr/default_models.yaml",
     "upstream": "https://github.com/PaddlePaddle/PaddleOCR/tree/v3.0.3",
     "upstreamLicense": "https://github.com/PaddlePaddle/PaddleOCR/blob/v3.0.3/LICENSE",
-    "conversionNotice": "Converted by RapidOCR from official PaddleOCR PP-OCRv5 mobile models to ONNX; upstream weights copyright Baidu and/or PaddleOCR rights holders; conversion does not transfer ownership.",
+    "conversionNotice": "Converted by RapidOCR from official PaddleOCR PP-OCRv5 and PP-OCRv4 mobile models to ONNX; upstream weights copyright Baidu and/or PaddleOCR rights holders; conversion does not transfer ownership.",
     "paddleocrLicenseSnapshot": "paddleocr-3.0.3-py3-none-any.whl on PyPI; SHA256 f1c89d0803d2ee24d76b1ee07a26c02f2c7e5d5fd4d0f51538d0520c726808a2; paddleocr-3.0.3.dist-info/LICENSE copied without modification"
   },
   "licenseSupplements": [
@@ -255,6 +255,28 @@
       "sourceUrl": "https://cdn.jsdelivr.net/gh/google/flatbuffers@v25.12.19/LICENSE",
       "upstreamUrl": "https://github.com/google/flatbuffers/blob/v25.12.19/LICENSE",
       "destination": "flatbuffers-25.12.19.dist-info/LICENSE"
+    }
+  ],
+  "lightweightModels": [
+    {
+      "task": "det",
+      "filename": "ch_PP-OCRv4_det_mobile.onnx",
+      "url": "https://www.modelscope.cn/models/RapidAI/RapidOCR/resolve/v3.10.0/onnx/PP-OCRv4/det/ch_PP-OCRv4_det_mobile.onnx",
+      "sha256": "d2a7720d45a54257208b1e13e36a8479894cb74155a5efe29462512d42f49da9",
+      "bytes": 4745517,
+      "license": "Apache-2.0",
+      "upstreamModel": "PP-OCRv4_mobile_det",
+      "upstreamModelCard": "https://github.com/PaddlePaddle/PaddleOCR/blob/release/2.7/doc/doc_ch/PP-OCRv4_introduction.md"
+    },
+    {
+      "task": "rec",
+      "filename": "ch_PP-OCRv4_rec_mobile.onnx",
+      "url": "https://www.modelscope.cn/models/RapidAI/RapidOCR/resolve/v3.10.0/onnx/PP-OCRv4/rec/ch_PP-OCRv4_rec_mobile.onnx",
+      "sha256": "48fc40f24f6d2a207a2b1091d3437eb3cc3eb6b676dc3ef9c37384005483683b",
+      "bytes": 10857958,
+      "license": "Apache-2.0",
+      "upstreamModel": "PP-OCRv4_mobile_rec",
+      "upstreamModelCard": "https://github.com/PaddlePaddle/PaddleOCR/blob/release/2.7/doc/doc_ch/PP-OCRv4_introduction.md"
     }
   ]
 }

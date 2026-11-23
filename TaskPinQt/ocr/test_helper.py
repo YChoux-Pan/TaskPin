@@ -36,12 +36,14 @@ def call(runtime: Path, request: bytes, helper: Path | None = None) -> tuple[dic
     return reply, elapsed
 
 
-def request(image: Image.Image, profile: Path | None = None) -> bytes:
+def request(image: Image.Image, profile: Path | None = None, profile_id: str | None = None) -> bytes:
     stream = io.BytesIO()
     image.save(stream, format="PNG")
     payload = {"image": base64.b64encode(stream.getvalue()).decode("ascii")}
     if profile is not None:
         payload["profilePath"] = str(profile)
+    if profile_id is not None:
+        payload["profileId"] = profile_id
     return json.dumps(payload).encode("utf-8")
 
 
@@ -55,8 +57,8 @@ def check_worker(runtime: Path, image: Image.Image, profile_path: Path, profile:
             output.put(line)
         output.put(None)
     threading.Thread(target=receive, daemon=True).start()
-    def exchange(identifier: str, path: Path | None = None) -> dict:
-        payload = json.loads(request(image, path));payload["requestId"] = identifier
+    def exchange(identifier: str, path: Path | None = None, profile_id: str | None = None) -> dict:
+        payload = json.loads(request(image, path, profile_id));payload["requestId"] = identifier
         try:
             worker.stdin.write(json.dumps(payload).encode() + b"\n");worker.stdin.flush()
         except OSError:
@@ -71,6 +73,14 @@ def check_worker(runtime: Path, image: Image.Image, profile_path: Path, profile:
         assert cold["ok"] and warm["ok"] and cold["lines"] == warm["lines"]
         assert cold["stageMs"]["load"] > 0 and warm["stageMs"]["load"] == 0
         assert warm["workerReused"] is True and cold["workerReused"] is False
+        light = exchange("lightweight", profile_id="builtin-ppocrv4-mobile")
+        light_warm = exchange("lightweight-warm", profile_id="builtin-ppocrv4-mobile")
+        assert light["ok"] and light["profileId"] == "builtin-ppocrv4-mobile"
+        assert light["engine"] == "PaddleOCR PP-OCRv4" and not light["workerReused"]
+        assert light_warm["ok"] and light_warm["workerReused"] and light_warm["stageMs"]["load"] == 0
+        assert light["modelIdentity"] != cold["modelIdentity"]
+        back = exchange("back-to-default")
+        assert back["ok"] and not back["workerReused"] and back["modelIdentity"] == cold["modelIdentity"]
         switched = json.loads(json.dumps(profile));switched["cpu"]["intraOpThreads"] = 1
         profile_path.write_text(json.dumps(switched), encoding="utf-8")
         custom = exchange("switch", profile_path)
@@ -81,7 +91,8 @@ def check_worker(runtime: Path, image: Image.Image, profile_path: Path, profile:
         after_failure = exchange("after-failure", profile_path)
         assert after_failure["ok"] and after_failure["workerReused"]
         return [{"fixture": "worker-" + name, "matched": True, "stageMs": reply["stageMs"]}
-                for name, reply in (("cold", cold), ("warm", warm), ("switch", custom))]
+                for name, reply in (("cold", cold), ("warm", warm), ("lightweight", light),
+                                    ("lightweight-warm", light_warm), ("back-to-default", back), ("switch", custom))]
     finally:
         try:
             worker.stdin.close()
@@ -107,11 +118,11 @@ def fixture(lines: list[str], dark: bool = False, font_path: Path | None = None)
     return image
 
 
-def check_regions(reply: dict, image: Image.Image) -> None:
-    assert reply["ok"] and reply["engine"] == "PaddleOCR PP-OCRv5"
-    assert reply["modelVersion"] == "PP-OCRv5_mobile/RapidOCR-v3.10.0"
+def check_regions(reply: dict, image: Image.Image, family: str = "v5") -> None:
+    assert reply["ok"] and reply["engine"] == "PaddleOCR PP-OCR" + family, reply
+    assert reply["modelVersion"] == "PP-OCR" + family + "_mobile/RapidOCR-v3.10.0"
     assert reply["language"] == "multi"
-    assert reply.get("profileId") == "builtin-ppocrv5-mobile", "Helper did not report selected profile"
+    assert reply.get("profileId") == "builtin-ppocr" + family + "-mobile", "Helper did not report selected profile"
     assert reply.get("modelIdentity", "").startswith("sha256:")
     stages = reply.get("stageMs", {})
     for stage in ("import", "load", "inference", "verifyModels", "prepareImage", "formatResult", "total"):
@@ -136,6 +147,19 @@ def main() -> None:
     args = parser.parse_args()
     runtime = args.runtime.resolve()
     results = []
+    for name, lines, expected, dark in [
+        ("english", ["Hello TaskPin 2026", "Keep the original text."], ["HelloTaskPin2026", "originaltext"], False),
+        ("chinese", ["请确认翻译结果", "保留原始文字"], ["确认翻译结果", "保留原始文字"], False),
+        ("dark-technical", ["const maxRetries = 3;", "retry failed requests", "离线文字识别"],
+         ["maxRetries=3", "retryfailedrequests", "离线文字识别"], True),
+    ]:
+        image = fixture(lines, dark, args.font)
+        reply, seconds = call(runtime, request(image, profile_id="builtin-ppocrv4-mobile"))
+        check_regions(reply, image, "v4")
+        normalized = "".join(item["text"] for item in reply["lines"]).replace(" ", "")
+        assert all(phrase in normalized for phrase in expected), ("Lightweight model missed synthetic phrase", name)
+        results.append({"fixture": "lightweight-" + name, "matched": True,
+                        "regions": len(reply["lines"]), "processSeconds": round(seconds, 3), "stageMs": reply["stageMs"]})
     for name, lines, expected, dark in [
         ("english", ["Hello TaskPin 2026", "Keep the original text."], ["HelloTaskPin2026", "originaltext"], False),
         ("chinese", ["请确认翻译结果", "保留原始文字"], ["确认翻译结果", "保留原始文字"], False),
@@ -215,7 +239,7 @@ def main() -> None:
         assert reply == {"ok": False, "errorCode": code}
         assert "synthetic-sensitive-content" not in json.dumps(reply)
 
-    # Only two small models and source/config are copied for the rejection test.
+    # Only the bundled model weights and source/config are copied for the rejection test.
     with tempfile.TemporaryDirectory(prefix="taskpin-ocr-tamper-") as temporary:
         altered = Path(temporary)
         shutil.copyfile(runtime / "helper.py", altered / "helper.py")
@@ -231,10 +255,24 @@ def main() -> None:
         detector.unlink()
         reply, _ = call(runtime, request(Image.new("RGB", (100, 100), "white")), altered / "helper.py")
         assert reply == {"ok": False, "errorCode": "model_missing"}
+        detector = altered / "models" / "ch_PP-OCRv4_det_mobile.onnx"
+        with detector.open("ab") as stream:
+            stream.write(b"synthetic-model-tamper")
+        reply, _ = call(runtime, request(Image.new("RGB", (100, 100), "white"), profile_id="builtin-ppocrv4-mobile"), altered / "helper.py")
+        assert reply == {"ok": False, "errorCode": "model_hash_mismatch"}
+        detector.unlink()
+        reply, _ = call(runtime, request(Image.new("RGB", (100, 100), "white"), profile_id="builtin-ppocrv4-mobile"), altered / "helper.py")
+        assert reply == {"ok": False, "errorCode": "model_missing"}
+
+    for options in ({"profileId": "unknown-model"}, {"profileId": 4},
+                    {"profileId": "builtin-ppocrv4-mobile", "profilePath": "unused.json"}):
+        payload = json.loads(request(Image.new("RGB", (100, 100), "white")));payload.update(options)
+        reply, _ = call(runtime, json.dumps(payload).encode())
+        assert reply == {"ok": False, "errorCode": "invalid_request"}
 
     assert not list(runtime.rglob("__pycache__")), "Runtime wrote Python bytecode"
     print(json.dumps({"ok": True, "fixtures": results, "invalidInputCases": len(malformed),
-                      "tamperAndMissingModelRejected": True,
+                      "tamperAndMissingModelRejected": True, "builtinProfilesTested": ["builtin-ppocrv5-mobile", "builtin-ppocrv4-mobile"],
                       "networkInference": False, "imageOrTranscriptFilesWritten": False}, ensure_ascii=True, indent=2))
 
 

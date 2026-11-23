@@ -28,7 +28,11 @@ if (!(Test-Path -LiteralPath (Join-Path $ocrRuntime 'python.exe')) -or !(Test-Pa
     throw 'Build the local PaddleOCR runtime with prepare-ocr-runtime.ps1 before packaging.'
 }
 $ocrCheck = & (Join-Path $ocrRuntime 'python.exe') -I -B (Join-Path $ocrRuntime 'helper.py') --self-check
-if ($LASTEXITCODE -ne 0 -or !(($ocrCheck | ConvertFrom-Json).runtimeReady)) {
+$ocrStatus = $ocrCheck | ConvertFrom-Json
+if ($LASTEXITCODE -ne 0 -or !$ocrStatus.runtimeReady -or
+    @($ocrStatus.builtinProfilesVerified).Count -ne 2 -or
+    'builtin-ppocrv4-mobile' -notin $ocrStatus.builtinProfilesVerified -or
+    'builtin-ppocrv5-mobile' -notin $ocrStatus.builtinProfilesVerified) {
     throw 'PaddleOCR model/runtime self-check failed before packaging.'
 }
 Copy-Item -LiteralPath $ocrRuntime -Destination (Join-Path $appDir 'ocr') -Recurse

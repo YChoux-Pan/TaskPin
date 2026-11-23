@@ -1,4 +1,5 @@
 #include "translation/TranslationOcr.h"
+#include "translation/OcrProfiles.h"
 #include "translation/TranslationText.h"
 #include "translation/TranslationClient.h"
 #include "ui/TranslationWindow.h"
@@ -64,7 +65,11 @@ static int benchmark(QApplication &app,const QString &output,const Translation::
     QObject::connect(&ocr,&Translation::Ocr::finished,&app,[&](const QString &,const Translation::OcrResult &result){recognized(result);});
     QObject::connect(&legacy,&QProcess::started,&app,[&]{
         QByteArray png;QBuffer buffer(&png);buffer.open(QIODevice::WriteOnly);image.save(&buffer,"PNG");
-        legacy.write(QJsonDocument(QJsonObject{{"image",QString::fromLatin1(png.toBase64())}}).toJson(QJsonDocument::Compact));legacy.closeWriteChannel();
+        const auto selection=Translation::OcrProfiles::load();
+        QJsonObject payload{{"image",QString::fromLatin1(png.toBase64())}};
+        if(selection.profile=="custom")payload.insert("profilePath",selection.profilePath());
+        else payload.insert("profileId",selection.profile);
+        legacy.write(QJsonDocument(payload).toJson(QJsonDocument::Compact));legacy.closeWriteChannel();
     });
     QObject::connect(&legacy,qOverload<int,QProcess::ExitStatus>(&QProcess::finished),&app,[&](int code,QProcess::ExitStatus status){
         Translation::OcrResult result;QString error;
@@ -105,7 +110,11 @@ int main(int argc,char **argv)
         config.endpoint=s.aiBaseUrl;config.model=s.aiModel;config.consentEndpoint=config.requestUrl().toString(QUrl::FullyEncoded);
         if(config.requestUrl()!=QUrl("https://api.deepseek.com/v1/chat/completions") || s.aiApiKey.isEmpty())return 9;}
     QString error;if(!config.save(&error))return 4;
-    if(args.contains("--benchmark"))return benchmark(app,output,config,3,args.contains("--oneshot-ocr"));
+    if(args.contains("--lightweight")) {
+        Translation::OcrProfiles profile;profile.profile="builtin-ppocrv4-mobile";
+        if(!profile.save(&error))return 14;
+    }
+    if(args.contains("--benchmark"))return benchmark(app,output,config,args.contains("--single-sample")?1:3,args.contains("--oneshot-ocr"));
     const bool paragraph=args.contains("--paragraph");
     QImage image(1100,paragraph?850:280,QImage::Format_RGB32);image.fill(Qt::white);QPainter painter(&image);
     QFont font(QFontDatabase::applicationFontFamilies(fontId).first());font.setPixelSize(30);painter.setFont(font);painter.setPen(Qt::black);

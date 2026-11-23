@@ -1,0 +1,910 @@
+{
+  "date": "2026-11-23",
+  "fixtureOnly": true,
+  "cloudCalled": false,
+  "concurrentBuild": false,
+  "sizes": {
+    "v5Bytes": 21450882,
+    "v4Bytes": 15603475
+  },
+  "summary": [
+    {
+      "fixture": "short",
+      "profile": "builtin-ppocrv5-mobile",
+      "coldMs": 2348.271,
+      "warmMedianMs": 1263.045,
+      "warmSamples": 3,
+      "coldSamples": 1
+    },
+    {
+      "fixture": "short",
+      "profile": "builtin-ppocrv4-mobile",
+      "coldMs": 2922.145,
+      "warmMedianMs": 1383.249,
+      "warmSamples": 3,
+      "coldSamples": 1
+    },
+    {
+      "fixture": "paragraph",
+      "profile": "builtin-ppocrv5-mobile",
+      "coldMs": 2317.933,
+      "warmMedianMs": 1148.722,
+      "warmSamples": 3,
+      "coldSamples": 1
+    },
+    {
+      "fixture": "paragraph",
+      "profile": "builtin-ppocrv4-mobile",
+      "coldMs": 2907.731,
+      "warmMedianMs": 1327.105,
+      "warmSamples": 3,
+      "coldSamples": 1
+    }
+  ],
+  "records": [
+    {
+      "fixture": "short",
+      "profile": "builtin-ppocrv5-mobile",
+      "iteration": 0,
+      "processMs": 2348.271,
+      "stageMs": {
+        "import": 915.6271999963792,
+        "prepareImage": 39.313499990385026,
+        "load": 253.1829000072321,
+        "inference": 1107.5081000017235,
+        "formatResult": 0.07610001193825155,
+        "readRequest": 0.1694999955361709,
+        "verifyModels": 21.784899989143014,
+        "total": 2338.442699998268,
+        "overhead": 0.7805000059306622
+      },
+      "workerReused": false,
+      "engine": "PaddleOCR PP-OCRv5",
+      "modelIdentity": "sha256:54e494788429561ac8e799cea3a0b4b5952afa2cff2b958134cba516a874b027",
+      "syntheticOcr": [
+        {
+          "text": "Hello TaskPin 2026",
+          "x": 37,
+          "y": 38,
+          "width": 278,
+          "height": 34,
+          "confidence": 0.96845
+        },
+        {
+          "text": "请确认翻译结果",
+          "x": 35,
+          "y": 101,
+          "width": 219,
+          "height": 41,
+          "confidence": 0.99847
+        }
+      ]
+    },
+    {
+      "fixture": "short",
+      "profile": "builtin-ppocrv5-mobile",
+      "iteration": 1,
+      "processMs": 1180.542,
+      "stageMs": {
+        "import": 1.1397000052966177,
+        "prepareImage": 1.2246000114828348,
+        "load": 0,
+        "inference": 1159.9592999991728,
+        "formatResult": 0.09200000204145908,
+        "readRequest": 0.15279999934136868,
+        "verifyModels": 16.80800000031013,
+        "total": 1180.0889000005554,
+        "overhead": 0.7124999829102308
+      },
+      "workerReused": true,
+      "engine": "PaddleOCR PP-OCRv5",
+      "modelIdentity": "sha256:54e494788429561ac8e799cea3a0b4b5952afa2cff2b958134cba516a874b027",
+      "syntheticOcr": [
+        {
+          "text": "Hello TaskPin 2026",
+          "x": 37,
+          "y": 38,
+          "width": 278,
+          "height": 34,
+          "confidence": 0.96845
+        },
+        {
+          "text": "请确认翻译结果",
+          "x": 35,
+          "y": 101,
+          "width": 219,
+          "height": 41,
+          "confidence": 0.99847
+        }
+      ]
+    },
+    {
+      "fixture": "short",
+      "profile": "builtin-ppocrv5-mobile",
+      "iteration": 2,
+      "processMs": 1263.045,
+      "stageMs": {
+        "import": 1.509200010332279,
+        "prepareImage": 2.2123000089777634,
+        "load": 0,
+        "inference": 1228.0916000017896,
+        "formatResult": 0.08080000407062471,
+        "readRequest": 0.17939999816007912,
+        "verifyModels": 30.055800001719035,
+        "total": 1262.633399994229,
+        "overhead": 0.5042999691795558
+      },
+      "workerReused": true,
+      "engine": "PaddleOCR PP-OCRv5",
+      "modelIdentity": "sha256:54e494788429561ac8e799cea3a0b4b5952afa2cff2b958134cba516a874b027",
+      "syntheticOcr": [
+        {
+          "text": "Hello TaskPin 2026",
+          "x": 37,
+          "y": 38,
+          "width": 278,
+          "height": 34,
+          "confidence": 0.96845
+        },
+        {
+          "text": "请确认翻译结果",
+          "x": 35,
+          "y": 101,
+          "width": 219,
+          "height": 41,
+          "confidence": 0.99847
+        }
+      ]
+    },
+    {
+      "fixture": "short",
+      "profile": "builtin-ppocrv5-mobile",
+      "iteration": 3,
+      "processMs": 1333.839,
+      "stageMs": {
+        "import": 1.8985000060638413,
+        "prepareImage": 2.8547999972943217,
+        "load": 0,
+        "inference": 1300.791300003766,
+        "formatResult": 0.0847000046633184,
+        "readRequest": 0.1500999933341518,
+        "verifyModels": 27.346300004865043,
+        "total": 1333.4461999911582,
+        "overhead": 0.3204999811714515
+      },
+      "workerReused": true,
+      "engine": "PaddleOCR PP-OCRv5",
+      "modelIdentity": "sha256:54e494788429561ac8e799cea3a0b4b5952afa2cff2b958134cba516a874b027",
+      "syntheticOcr": [
+        {
+          "text": "Hello TaskPin 2026",
+          "x": 37,
+          "y": 38,
+          "width": 278,
+          "height": 34,
+          "confidence": 0.96845
+        },
+        {
+          "text": "请确认翻译结果",
+          "x": 35,
+          "y": 101,
+          "width": 219,
+          "height": 41,
+          "confidence": 0.99847
+        }
+      ]
+    },
+    {
+      "fixture": "short",
+      "profile": "builtin-ppocrv4-mobile",
+      "iteration": 0,
+      "processMs": 2922.145,
+      "stageMs": {
+        "import": 921.1829999985639,
+        "prepareImage": 36.440600000787526,
+        "load": 247.1845999971265,
+        "inference": 1648.603900001035,
+        "formatResult": 0.10370000381954014,
+        "readRequest": 0.18899999849963933,
+        "verifyModels": 13.96339999337215,
+        "total": 2868.6757999967085,
+        "overhead": 1.0076000035041943
+      },
+      "workerReused": false,
+      "engine": "PaddleOCR PP-OCRv4",
+      "modelIdentity": "sha256:c86541b45159637e88c21d7af2231698fe8e8c9d857a426b8cad47714fa49dee",
+      "syntheticOcr": [
+        {
+          "text": "HelloTaskPin2026",
+          "x": 41,
+          "y": 42,
+          "width": 272,
+          "height": 28,
+          "confidence": 0.99883
+        },
+        {
+          "text": "请确认翻译结果",
+          "x": 39,
+          "y": 105,
+          "width": 213,
+          "height": 34,
+          "confidence": 0.99796
+        }
+      ]
+    },
+    {
+      "fixture": "short",
+      "profile": "builtin-ppocrv4-mobile",
+      "iteration": 1,
+      "processMs": 1264.352,
+      "stageMs": {
+        "import": 1.0479000047780573,
+        "prepareImage": 1.201300008688122,
+        "load": 0,
+        "inference": 1245.950399999856,
+        "formatResult": 0.14040000678505749,
+        "readRequest": 0.1466999965487048,
+        "verifyModels": 14.805500002694316,
+        "total": 1263.9800000033574,
+        "overhead": 0.6877999840071425
+      },
+      "workerReused": true,
+      "engine": "PaddleOCR PP-OCRv4",
+      "modelIdentity": "sha256:c86541b45159637e88c21d7af2231698fe8e8c9d857a426b8cad47714fa49dee",
+      "syntheticOcr": [
+        {
+          "text": "HelloTaskPin2026",
+          "x": 41,
+          "y": 42,
+          "width": 272,
+          "height": 28,
+          "confidence": 0.99883
+        },
+        {
+          "text": "请确认翻译结果",
+          "x": 39,
+          "y": 105,
+          "width": 213,
+          "height": 34,
+          "confidence": 0.99796
+        }
+      ]
+    },
+    {
+      "fixture": "short",
+      "profile": "builtin-ppocrv4-mobile",
+      "iteration": 2,
+      "processMs": 1383.249,
+      "stageMs": {
+        "import": 1.5581999905407429,
+        "prepareImage": 2.511500002583489,
+        "load": 0,
+        "inference": 1355.441299994709,
+        "formatResult": 0.069500005338341,
+        "readRequest": 0.2469000028213486,
+        "verifyModels": 22.28580000519287,
+        "total": 1382.843800005503,
+        "overhead": 0.7306000043172389
+      },
+      "workerReused": true,
+      "engine": "PaddleOCR PP-OCRv4",
+      "modelIdentity": "sha256:c86541b45159637e88c21d7af2231698fe8e8c9d857a426b8cad47714fa49dee",
+      "syntheticOcr": [
+        {
+          "text": "HelloTaskPin2026",
+          "x": 41,
+          "y": 42,
+          "width": 272,
+          "height": 28,
+          "confidence": 0.99883
+        },
+        {
+          "text": "请确认翻译结果",
+          "x": 39,
+          "y": 105,
+          "width": 213,
+          "height": 34,
+          "confidence": 0.99796
+        }
+      ]
+    },
+    {
+      "fixture": "short",
+      "profile": "builtin-ppocrv4-mobile",
+      "iteration": 3,
+      "processMs": 1384.598,
+      "stageMs": {
+        "import": 1.4057999942451715,
+        "prepareImage": 2.0908000005874783,
+        "load": 0,
+        "inference": 1360.6389000051422,
+        "formatResult": 0.07199999527074397,
+        "readRequest": 0.23280001187231392,
+        "verifyModels": 19.06279999820981,
+        "total": 1384.2460000014398,
+        "overhead": 0.7428999961121008
+      },
+      "workerReused": true,
+      "engine": "PaddleOCR PP-OCRv4",
+      "modelIdentity": "sha256:c86541b45159637e88c21d7af2231698fe8e8c9d857a426b8cad47714fa49dee",
+      "syntheticOcr": [
+        {
+          "text": "HelloTaskPin2026",
+          "x": 41,
+          "y": 42,
+          "width": 272,
+          "height": 28,
+          "confidence": 0.99883
+        },
+        {
+          "text": "请确认翻译结果",
+          "x": 39,
+          "y": 105,
+          "width": 213,
+          "height": 34,
+          "confidence": 0.99796
+        }
+      ]
+    },
+    {
+      "fixture": "paragraph",
+      "profile": "builtin-ppocrv5-mobile",
+      "iteration": 0,
+      "processMs": 2317.933,
+      "stageMs": {
+        "import": 964.5066000084626,
+        "prepareImage": 45.70560000138357,
+        "load": 269.9801999988267,
+        "inference": 965.7065999926999,
+        "formatResult": 0.11899998935405165,
+        "readRequest": 0.4349000082584098,
+        "verifyModels": 17.363100007059984,
+        "total": 2264.266199999838,
+        "overhead": 0.4501999937929213
+      },
+      "workerReused": false,
+      "engine": "PaddleOCR PP-OCRv5",
+      "modelIdentity": "sha256:54e494788429561ac8e799cea3a0b4b5952afa2cff2b958134cba516a874b027",
+      "syntheticOcr": [
+        {
+          "text": "The operator segments regions by a watershed.",
+          "x": 38,
+          "y": 37,
+          "width": 688,
+          "height": 42,
+          "confidence": 0.98811
+        },
+        {
+          "text": "Keep the original image and its coordinates.",
+          "x": 38,
+          "y": 101,
+          "width": 638,
+          "height": 43,
+          "confidence": 0.97421
+        },
+        {
+          "text": "Several image pairs may be processed in one call.",
+          "x": 36,
+          "y": 166,
+          "width": 717,
+          "height": 42,
+          "confidence": 0.98877
+        },
+        {
+          "text": "Review technical symbols before using the result.",
+          "x": 37,
+          "y": 231,
+          "width": 708,
+          "height": 42,
+          "confidence": 0.98742
+        },
+        {
+          "text": "保留原始文字，确认翻译结果。",
+          "x": 38,
+          "y": 296,
+          "width": 403,
+          "height": 39,
+          "confidence": 0.9988
+        },
+        {
+          "text": "更改设置后请保存，取消将保留原来的配置。",
+          "x": 38,
+          "y": 362,
+          "width": 582,
+          "height": 38,
+          "confidence": 0.99978
+        }
+      ]
+    },
+    {
+      "fixture": "paragraph",
+      "profile": "builtin-ppocrv5-mobile",
+      "iteration": 1,
+      "processMs": 907.872,
+      "stageMs": {
+        "import": 1.109099990571849,
+        "prepareImage": 2.3475000052712858,
+        "load": 0,
+        "inference": 880.8497999998508,
+        "formatResult": 0.20750000840052962,
+        "readRequest": 0.5241000035312027,
+        "verifyModels": 21.6253999969922,
+        "total": 907.172500010347,
+        "overhead": 0.509100005729124
+      },
+      "workerReused": true,
+      "engine": "PaddleOCR PP-OCRv5",
+      "modelIdentity": "sha256:54e494788429561ac8e799cea3a0b4b5952afa2cff2b958134cba516a874b027",
+      "syntheticOcr": [
+        {
+          "text": "The operator segments regions by a watershed.",
+          "x": 38,
+          "y": 37,
+          "width": 688,
+          "height": 42,
+          "confidence": 0.98811
+        },
+        {
+          "text": "Keep the original image and its coordinates.",
+          "x": 38,
+          "y": 101,
+          "width": 638,
+          "height": 43,
+          "confidence": 0.97421
+        },
+        {
+          "text": "Several image pairs may be processed in one call.",
+          "x": 36,
+          "y": 166,
+          "width": 717,
+          "height": 42,
+          "confidence": 0.98877
+        },
+        {
+          "text": "Review technical symbols before using the result.",
+          "x": 37,
+          "y": 231,
+          "width": 708,
+          "height": 42,
+          "confidence": 0.98742
+        },
+        {
+          "text": "保留原始文字，确认翻译结果。",
+          "x": 38,
+          "y": 296,
+          "width": 403,
+          "height": 39,
+          "confidence": 0.9988
+        },
+        {
+          "text": "更改设置后请保存，取消将保留原来的配置。",
+          "x": 38,
+          "y": 362,
+          "width": 582,
+          "height": 38,
+          "confidence": 0.99978
+        }
+      ]
+    },
+    {
+      "fixture": "paragraph",
+      "profile": "builtin-ppocrv5-mobile",
+      "iteration": 2,
+      "processMs": 1148.722,
+      "stageMs": {
+        "import": 0.9153999999398366,
+        "prepareImage": 3.6533999955281615,
+        "load": 0,
+        "inference": 1120.4466999915894,
+        "formatResult": 0.18209998961538076,
+        "readRequest": 0.48919999971985817,
+        "verifyModels": 21.728799998527393,
+        "total": 1147.9622000042582,
+        "overhead": 0.5466000293381512
+      },
+      "workerReused": true,
+      "engine": "PaddleOCR PP-OCRv5",
+      "modelIdentity": "sha256:54e494788429561ac8e799cea3a0b4b5952afa2cff2b958134cba516a874b027",
+      "syntheticOcr": [
+        {
+          "text": "The operator segments regions by a watershed.",
+          "x": 38,
+          "y": 37,
+          "width": 688,
+          "height": 42,
+          "confidence": 0.98811
+        },
+        {
+          "text": "Keep the original image and its coordinates.",
+          "x": 38,
+          "y": 101,
+          "width": 638,
+          "height": 43,
+          "confidence": 0.97421
+        },
+        {
+          "text": "Several image pairs may be processed in one call.",
+          "x": 36,
+          "y": 166,
+          "width": 717,
+          "height": 42,
+          "confidence": 0.98877
+        },
+        {
+          "text": "Review technical symbols before using the result.",
+          "x": 37,
+          "y": 231,
+          "width": 708,
+          "height": 42,
+          "confidence": 0.98742
+        },
+        {
+          "text": "保留原始文字，确认翻译结果。",
+          "x": 38,
+          "y": 296,
+          "width": 403,
+          "height": 39,
+          "confidence": 0.9988
+        },
+        {
+          "text": "更改设置后请保存，取消将保留原来的配置。",
+          "x": 38,
+          "y": 362,
+          "width": 582,
+          "height": 38,
+          "confidence": 0.99978
+        }
+      ]
+    },
+    {
+      "fixture": "paragraph",
+      "profile": "builtin-ppocrv5-mobile",
+      "iteration": 3,
+      "processMs": 1161.046,
+      "stageMs": {
+        "import": 1.446199996280484,
+        "prepareImage": 4.1652999934740365,
+        "load": 0,
+        "inference": 1122.8610000107437,
+        "formatResult": 0.20429999858606607,
+        "readRequest": 0.5480000108946115,
+        "verifyModels": 30.235300000640564,
+        "total": 1160.2074000111315,
+        "overhead": 0.7473000005120412
+      },
+      "workerReused": true,
+      "engine": "PaddleOCR PP-OCRv5",
+      "modelIdentity": "sha256:54e494788429561ac8e799cea3a0b4b5952afa2cff2b958134cba516a874b027",
+      "syntheticOcr": [
+        {
+          "text": "The operator segments regions by a watershed.",
+          "x": 38,
+          "y": 37,
+          "width": 688,
+          "height": 42,
+          "confidence": 0.98811
+        },
+        {
+          "text": "Keep the original image and its coordinates.",
+          "x": 38,
+          "y": 101,
+          "width": 638,
+          "height": 43,
+          "confidence": 0.97421
+        },
+        {
+          "text": "Several image pairs may be processed in one call.",
+          "x": 36,
+          "y": 166,
+          "width": 717,
+          "height": 42,
+          "confidence": 0.98877
+        },
+        {
+          "text": "Review technical symbols before using the result.",
+          "x": 37,
+          "y": 231,
+          "width": 708,
+          "height": 42,
+          "confidence": 0.98742
+        },
+        {
+          "text": "保留原始文字，确认翻译结果。",
+          "x": 38,
+          "y": 296,
+          "width": 403,
+          "height": 39,
+          "confidence": 0.9988
+        },
+        {
+          "text": "更改设置后请保存，取消将保留原来的配置。",
+          "x": 38,
+          "y": 362,
+          "width": 582,
+          "height": 38,
+          "confidence": 0.99978
+        }
+      ]
+    },
+    {
+      "fixture": "paragraph",
+      "profile": "builtin-ppocrv4-mobile",
+      "iteration": 0,
+      "processMs": 2907.731,
+      "stageMs": {
+        "import": 943.2749999978114,
+        "prepareImage": 39.98080000746995,
+        "load": 246.36379998992197,
+        "inference": 1618.0069000110961,
+        "formatResult": 0.13469999248627573,
+        "readRequest": 0.4189999890513718,
+        "verifyModels": 13.437000001431443,
+        "total": 2862.0497999945655,
+        "overhead": 0.4326000052969903
+      },
+      "workerReused": false,
+      "engine": "PaddleOCR PP-OCRv4",
+      "modelIdentity": "sha256:c86541b45159637e88c21d7af2231698fe8e8c9d857a426b8cad47714fa49dee",
+      "syntheticOcr": [
+        {
+          "text": "The operator segments regions by a watershed.",
+          "x": 40,
+          "y": 41,
+          "width": 682,
+          "height": 37,
+          "confidence": 0.99746
+        },
+        {
+          "text": "Keep the original image and its coordinates.",
+          "x": 43,
+          "y": 107,
+          "width": 628,
+          "height": 34,
+          "confidence": 0.99695
+        },
+        {
+          "text": "Several image pairs may be processed in one call.",
+          "x": 40,
+          "y": 170,
+          "width": 711,
+          "height": 38,
+          "confidence": 0.98711
+        },
+        {
+          "text": "Review technical symbols before using the result.",
+          "x": 41,
+          "y": 237,
+          "width": 699,
+          "height": 32,
+          "confidence": 0.98027
+        },
+        {
+          "text": "保留原始文字，确认翻译结果。",
+          "x": 44,
+          "y": 303,
+          "width": 392,
+          "height": 31,
+          "confidence": 0.99459
+        },
+        {
+          "text": "更改设置后请保存，取消将保留原来的配置，",
+          "x": 44,
+          "y": 368,
+          "width": 570,
+          "height": 28,
+          "confidence": 0.97271
+        }
+      ]
+    },
+    {
+      "fixture": "paragraph",
+      "profile": "builtin-ppocrv4-mobile",
+      "iteration": 1,
+      "processMs": 1278.799,
+      "stageMs": {
+        "import": 1.1418000067351386,
+        "prepareImage": 2.497699999366887,
+        "load": 0,
+        "inference": 1260.5895000015153,
+        "formatResult": 0.18119999731425196,
+        "readRequest": 0.49059999582823366,
+        "verifyModels": 12.736799995764159,
+        "total": 1278.1513999943854,
+        "overhead": 0.5137999978614971
+      },
+      "workerReused": true,
+      "engine": "PaddleOCR PP-OCRv4",
+      "modelIdentity": "sha256:c86541b45159637e88c21d7af2231698fe8e8c9d857a426b8cad47714fa49dee",
+      "syntheticOcr": [
+        {
+          "text": "The operator segments regions by a watershed.",
+          "x": 40,
+          "y": 41,
+          "width": 682,
+          "height": 37,
+          "confidence": 0.99746
+        },
+        {
+          "text": "Keep the original image and its coordinates.",
+          "x": 43,
+          "y": 107,
+          "width": 628,
+          "height": 34,
+          "confidence": 0.99695
+        },
+        {
+          "text": "Several image pairs may be processed in one call.",
+          "x": 40,
+          "y": 170,
+          "width": 711,
+          "height": 38,
+          "confidence": 0.98711
+        },
+        {
+          "text": "Review technical symbols before using the result.",
+          "x": 41,
+          "y": 237,
+          "width": 699,
+          "height": 32,
+          "confidence": 0.98027
+        },
+        {
+          "text": "保留原始文字，确认翻译结果。",
+          "x": 44,
+          "y": 303,
+          "width": 392,
+          "height": 31,
+          "confidence": 0.99459
+        },
+        {
+          "text": "更改设置后请保存，取消将保留原来的配置，",
+          "x": 44,
+          "y": 368,
+          "width": 570,
+          "height": 28,
+          "confidence": 0.97271
+        }
+      ]
+    },
+    {
+      "fixture": "paragraph",
+      "profile": "builtin-ppocrv4-mobile",
+      "iteration": 2,
+      "processMs": 1327.105,
+      "stageMs": {
+        "import": 1.8589999963296577,
+        "prepareImage": 4.234599997289479,
+        "load": 0,
+        "inference": 1301.2069999967935,
+        "formatResult": 0.21399999968707561,
+        "readRequest": 0.5689999961759895,
+        "verifyModels": 17.856500009656884,
+        "total": 1326.503699994646,
+        "overhead": 0.563599998713471
+      },
+      "workerReused": true,
+      "engine": "PaddleOCR PP-OCRv4",
+      "modelIdentity": "sha256:c86541b45159637e88c21d7af2231698fe8e8c9d857a426b8cad47714fa49dee",
+      "syntheticOcr": [
+        {
+          "text": "The operator segments regions by a watershed.",
+          "x": 40,
+          "y": 41,
+          "width": 682,
+          "height": 37,
+          "confidence": 0.99746
+        },
+        {
+          "text": "Keep the original image and its coordinates.",
+          "x": 43,
+          "y": 107,
+          "width": 628,
+          "height": 34,
+          "confidence": 0.99695
+        },
+        {
+          "text": "Several image pairs may be processed in one call.",
+          "x": 40,
+          "y": 170,
+          "width": 711,
+          "height": 38,
+          "confidence": 0.98711
+        },
+        {
+          "text": "Review technical symbols before using the result.",
+          "x": 41,
+          "y": 237,
+          "width": 699,
+          "height": 32,
+          "confidence": 0.98027
+        },
+        {
+          "text": "保留原始文字，确认翻译结果。",
+          "x": 44,
+          "y": 303,
+          "width": 392,
+          "height": 31,
+          "confidence": 0.99459
+        },
+        {
+          "text": "更改设置后请保存，取消将保留原来的配置，",
+          "x": 44,
+          "y": 368,
+          "width": 570,
+          "height": 28,
+          "confidence": 0.97271
+        }
+      ]
+    },
+    {
+      "fixture": "paragraph",
+      "profile": "builtin-ppocrv4-mobile",
+      "iteration": 3,
+      "processMs": 1391.051,
+      "stageMs": {
+        "import": 2.031299998634495,
+        "prepareImage": 3.2272999960696325,
+        "load": 0,
+        "inference": 1362.322300003143,
+        "formatResult": 0.2724000078160316,
+        "readRequest": 0.5526000022655353,
+        "verifyModels": 21.217799992882647,
+        "total": 1390.2357000042684,
+        "overhead": 0.6120000034570694
+      },
+      "workerReused": true,
+      "engine": "PaddleOCR PP-OCRv4",
+      "modelIdentity": "sha256:c86541b45159637e88c21d7af2231698fe8e8c9d857a426b8cad47714fa49dee",
+      "syntheticOcr": [
+        {
+          "text": "The operator segments regions by a watershed.",
+          "x": 40,
+          "y": 41,
+          "width": 682,
+          "height": 37,
+          "confidence": 0.99746
+        },
+        {
+          "text": "Keep the original image and its coordinates.",
+          "x": 43,
+          "y": 107,
+          "width": 628,
+          "height": 34,
+          "confidence": 0.99695
+        },
+        {
+          "text": "Several image pairs may be processed in one call.",
+          "x": 40,
+          "y": 170,
+          "width": 711,
+          "height": 38,
+          "confidence": 0.98711
+        },
+        {
+          "text": "Review technical symbols before using the result.",
+          "x": 41,
+          "y": 237,
+          "width": 699,
+          "height": 32,
+          "confidence": 0.98027
+        },
+        {
+          "text": "保留原始文字，确认翻译结果。",
+          "x": 44,
+          "y": 303,
+          "width": 392,
+          "height": 31,
+          "confidence": 0.99459
+        },
+        {
+          "text": "更改设置后请保存，取消将保留原来的配置，",
+          "x": 44,
+          "y": 368,
+          "width": 570,
+          "height": 28,
+          "confidence": 0.97271
+        }
+      ]
+    }
+  ]
+}

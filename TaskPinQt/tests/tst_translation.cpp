@@ -347,6 +347,45 @@ private slots:
         QCOMPARE(r.lines.size(),1);QVERIFY(!r.lines.first().recognitionConfidence);QCOMPARE(r.lines.first().rect,QRectF(2,3,100,20));
         OcrResult invalid;QVERIFY(!Translation::Ocr::decode(R"({"ok":true,"lines":[{"text":"x","x":-1,"y":0,"width":10,"height":10}]})",{200,100},&invalid,&error));
     }
+    void lightweightOcrSelectionSavesAndCancelKeepsPrevious() {
+        Config local;QString error;QVERIFY(local.save(&error));
+        const QString selection=Settings::dataDir()+"/ocr.json";QFile::remove(selection);
+        {
+            TranslationSettingsPage page;
+            auto *choice=page.findChild<QComboBox *>("translationOcrProfile");QVERIFY(choice);
+            const int lightweight=choice->findData("builtin-ppocrv4-mobile");QVERIFY(lightweight>=0);
+            choice->setCurrentIndex(lightweight);
+            QVERIFY(!page.findChild<QLineEdit *>("translationOcrProfilePath")->isEnabled());
+            QVERIFY(page.save());
+        }
+        QCOMPARE(OcrProfiles::load(&error).profile,QString("builtin-ppocrv4-mobile"));QVERIFY(error.isEmpty());
+        {
+            TranslationSettingsPage draft;
+            auto *choice=draft.findChild<QComboBox *>("translationOcrProfile");
+            QCOMPARE(choice->currentData().toString(),QString("builtin-ppocrv4-mobile"));
+            choice->setCurrentIndex(choice->findData("builtin-ppocrv5-mobile"));
+        }
+        QCOMPARE(OcrProfiles::load(&error).profile,QString("builtin-ppocrv4-mobile"));
+        QFile::remove(selection);
+    }
+    void lightweightOcrActuallySwitchesSharedWorker() {
+        QVERIFY2(Translation::Ocr::available(),"Real packaged OCR runtime required");
+        QImage image(300,80,QImage::Format_RGB32);image.fill(Qt::white);
+        Translation::Ocr recognizer;QSignalSpy finished(&recognizer,&Translation::Ocr::finished),failed(&recognizer,&Translation::Ocr::failed);
+        QString error;OcrProfiles selection;
+        QString lightweightIdentity;
+        for(const QString &profile:QStringList{"builtin-ppocrv4-mobile","builtin-ppocrv4-mobile","builtin-ppocrv5-mobile"}) {
+            selection.profile=profile;QVERIFY2(selection.save(&error),qPrintable(error));
+            const int before=finished.size();recognizer.recognize(profile,image);
+            QTRY_VERIFY_WITH_TIMEOUT(finished.size()>before || !failed.isEmpty(),90000);
+            QVERIFY2(failed.isEmpty(),failed.isEmpty()?"":qPrintable(failed.first()[1].toString()));
+            const auto result=qvariant_cast<OcrResult>(finished.last()[1]);QCOMPARE(result.profileId,profile);
+            if(before==0){QCOMPARE(result.engine,QString("PaddleOCR PP-OCRv4"));lightweightIdentity=result.modelIdentity;}
+            else if(before==1){QVERIFY(result.workerReused);QCOMPARE(result.modelIdentity,lightweightIdentity);}
+            else {QCOMPARE(result.engine,QString("PaddleOCR PP-OCRv5"));QVERIFY(!result.workerReused);QVERIFY(result.modelIdentity!=lightweightIdentity);}
+        }
+        QFile::remove(OcrProfiles::settingsPath());
+    }
     void ocrProfileSelectionSavesAndCancelKeepsPrevious() {
         if(!Translation::Ocr::available())QSKIP("Real packaged OCR runtime not available");
         Config local;QString error;QVERIFY(local.save(&error));
@@ -399,7 +438,7 @@ private slots:
         const auto previousRuntime=qgetenv("TASKPIN_OCR_RUNTIME");qputenv("TASKPIN_OCR_RUNTIME",slowRuntime.toUtf8());
         QFile translation(Settings::dataDir()+"/translation.json");QVERIFY(translation.open(QIODevice::ReadOnly));const auto before=translation.readAll();translation.close();
         auto *page=new TranslationSettingsPage;
-        page->findChild<QComboBox *>("translationOcrProfile")->setCurrentIndex(1);page->findChild<QLineEdit *>("translationOcrProfilePath")->setText(profilePath);
+        auto *profileChoice=page->findChild<QComboBox *>("translationOcrProfile");profileChoice->setCurrentIndex(profileChoice->findData("custom"));page->findChild<QLineEdit *>("translationOcrProfilePath")->setText(profilePath);
         bool heartbeat=false;QTimer::singleShot(0,page,[&]{heartbeat=true;});
         QElapsedTimer elapsed;elapsed.start();const bool immediate=page->save();const auto saveMs=elapsed.elapsed();
         QSignalSpy ready(page,SIGNAL(saveReady()));

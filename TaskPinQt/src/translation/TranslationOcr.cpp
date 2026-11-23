@@ -32,11 +32,11 @@ public:
         connect(&m_idle,&QTimer::timeout,this,[this] {if(!m_active && m_queue.isEmpty())stopProcess();});
     }
     ~OcrWorker() override {stopProcess();}
-    void enqueue(Ocr *owner,const QImage &image,const QString &runtime,const QString &profilePath)
+    void enqueue(Ocr *owner,const QImage &image,const QString &runtime,const OcrProfiles &selection)
     {
         if(m_queue.size()>=MaxQueuedRequests){const QString taskId=owner->m_taskId;emit owner->failed(taskId,QStringLiteral("本地 OCR 等待队列已满，请稍后重试。"));return;}
         Request request;request.owner=owner;request.id=QString::number(++m_sequence);request.image=image;
-        request.size=image.size();request.runtime=runtime;request.profilePath=profilePath;
+        request.size=image.size();request.runtime=runtime;request.profilePath=selection.profilePath();request.profile=selection.profile;
         request.queued.start();request.requestStarted=owner->m_started;
         owner->m_requestId=request.id;m_queue.append(std::move(request));startNext();
     }
@@ -47,7 +47,7 @@ public:
     }
 private:
     struct Request {
-        QPointer<Ocr> owner;QString id,runtime,profilePath;QImage image;QSize size;
+        QPointer<Ocr> owner;QString id,runtime,profilePath,profile;QImage image;QSize size;
         QElapsedTimer queued,requestStarted,processStarted;
         qint64 queueMs=0;bool sent=false;
     };
@@ -93,6 +93,7 @@ private:
         if(!m_active->image.save(&buffer,"PNG")){failActive(QStringLiteral("无法准备 OCR 输入。"));return;}
         QJsonObject payload{{"image",QString::fromLatin1(png.toBase64())},{"requestId",m_active->id}};
         if(!m_active->profilePath.isEmpty())payload.insert("profilePath",m_active->profilePath);
+        else payload.insert("profileId",m_active->profile);
         m_active->sent=true;m_active->image=QImage();
         if(m_process->write(QJsonDocument(payload).toJson(QJsonDocument::Compact)+"\n")<0)failActive(QStringLiteral("无法发送本地 OCR 输入。"));
     }
@@ -169,7 +170,7 @@ void Ocr::recognize(const QString &taskId, const QImage &image)
     const QString runtime=runtimeDirectory();
     if(!available()){emit failed(stableId,QStringLiteral("PaddleOCR 本地运行环境未完整部署，请解压完整发行包后重试。"));return;}
     if(!sharedWorker)sharedWorker=new OcrWorker(QCoreApplication::instance());
-    sharedWorker->enqueue(this,image,runtime,selection.profilePath());
+    sharedWorker->enqueue(this,image,runtime,selection);
 }
 bool Ocr::decode(const QByteArray &json, const QSize &imageSize, OcrResult *result, QString *error)
 {

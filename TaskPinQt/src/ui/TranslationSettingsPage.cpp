@@ -51,7 +51,8 @@ TranslationSettingsPage::TranslationSettingsPage(QWidget *parent):QWidget(parent
     form->addRow(QStringLiteral("请求超时"),m_timeout);
     QString ocrError;const auto ocr=Translation::OcrProfiles::load(&ocrError);
     m_ocrProfile=new QComboBox(this);m_ocrProfile->setObjectName("translationOcrProfile");
-    m_ocrProfile->addItem(QStringLiteral("PP-OCRv5 mobile · 随应用提供"),"builtin-ppocrv5-mobile");
+    m_ocrProfile->addItem(QStringLiteral("PP-OCRv5 mobile · 默认 · 20.5 MiB"),"builtin-ppocrv5-mobile");
+    m_ocrProfile->addItem(QStringLiteral("PP-OCRv4 mobile · 轻量 · 14.9 MiB"),"builtin-ppocrv4-mobile");
     m_ocrProfile->addItem(QStringLiteral("自定义本地模型配置"),"custom");
     m_ocrProfile->setCurrentIndex(m_ocrProfile->findData(ocr.profile));form->addRow(QStringLiteral("本地 OCR · 便签与翻译共用"),m_ocrProfile);
     auto *ocrRow=new QHBoxLayout;m_ocrPath=new QLineEdit(ocr.customProfilePath,this);m_ocrPath->setObjectName("translationOcrProfilePath");
@@ -61,7 +62,9 @@ TranslationSettingsPage::TranslationSettingsPage(QWidget *parent):QWidget(parent
     auto updateOcr=[this,browse] {
         const bool custom=m_ocrProfile->currentData().toString()=="custom";m_ocrPath->setEnabled(custom);browse->setEnabled(custom);
         m_ocrStatus->setText(custom?QStringLiteral("保存时校验本地文件、模型家族和 SHA256。配置错误会显示失败，不会自动下载或改用默认模型。"):
-            QStringLiteral("使用随应用提供的 PP-OCRv5 mobile。本地识别后，仅文字可按上方模式发送翻译。"));
+            m_ocrProfile->currentData().toString()=="builtin-ppocrv4-mobile"?
+            QStringLiteral("轻量模型已随应用提供，无需另行下载。权重约 14.9 MiB，适合常见中英文截图；复杂文字建议与默认 v5 对比。速度因图片与设备而异。"):
+            QStringLiteral("使用随应用提供的 PP-OCRv5 mobile，权重约 20.5 MiB。本地识别后，仅文字可按上方模式发送翻译。"));
     };
     m_ocrStatus=new QLabel(this);m_ocrStatus->setObjectName("translationOcrStatus");m_ocrStatus->setWordWrap(true);m_ocrStatus->setTextFormat(Qt::PlainText);
     form->addRow(QString(),m_ocrStatus);updateOcr();if(!ocrError.isEmpty())m_ocrStatus->setText(ocrError);
