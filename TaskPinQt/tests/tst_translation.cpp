@@ -12,9 +12,13 @@
 #include <QDialog>
 #include <QTabWidget>
 #include <QLineEdit>
+#include <QLabel>
+#include <QFileInfo>
 #include "ui/SettingsDialog.h"
 #include "ui/TranslationSettingsPage.h"
 #include <QCheckBox>
+#include <QComboBox>
+#include <QCryptographicHash>
 #include <QMenu>
 #include <QWheelEvent>
 #include <QContextMenuEvent>
@@ -29,6 +33,8 @@
 #include <QTcpSocket>
 #include <QTemporaryDir>
 #include <QTimer>
+#include <memory>
+#include <vector>
 #include <QtTest>
 
 using namespace Translation;
@@ -77,6 +83,28 @@ public:
 };
 static Block block(QString text="The operator uses Threshold and watersheds_threshold at 12 mm.",QString id="block-1") {
     Block b;b.id=id;b.kind="paragraph";b.source=text;return protect(b,"test");
+}
+static QString writeDraftOcrProfile(const QString &directory,const QString &name,bool realModels)
+{
+    QJsonObject profile{{"schemaVersion",1},{"id","fixture-custom"},{"modelVersion","generated fixture"},{"language","multi"}};
+    if(realModels) {
+        const QString runtime=Translation::Ocr::runtimeDirectory();QFile lock(runtime+"/runtime-lock.json");
+        if(!lock.open(QIODevice::ReadOnly))return {};
+        for(const auto &value:QJsonDocument::fromJson(lock.readAll()).object().value("models").toArray()) {
+            const auto model=value.toObject();
+            profile.insert(model.value("task").toString(),QJsonObject{{"path",runtime+"/models/"+model.value("filename").toString()},
+                {"sha256",model.value("sha256")},{"ocrVersion","PP-OCRv5"},{"modelType","mobile"}});
+        }
+    } else {
+        const QString modelPath=directory+"/"+name+".onnx";QFile model(modelPath);
+        if(!model.open(QIODevice::WriteOnly))return {};model.write("generated-profile-validation-fixture");model.close();
+        const QString digest=QString::fromLatin1(QCryptographicHash::hash("generated-profile-validation-fixture",QCryptographicHash::Sha256).toHex());
+        const QJsonObject weight{{"path",modelPath},{"sha256",digest},{"ocrVersion","PP-OCRv5"},{"modelType","mobile"}};
+        profile.insert("det",weight);profile.insert("rec",weight);
+    }
+    const QString path=directory+"/"+name+".json";QFile file(path);
+    if(!file.open(QIODevice::WriteOnly))return {};
+    if(file.write(QJsonDocument(profile).toJson())<0)return {};return path;
 }
 static bool pinMenuAction(PinWindow &pin,const QString &name) {
     QContextMenuEvent event(QContextMenuEvent::Mouse,{15,15},pin.mapToGlobal(QPoint(15,15)));QApplication::sendEvent(&pin,&event);
@@ -211,9 +239,17 @@ private slots:
         consent->setChecked(false);page.setConnection(cfg.endpoint,"new-model","new-fixture-key");
         const bool stillRevoked=!consent->isChecked();Config local;QVERIFY(local.save(&error));QVERIFY(stillRevoked);
     }
+    void failedKeySaveDoesNotClaimSuccessOrChangeSettings_data() {
+        QTest::addColumn<bool>("existingOcrSelection");
+        QTest::newRow("no-prior-ocr")<<false;QTest::newRow("prior-ocr")<<true;
+    }
     void failedKeySaveDoesNotClaimSuccessOrChangeSettings() {
+        QFETCH(bool,existingOcrSelection);
         auto &s=Settings::instance();const QString oldKey=s.aiApiKey;
         Config local;QString error;QVERIFY(local.save(&error));s.save();
+        QFile ocrSelection(Settings::dataDir()+"/ocr.json");QFile::remove(ocrSelection.fileName());
+        const QByteArray ocrBytes="{\n \"schemaVersion\":1, \"profile\":\"builtin-ppocrv5-mobile\", \"customProfilePath\":\"\"\n}\n";
+        if(existingOcrSelection){QVERIFY(ocrSelection.open(QIODevice::WriteOnly));ocrSelection.write(ocrBytes);ocrSelection.close();}
         QFile before(Settings::dataDir()+"/translation.json");QVERIFY(before.open(QIODevice::ReadOnly));const auto translationBefore=before.readAll();before.close();
         SettingsDialog dialog;QSignalSpy saved(&dialog,&SettingsDialog::saved);
         dialog.findChild<QLineEdit *>("aiApiKey")->setText("fixture-must-not-commit");
@@ -225,6 +261,9 @@ private slots:
         QVERIFY(QDir().rmdir(path));QVERIFY(QFile::rename(backup,path));
         before.setFileName(Settings::dataDir()+"/translation.json");QVERIFY(before.open(QIODevice::ReadOnly));const auto translationAfter=before.readAll();
         s.load();QVERIFY(!accepted);QCOMPARE(savedCount,0);QCOMPARE(afterKey,oldKey);QCOMPARE(translationAfter,translationBefore);
+        QCOMPARE(ocrSelection.exists(),existingOcrSelection);
+        if(existingOcrSelection){QVERIFY(ocrSelection.open(QIODevice::ReadOnly));QCOMPARE(ocrSelection.readAll(),ocrBytes);ocrSelection.close();}
+        QFile::remove(ocrSelection.fileName());
     }
     void protectionPreservesTechnicalText() {
         const QString text="watersheds_threshold Image Basins Threshold Row Column Radius HObject HTuple https://example.com/help C:\\demo\\x 24.05 10 mm";
@@ -308,11 +347,150 @@ private slots:
         QCOMPARE(r.lines.size(),1);QVERIFY(!r.lines.first().recognitionConfidence);QCOMPARE(r.lines.first().rect,QRectF(2,3,100,20));
         OcrResult invalid;QVERIFY(!Translation::Ocr::decode(R"({"ok":true,"lines":[{"text":"x","x":-1,"y":0,"width":10,"height":10}]})",{200,100},&invalid,&error));
     }
+    void ocrProfileSelectionSavesAndCancelKeepsPrevious() {
+        if(!Translation::Ocr::available())QSKIP("Real packaged OCR runtime not available");
+        Config local;QString error;QVERIFY(local.save(&error));
+        const QString selection=Settings::dataDir()+"/ocr.json";
+        QFile::remove(selection);
+        const QString profilePath=writeDraftOcrProfile(data.path(),"local-profile",true);QVERIFY(!profilePath.isEmpty());
+        {
+            TranslationSettingsPage draft;
+            auto *choice=draft.findChild<QComboBox *>("translationOcrProfile");
+            auto *path=draft.findChild<QLineEdit *>("translationOcrProfilePath");
+            QVERIFY(choice&&path);QCOMPARE(choice->currentData().toString(),QString("builtin-ppocrv5-mobile"));
+            choice->setCurrentIndex(choice->findData("custom"));path->setText(profilePath);
+        }
+        QVERIFY(!QFileInfo::exists(selection));
+        {
+            TranslationSettingsPage page;
+            auto *choice=page.findChild<QComboBox *>("translationOcrProfile");auto *path=page.findChild<QLineEdit *>("translationOcrProfilePath");
+            QVERIFY(choice&&path);choice->setCurrentIndex(choice->findData("custom"));path->setText(profilePath);
+            const bool immediate=page.save();QVERIFY(!immediate);QVERIFY(!QFileInfo::exists(selection));
+            QSignalSpy ready(&page,SIGNAL(saveReady()));QVERIFY(ready.isValid());QTRY_COMPARE_WITH_TIMEOUT(ready.size(),1,90000);
+            // A profile edited on disk after the helper succeeded must not use
+            // that staged validation to commit a different configuration.
+            QFile edited(profilePath);QVERIFY(edited.open(QIODevice::ReadOnly));auto profile=QJsonDocument::fromJson(edited.readAll()).object();edited.close();
+            profile.insert("modelVersion","changed after validation");QVERIFY(edited.open(QIODevice::WriteOnly|QIODevice::Truncate));edited.write(QJsonDocument(profile).toJson());edited.close();
+            QVERIFY(!page.save());QVERIFY(!QFileInfo::exists(selection));
+            QTRY_COMPARE_WITH_TIMEOUT(ready.size(),2,90000);QVERIFY(page.save());
+        }
+        QFile saved(selection);QVERIFY(saved.open(QIODevice::ReadOnly));const auto before=saved.readAll();saved.close();
+        {
+            TranslationSettingsPage page;
+            auto *choice=page.findChild<QComboBox *>("translationOcrProfile");auto *path=page.findChild<QLineEdit *>("translationOcrProfilePath");
+            QCOMPARE(choice->currentData().toString(),QString("custom"));QCOMPARE(path->text(),profilePath);
+            choice->setCurrentIndex(0);path->clear();
+        }
+        QVERIFY(saved.open(QIODevice::ReadOnly));QCOMPARE(saved.readAll(),before);saved.close();QFile::remove(selection);
+    }
+    void customOcrValidationKeepsUiResponsiveAndCancelPreservesFiles() {
+        if(!Translation::Ocr::available())QSKIP("Real packaged OCR runtime not available");
+        Config local;QString error;QVERIFY(local.save(&error));QFile::remove(Settings::dataDir()+"/ocr.json");
+        const QString profilePath=writeDraftOcrProfile(data.path(),"slow-profile",true);QVERIFY(!profilePath.isEmpty());
+        const QString originalRuntime=Translation::Ocr::runtimeDirectory();
+        const QString slowRuntime=data.path()+"/slow-validation-runtime";QVERIFY(QDir().mkpath(slowRuntime));
+        for(const auto &name:{"python.exe","python312.dll","python312.zip","vcruntime140.dll","vcruntime140_1.dll"})
+            if(QFileInfo::exists(originalRuntime+"/"+name))QVERIFY(QFile::copy(originalRuntime+"/"+name,slowRuntime+"/"+name));
+        QFile pth(slowRuntime+"/python312._pth");QVERIFY(pth.open(QIODevice::WriteOnly));pth.write("python312.zip\n.\nimport site\n");pth.close();
+        QFile helper(slowRuntime+"/helper.py");QVERIFY(helper.open(QIODevice::WriteOnly));
+        const auto command=QJsonDocument(QJsonArray{originalRuntime+"/python.exe","-I","-B",originalRuntime+"/helper.py"}).toJson(QJsonDocument::Compact);
+        helper.write("import sys,time,subprocess,os\nrequest=sys.stdin.buffer.read()\ntime.sleep(2)\ncommand="+command+
+            "\nresult=subprocess.run(command,input=request,capture_output=True)\nos.write(1,result.stdout)\nraise SystemExit(result.returncode)\n");helper.close();
+        const auto previousRuntime=qgetenv("TASKPIN_OCR_RUNTIME");qputenv("TASKPIN_OCR_RUNTIME",slowRuntime.toUtf8());
+        QFile translation(Settings::dataDir()+"/translation.json");QVERIFY(translation.open(QIODevice::ReadOnly));const auto before=translation.readAll();translation.close();
+        auto *page=new TranslationSettingsPage;
+        page->findChild<QComboBox *>("translationOcrProfile")->setCurrentIndex(1);page->findChild<QLineEdit *>("translationOcrProfilePath")->setText(profilePath);
+        bool heartbeat=false;QTimer::singleShot(0,page,[&]{heartbeat=true;});
+        QElapsedTimer elapsed;elapsed.start();const bool immediate=page->save();const auto saveMs=elapsed.elapsed();
+        QSignalSpy ready(page,SIGNAL(saveReady()));
+        QCoreApplication::processEvents();const bool heartbeatBeforeCancel=heartbeat;
+        page->cancelTest();QTest::qWait(100);const int readyAfterCancel=ready.size();delete page;QTest::qWait(100);
+        if(previousRuntime.isEmpty())qunsetenv("TASKPIN_OCR_RUNTIME");else qputenv("TASKPIN_OCR_RUNTIME",previousRuntime);
+        QVERIFY(!immediate);QVERIFY(saveMs<500);QVERIFY(heartbeatBeforeCancel);QCOMPARE(readyAfterCancel,0);QCOMPARE(ready.size(),0);
+        QVERIFY(!QFileInfo::exists(Settings::dataDir()+"/ocr.json"));QVERIFY(translation.open(QIODevice::ReadOnly));QCOMPARE(translation.readAll(),before);
+    }
+    void invalidOcrProfileDoesNotSaveEitherConfiguration() {
+        Config local;QString error;QVERIFY(local.save(&error));
+        const QString selection=Settings::dataDir()+"/ocr.json";QFile::remove(selection);
+        QFile translation(Settings::dataDir()+"/translation.json");QVERIFY(translation.open(QIODevice::ReadOnly));const auto before=translation.readAll();translation.close();
+        TranslationSettingsPage page;
+        auto *choice=page.findChild<QComboBox *>("translationOcrProfile");auto *path=page.findChild<QLineEdit *>("translationOcrProfilePath");
+        QVERIFY(choice&&path);choice->setCurrentIndex(choice->findData("custom"));path->setText(data.path()+"/missing-profile.json");
+        page.findChild<QComboBox *>("translationMode")->setCurrentIndex(2);
+        QVERIFY(!page.save());QVERIFY(!page.findChild<QLabel *>("translationOcrStatus")->text().isEmpty());QVERIFY(!QFileInfo::exists(selection));
+        QVERIFY(translation.open(QIODevice::ReadOnly));QCOMPARE(translation.readAll(),before);
+    }
+    void invalidSavedOcrSelectionFailsVisiblyBeforeRuntimeFallback() {
+        const auto previousRuntime=qgetenv("TASKPIN_OCR_RUNTIME");qputenv("TASKPIN_OCR_RUNTIME",(data.path()+"/missing-runtime").toUtf8());
+        QFile selection(Settings::dataDir()+"/ocr.json");QVERIFY(selection.open(QIODevice::WriteOnly));selection.write("{\"schemaVersion\":1,\"profile\":\"unknown-future-model\"}");selection.close();
+        Translation::Ocr recognizer;QSignalSpy failed(&recognizer,&Translation::Ocr::failed);
+        QImage image(100,50,QImage::Format_RGB32);image.fill(Qt::white);recognizer.recognize("invalid-selection",image);
+        const QString failure=failed.isEmpty()?QString():failed[0][1].toString();const bool busy=recognizer.busy();
+        QFile::remove(selection.fileName());if(previousRuntime.isEmpty())qunsetenv("TASKPIN_OCR_RUNTIME");else qputenv("TASKPIN_OCR_RUNTIME",previousRuntime);
+        QCOMPARE(failed.size(),1);QVERIFY(failure.contains(QStringLiteral("配置")));QVERIFY(!busy);
+    }
+    void missingOcrRuntimeReportsFailureAndClearsBusy() {
+        const auto previousRuntime=qgetenv("TASKPIN_OCR_RUNTIME");qputenv("TASKPIN_OCR_RUNTIME",(data.path()+"/missing-runtime").toUtf8());
+        Translation::Ocr recognizer;QSignalSpy failed(&recognizer,&Translation::Ocr::failed);
+        QImage image(100,50,QImage::Format_RGB32);image.fill(Qt::white);recognizer.recognize("missing-runtime",image);
+        if(previousRuntime.isEmpty())qunsetenv("TASKPIN_OCR_RUNTIME");else qputenv("TASKPIN_OCR_RUNTIME",previousRuntime);
+        QCOMPARE(failed.size(),1);QVERIFY(failed[0][1].toString().contains(QStringLiteral("运行环境")));QVERIFY(!recognizer.busy());
+    }
+    void ocrModelHashFailureExplainsSelectedModelProblem() {
+        OcrResult result;QString error;
+        QVERIFY(!Translation::Ocr::decode(R"({"ok":false,"errorCode":"model_hash_mismatch"})",{200,100},&result,&error));
+        QVERIFY(error.contains("SHA256"));
+    }
     void paddleOcrPreservesModelConfidence() {
         OcrResult r;QString error;
         QVERIFY(Translation::Ocr::decode(R"({"ok":true,"engine":"PaddleOCR PP-OCRv5","language":"zh+en","modelVersion":"PP-OCRv5","lines":[{"text":"inner_circle","x":3,"y":4,"width":150,"height":22,"confidence":0.9375}]})",{200,100},&r,&error));
         QCOMPARE(r.lines.size(),1);QVERIFY(r.lines[0].recognitionConfidence.has_value());
         QCOMPARE(*r.lines[0].recognitionConfidence,.9375);
+    }
+    void ocrTimingMetadataIsValidatedAndPreserved() {
+        OcrResult result;QString error;
+        QVERIFY(Translation::Ocr::decode(R"({"ok":true,"profileId":"local-v4","modelIdentity":"sha256:fixture","workerReused":true,"stageMs":{"import":2.5,"load":0,"inference":100,"total":104},"lines":[]})",{200,100},&result,&error));
+        QCOMPARE(result.profileId,QString("local-v4"));QCOMPARE(result.modelIdentity,QString("sha256:fixture"));QVERIFY(result.workerReused);
+        QCOMPARE(result.stageMs.value("load").toDouble(-1),0.0);QCOMPARE(result.stageMs.value("inference").toDouble(),100.0);
+        QVERIFY(!Translation::Ocr::decode(R"({"ok":true,"stageMs":{"load":-1},"lines":[]})",{200,100},&result,&error));
+        QVERIFY(!Translation::Ocr::decode(R"({"ok":true,"stageMs":{"load":"fast"},"lines":[]})",{200,100},&result,&error));
+    }
+    void sharedOcrWorkerReusesModelAndHonorsCancelledOwners() {
+        if(!Translation::Ocr::available())QSKIP("Real packaged OCR runtime not available");
+        Config local;QString error;QVERIFY(local.save(&error));QFile::remove(Settings::dataDir()+"/ocr.json");
+        QImage image(320,100,QImage::Format_RGB32);image.fill(Qt::white);
+        Translation::Ocr first,queued,next;QSignalSpy firstDone(&first,&Translation::Ocr::finished),queuedDone(&queued,&Translation::Ocr::finished),nextDone(&next,&Translation::Ocr::finished);
+        QSignalSpy firstFailed(&first,&Translation::Ocr::failed),queuedFailed(&queued,&Translation::Ocr::failed),nextFailed(&next,&Translation::Ocr::failed);
+        first.recognize("first",image);next.recognize("warm",image);queued.recognize("queued-cancel",image);queued.cancel();
+        auto *closed=new Translation::Ocr;closed->recognize("closed-owner",image);delete closed;
+        QTRY_COMPARE_WITH_TIMEOUT(firstDone.size(),1,90000);QCOMPARE(firstFailed.size(),0);
+        QTRY_COMPARE_WITH_TIMEOUT(nextDone.size(),1,90000);QCOMPARE(nextFailed.size(),0);
+        const auto warm=qvariant_cast<OcrResult>(nextDone[0][1]);QVERIFY(warm.workerReused);QCOMPARE(warm.stageMs.value("load").toDouble(-1),0.0);
+        QVERIFY(warm.stageMs.value("queue").toDouble()>0);QVERIFY(warm.stageMs.value("requestTotal").toDouble()>=warm.stageMs.value("process").toDouble());
+        QCOMPARE(queuedDone.size(),0);QCOMPARE(queuedFailed.size(),0);QVERIFY(!queued.busy());
+        first.recognize("active-cancel",image);next.recognize("after-cancel",image);first.cancel();
+        QTRY_COMPARE_WITH_TIMEOUT(nextDone.size(),2,90000);QCOMPARE(nextDone[1][0].toString(),QString("after-cancel"));
+        QTest::qWait(80);QCOMPARE(firstDone.size(),1);QCOMPARE(firstFailed.size(),0);QCOMPARE(nextFailed.size(),0);
+        const auto restarted=qvariant_cast<OcrResult>(nextDone[1][1]);QVERIFY(!restarted.workerReused);
+        auto *activeOwner=new Translation::Ocr;activeOwner->recognize("closed-active",image);next.recognize("after-close",image);delete activeOwner;
+        QTRY_COMPARE_WITH_TIMEOUT(nextDone.size(),3,90000);QCOMPARE(nextDone[2][0].toString(),QString("after-close"));QCOMPARE(nextFailed.size(),0);
+    }
+    void saturatedOcrQueueKeepsFailureIdDuringImmediateReplacement() {
+        if(!Translation::Ocr::available())QSKIP("Real packaged OCR runtime not available");
+        QFile::remove(Settings::dataDir()+"/ocr.json");QImage image(100,50,QImage::Format_RGB32);image.fill(Qt::white);
+        std::vector<std::unique_ptr<Translation::Ocr>> owners;
+        for(int i=0;i<9;++i){owners.emplace_back(std::make_unique<Translation::Ocr>());owners.back()->recognize(QString("queued-%1").arg(i),image);}
+        Translation::Ocr overflow;bool replaced=false;
+        connect(&overflow,&Translation::Ocr::failed,&overflow,[&](const QString &,const QString &){if(!replaced){replaced=true;overflow.recognize("replacement",image);}});
+        QSignalSpy failures(&overflow,&Translation::Ocr::failed);overflow.recognize("outer-request",image);
+        for(auto it=owners.rbegin();it!=owners.rend();++it)(*it)->cancel();owners.clear();overflow.cancel();QCOMPARE(failures.size(),2);
+        QCOMPARE(failures[0][0].toString(),QString("replacement"));QCOMPARE(failures[1][0].toString(),QString("outer-request"));
+    }
+    void immediateOcrInputFailureKeepsCallerIdSnapshot() {
+        Translation::Ocr recognizer;QString callerId="invalid-input";
+        connect(&recognizer,&Translation::Ocr::failed,&recognizer,[&](const QString &,const QString &){callerId="changed-by-slot";});
+        QSignalSpy failures(&recognizer,&Translation::Ocr::failed);recognizer.recognize(callerId,QImage());
+        QCOMPARE(failures.size(),1);QCOMPARE(failures[0][0].toString(),QString("invalid-input"));
     }
     void localAndUnconsentedNeverRequest() {
         FixtureServer server;Client client;client.allowLoopbackForTests(true);QSignalSpy failed(&client,&Client::failed);

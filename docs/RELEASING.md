@@ -1,18 +1,18 @@
-# Releasing TaskPin 0.4.2
+# Releasing TaskPin 0.4.3
 
-The standard release artifacts are `TaskPin-0.4.2-windows-x64.zip`, `TaskPin-0.4.2-source.zip` and `SHA256SUMS.txt`. The portable ZIP contains the executable, Release runtime/plugins, complete offline PaddleOCR `ocr/` runtime, end-user README, project license and third-party notices. Source is a `git archive` of the tagged commit; internal implementation work records are export-ignored.
+The standard release artifacts are `TaskPin-0.4.3-windows-x64.zip`, `TaskPin-0.4.3-source.zip` and `SHA256SUMS.txt`. The portable ZIP contains the executable, Release runtime/plugins, complete offline PaddleOCR `ocr/` runtime, end-user README, project license and third-party notices. Source is a `git archive` of the tagged commit; internal implementation work records are export-ignored.
 
 ## Before tagging
 
 1. Review the focused branch/PR, version in `TaskPinQt/CMakeLists.txt`, changelog, READMEs, notices and safe screenshots. Commit the final changes; local packaging uses HEAD.
 2. Build Release with the pinned reference Qt 6.4.3 / MinGW 11.2 x64 kit, run `test.ps1` and inspect the reports. Windows CI must pass too.
-3. Complete the pending native editor/output/notes acceptance with the user; record exact actions, scaling and observed results. Do not promote automated DPI fixtures or old screenshots into native acceptance. Document printer/AI/physical-monitor limits honestly.
+3. Run [Playwright native acceptance](AUTOMATED-ACCEPTANCE.md) and inspect actual native screenshots, JSON, JUnit and timing evidence. Do not promote offscreen/DPI fixtures or old screenshots into physical desktop acceptance. Document printer/AI/physical-monitor limits honestly; desktop input automation is not part of this release gate.
 4. Run `package.ps1`, inspect the fresh staging manifest and ZIP contents for runtime completeness and excluded private/development files. Test the extracted executable in a separate data directory and, where available, on a clean Windows machine.
 5. Review Qt dynamic-linking replacement rights, corresponding upstream source links and all bundled license notices. Keep notices for the actual deployed compiler/runtime versions.
 
 ## Publish once
 
-After review and successful Windows branch CI, the maintainer/controller pushes tag `v0.4.2` at the approved commit. `.github/workflows/release.yml` independently checks the tag against CMake's version, builds Release, runs QtTest and selftest, packages both archives and computes SHA-256 only after tests succeed. Its final release step uploads the three exact files as a preview release. Failing tests or packaging prevent release upload; reports are retained even on failure.
+After review and successful Windows branch CI, the maintainer/controller pushes tag `v0.4.3` at the approved commit. `.github/workflows/release.yml` independently checks the tag against CMake's version, builds Release, runs QtTest and selftest, packages both archives and computes SHA-256 only after tests succeed. Its final release step uploads the three exact files as a preview release. Failing tests or packaging prevent release upload; reports are retained even on failure.
 
 The workflow is the publisher for the standard assets. The maintainer/controller waits for that tag workflow to finish before changing final release text or adding supplemental assets. Do not pre-create/upload a competing set of assets while it runs. GitHub's automatically generated source downloads are separate from the explicit, checksummed source ZIP.
 
@@ -21,8 +21,8 @@ The workflow is the publisher for the standard assets. The maintainer/controller
 Download both ZIPs and `SHA256SUMS.txt` from the actual GitHub release after upload. Recompute each checksum:
 
 ```powershell
-Get-FileHash -Algorithm SHA256 -LiteralPath .\TaskPin-0.4.2-windows-x64.zip
-Get-FileHash -Algorithm SHA256 -LiteralPath .\TaskPin-0.4.2-source.zip
+Get-FileHash -Algorithm SHA256 -LiteralPath .\TaskPin-0.4.3-windows-x64.zip
+Get-FileHash -Algorithm SHA256 -LiteralPath .\TaskPin-0.4.3-source.zip
 ```
 
 Compare both values with the downloaded manifest, inspect archive paths and extract into a fresh folder. Launch only an isolated `TASKPIN_DATA` session for smoke testing. Preserve a user's existing normal process until the coordinated upgrade. Rebuilding locally alone does not verify the uploaded bytes; ZIP timestamps may also make independently rebuilt archives differ.

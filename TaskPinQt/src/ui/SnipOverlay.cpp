@@ -4,6 +4,7 @@
 #include "core/Settings.h"
 #include "core/InstanceNames.h"
 #include "platform/WindowPicker.h"
+#include "platform/HotkeyText.h"
 #include "ui/IconSet.h"
 
 #include <QApplication>
@@ -82,10 +83,50 @@ SnipOverlay::SnipOverlay(const ScreenCapture &shot, QWidget *parent)
     const auto &s = Settings::instance();
     m_color = s.annotationColor;
     m_width = qBound(1, s.annotationWidth, 40);
+    m_pinShortcut = s.chordFor("pin");
     m_pickClock.start();
 }
 
 SnipOverlay::~SnipOverlay() = default;
+
+void SnipOverlay::pinSelection()
+{
+    handleAction(QStringLiteral("pin"));
+}
+
+void SnipOverlay::setPinShortcut(const QString &chord)
+{
+    m_pinShortcut = chord.isEmpty() ? Settings::instance().chordFor("pin") : chord;
+    update();
+}
+
+QString SnipOverlay::actionShortcut(const QString &id) const
+{
+    return id == "pin" ? m_pinShortcut : SnipToolbar::shortcut(id);
+}
+
+bool SnipOverlay::handleOutputShortcut(QKeyEvent *event, bool textInput)
+{
+    // A plain printable custom key still types into an annotation's text field.
+    if (textInput && !(event->modifiers() & (Qt::ControlModifier | Qt::AltModifier | Qt::MetaModifier))
+        && event->key() >= Qt::Key_Space && event->key() < Qt::Key_Escape)
+        return false;
+    const auto pressed = HotkeyText::fromQtKey(event->key(), event->modifiers());
+    if (!pressed.valid()) return false;
+    const auto matches = [&](const QString &chord) {
+        const auto wanted = HotkeyText::parse(chord);
+        return wanted.valid() && wanted.mods == pressed.mods && wanted.vk == pressed.vk;
+    };
+    if (matches(actionShortcut("pin")) || matches(QStringLiteral("Ctrl+P"))) {
+        pinSelection();
+        return true;
+    }
+    if (matches(actionShortcut("translate"))) {
+        handleAction(QStringLiteral("translate"));
+        return true;
+    }
+    return false;
+}
 
 void SnipOverlay::showEvent(QShowEvent *event)
 {
@@ -182,7 +223,7 @@ void SnipOverlay::paintEvent(QPaintEvent *)
 QString SnipOverlay::hoverHint() const
 {
     const auto label = SnipToolbar::label(m_hoverHot);
-    const auto chord = SnipToolbar::shortcut(m_hoverHot);
+    const auto chord = actionShortcut(m_hoverHot);
     if (label.isEmpty()) return {};
     if (chord.isEmpty()) return label;
     return label + QStringLiteral("  ") + chord;
@@ -209,7 +250,7 @@ void SnipOverlay::drawHoverTip(QPainter &p)
 {
     if (m_hoverHot.isEmpty()) return;
     const auto label = SnipToolbar::label(m_hoverHot);
-    const auto chord = SnipToolbar::shortcut(m_hoverHot);
+    const auto chord = actionShortcut(m_hoverHot);
     if (label.isEmpty()) return;
 
     QFont f = font();
@@ -377,7 +418,7 @@ void SnipOverlay::drawToolbar(QPainter &p)
     const QStringList enumTools { "select", "rect", "ellipse", "arrow", "line", "pen", "marker", "text",
         "number", "mosaic", "blur", "eraser" };
     auto add = [&](const QString &id, int group, bool enabled = true) {
-        m_actions.append({ id, {}, enabled, SnipToolbar::label(id), SnipToolbar::shortcut(id), group });
+        m_actions.append({ id, {}, enabled, SnipToolbar::label(id), actionShortcut(id), group });
     };
     for (const auto &id : tools)
         add("tool:" + id, 0);
@@ -748,7 +789,9 @@ void SnipOverlay::wheelEvent(QWheelEvent *e)
 
 void SnipOverlay::keyPressEvent(QKeyEvent *e)
 {
-    if (m_textEdit && m_textEdit->hasFocus() && !(e->modifiers() & Qt::ControlModifier)) {
+    const bool editingText = m_textEdit && m_textEdit->hasFocus();
+    if (handleOutputShortcut(e, editingText)) return;
+    if (editingText) {
         QWidget::keyPressEvent(e);
         return;
     }
@@ -777,17 +820,12 @@ void SnipOverlay::keyPressEvent(QKeyEvent *e)
         setTool(Tool::Line);
         return;
     case Qt::Key_P:
-        if (e->modifiers() & Qt::ControlModifier) {
-            handleAction(QStringLiteral("pin"));
-            return;
-        }
         setTool(Tool::Pen);
         return;
     case Qt::Key_H:
         setTool(Tool::Highlighter);
         return;
     case Qt::Key_T:
-        if(e->modifiers() & Qt::ControlModifier){handleAction(QStringLiteral("translate"));return;}
         setTool(Tool::Text);
         return;
     case Qt::Key_N:
@@ -1211,6 +1249,7 @@ bool SnipOverlay::eventFilter(QObject *obj, QEvent *e)
 {
     if (obj == m_textEdit && e->type() == QEvent::KeyPress) {
         auto *key = static_cast<QKeyEvent *>(e);
+        if (handleOutputShortcut(key, true)) return true;
         if (key->key() == Qt::Key_Escape) {
             cancelText();
             return true;

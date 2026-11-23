@@ -27,6 +27,7 @@
 #include <QPainter>
 #include <QPointer>
 #include <QScreen>
+#include <QSignalBlocker>
 #include <QTextDocument>
 #include <QTimer>
 #include <QTransform>
@@ -63,6 +64,7 @@ PinWindow::PinWindow(const QImage &image, const QString &group, QWidget *parent,
     setWindowFlags((taskPinAutomation() ? Qt::Window : Qt::Tool) | Qt::FramelessWindowHint |
                    Qt::WindowStaysOnTopHint | Qt::NoDropShadowWindowHint);
     setAttribute(Qt::WA_TranslucentBackground, true);
+    setAttribute(Qt::WA_StaticContents, false);
     setAttribute(Qt::WA_DeleteOnClose, true);
     setFocusPolicy(Qt::StrongFocus);
     setMouseTracking(true);
@@ -73,11 +75,10 @@ PinWindow::PinWindow(const QImage &image, const QString &group, QWidget *parent,
     m_shadowStrength = s.pinShadowStrength;
     m_borderWidth = s.pinBorderWidth;
     m_borderColor = s.pinBorderColor;
-    rebuildPreview();
     m_zoomAnimation.setDuration(110);
     m_zoomAnimation.setEasingCurve(QEasingCurve::OutCubic);
     connect(&m_zoomAnimation, &QVariantAnimation::valueChanged, this, [this](const QVariant &value) {
-        displayZoom(value.toReal(), m_zoomCenter);
+        displayZoom(value.toReal(), m_zoomAnchor, m_zoomImagePoint);
     });
     m_qualityTimer.setSingleShot(true);
     m_qualityTimer.setInterval(150);
@@ -141,8 +142,7 @@ void PinWindow::paintEvent(QPaintEvent *)
     p.setCompositionMode(QPainter::CompositionMode_Source);
     p.fillRect(rect(), Qt::transparent);
     p.setCompositionMode(QPainter::CompositionMode_SourceOver);
-    const bool moving = m_zoomAnimation.state() == QAbstractAnimation::Running || m_qualityTimer.isActive();
-    p.setRenderHint(QPainter::SmoothPixmapTransform, !moving);
+    p.setRenderHint(QPainter::SmoothPixmapTransform);
 
     const QRect target(padding(), padding(), qMax(1, qRound(m_logicalImageSize.width() * m_zoom)),
                        qMax(1, qRound(m_logicalImageSize.height() * m_zoom)));
@@ -153,7 +153,7 @@ void PinWindow::paintEvent(QPaintEvent *)
         p.setBrush(Qt::NoBrush);
         p.drawRect(target.adjusted(-spread, -spread, spread - 1, spread - 1));
     }
-    const QImage &frame = moving ? m_preview : m_cache.isNull() ? m_image : m_cache;
+    const QImage &frame = m_cache.isNull() ? m_image : m_cache;
     p.drawImage(target, frame);
     p.setBrush(Qt::NoBrush);
     if (m_borderWidth > 0) {
@@ -178,20 +178,25 @@ void PinWindow::applyAppearance(int shadowStrength, int borderWidth, const QColo
 
 void PinWindow::rebuildCache()
 {
-    const QSize pixels = (contentGeometry().size() * devicePixelRatioF());
+    const qreal dpr = devicePixelRatioF();
+    const QSize pixels = (contentGeometry().size() * dpr);
+    m_cache = {};
+    // At fractional DPR a rounded cache loses the live draw's subpixel size and padding offset.
+    // Continue painting the original smoothly so settling preserves the same sampling phase.
     // Bound the cache; a 4x enlargement of a multi-monitor screenshot can otherwise exceed 1 GB.
-    if (qint64(pixels.width()) * pixels.height() <= 16000000) {
-        m_cache = m_image.scaled(pixels, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
-        m_cache.setDevicePixelRatio(devicePixelRatioF());
+    if (qFuzzyCompare(dpr, qreal(qRound(dpr))) && qint64(pixels.width()) * pixels.height() <= 16000000) {
+        // Use the same filter as live zoom so settling never changes the displayed pixels.
+        m_cache = QImage(pixels, m_image.hasAlphaChannel() ? QImage::Format_ARGB32_Premultiplied : QImage::Format_RGB32);
+        m_cache.fill(Qt::transparent);
+        QPainter painter(&m_cache);
+        painter.setRenderHint(QPainter::SmoothPixmapTransform);
+        painter.drawImage(m_cache.rect(), m_image);
+        painter.end();
+        m_cache.setDevicePixelRatio(dpr);
     }
     update();
 }
 
-void PinWindow::rebuildPreview()
-{
-    m_preview = m_image.width() > 2000 || m_image.height() > 2000
-        ? m_image.scaled(QSize(2000, 2000), Qt::KeepAspectRatio, Qt::FastTransformation) : m_image;
-}
 void PinWindow::replaceFrame(const QImage &image, const QSize &logicalSize, bool resetView)
 {
     if(image.isNull() || logicalSize.isEmpty())return;
@@ -201,7 +206,7 @@ void PinWindow::replaceFrame(const QImage &image, const QSize &logicalSize, bool
     m_targetZoom=m_zoom;
     m_image=m_frameTransform.isIdentity()?image:image.transformed(m_frameTransform);
     m_logicalImageSize=m_frameTransform.mapRect(QRectF(QPointF(),logicalSize)).size().toSize();
-    rebuildPreview();relayout();move(origin-QPoint(padding(),padding()));m_qualityTimer.start();
+    relayout();move(origin-QPoint(padding(),padding()));m_qualityTimer.start();
 }
 
 QRect PinWindow::contentGeometry() const
@@ -214,18 +219,20 @@ void PinWindow::setZoom(qreal zoom)
     const qreal next = qBound(0.25, zoom, 4.0);
     m_zoomAnimation.stop();
     m_targetZoom = next;
-    displayZoom(next, QRectF(geometry()).center());
+    displayZoom(next, QRectF(contentGeometry()).center(), QPointF(.5, .5));
     m_qualityTimer.start();
 }
 
-void PinWindow::displayZoom(qreal zoom, const QPointF &center)
+void PinWindow::displayZoom(qreal zoom, const QPointF &anchor, const QPointF &imagePoint)
 {
     m_zoom = zoom;
     m_cache = {};
-    const QSize next(qMax(1, qRound(m_logicalImageSize.width() * zoom)) + 2 * padding(),
-                     qMax(1, qRound(m_logicalImageSize.height() * zoom)) + 2 * padding());
-    setGeometry(QRect((center - QPointF(next.width() / 2.0, next.height() / 2.0)).toPoint(), next));
-    update();
+    const QSize content(qMax(1, qRound(m_logicalImageSize.width() * zoom)),
+                        qMax(1, qRound(m_logicalImageSize.height() * zoom)));
+    const QPointF origin = anchor - QPointF(imagePoint.x() * content.width(), imagePoint.y() * content.height());
+    setGeometry(QRect((origin - QPointF(padding(), padding())).toPoint(), content + QSize(2 * padding(), 2 * padding())));
+    // Resizing a translucent window must repaint all padding as well as its new content.
+    update(rect());
 }
 
 void PinWindow::setPinOpacity(qreal opacity)
@@ -295,11 +302,23 @@ void PinWindow::wheelEvent(QWheelEvent *e)
         e->accept();
         return;
     }
-    if (m_zoomAnimation.state() != QAbstractAnimation::Running) m_zoomCenter = QRectF(geometry()).center();
+    const QRect content = contentGeometry();
+    m_zoomAnchor = e->globalPosition();
+    m_zoomImagePoint = QPointF((m_zoomAnchor.x() - content.x()) / content.width(),
+                              (m_zoomAnchor.y() - content.y()) / content.height());
+    // A reverse tick starts from the visible size, discarding unfinished motion in the old direction.
+    const bool reversing = (steps < 0 && m_targetZoom > m_zoom) || (steps > 0 && m_targetZoom < m_zoom);
+    const qreal base = reversing ? m_zoom : m_targetZoom;
+    const qreal displayed = m_zoom;
     m_zoomAnimation.stop();
-    m_targetZoom = qBound(.25, m_targetZoom * std::pow(1.1, steps), 4.0);
-    m_zoomAnimation.setStartValue(m_zoom);
-    m_zoomAnimation.setEndValue(m_targetZoom);
+    m_targetZoom = qBound(.25, base * std::pow(1.1, steps), 4.0);
+    {
+        // Reconfiguring a stopped animation can emit interpolated values at its previous time.
+        const QSignalBlocker blocker(&m_zoomAnimation);
+        m_zoomAnimation.setStartValue(displayed);
+        m_zoomAnimation.setEndValue(m_targetZoom);
+        m_zoomAnimation.setCurrentTime(0);
+    }
     m_zoomAnimation.start();
     m_qualityTimer.start();
     e->accept();
@@ -431,20 +450,17 @@ void PinWindow::buildMenu(QMenu *menu)
         m_image = m_image.transformed(QTransform().rotate(90));
         m_frameTransform *= QTransform().rotate(90);
         m_logicalImageSize.transpose();
-        rebuildPreview();
         relayout();
     });
     rotate->addAction(QStringLiteral("逆时针 90°"), this, [this] {
         m_image = m_image.transformed(QTransform().rotate(-90));
         m_frameTransform *= QTransform().rotate(-90);
         m_logicalImageSize.transpose();
-        rebuildPreview();
         relayout();
     });
     rotate->addAction(QStringLiteral("水平翻转"), this, [this] {
         m_image = m_image.mirrored(true, false);
         m_frameTransform *= QTransform().scale(-1,1);
-        rebuildPreview();
         relayout();
     });
 
@@ -500,7 +516,6 @@ void PinWindow::replaceFromClipboard()
     m_image = img;
     m_frameTransform.reset();
     m_logicalImageSize = img.size();
-    rebuildPreview();
     relayout();
 }
 

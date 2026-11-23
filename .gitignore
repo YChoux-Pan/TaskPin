@@ -28,3 +28,7 @@ dist/
 TaskPinQt/build*/
 *.zip
 SHA256SUMS.txt
+node_modules/
+test-results/
+playwright-report/
+.superpowers/

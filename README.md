@@ -4,20 +4,20 @@
   <p><strong>留住画面，记下灵感。</strong></p>
   <p>截图、桌面贴图与每日待办，放在同一个轻巧的 Windows 工具里。</p>
   <p>
-    <a href="https://github.com/YChoux-Pan/TaskPin/releases/tag/v0.4.2"><img src="https://img.shields.io/badge/preview-v0.4.2-4C9AFF" alt="0.4.2 预览版" /></a>
+    <a href="https://github.com/YChoux-Pan/TaskPin/releases/tag/v0.4.3"><img src="https://img.shields.io/badge/preview-v0.4.3-4C9AFF" alt="0.4.3 预览版" /></a>
     <img src="https://img.shields.io/badge/platform-Windows%2010%20%2F%2011-0078D4" alt="Windows 10 / 11 x64" />
     <img src="https://img.shields.io/badge/C%2B%2B-17-00599C" alt="C++17" />
     <a href="https://github.com/YChoux-Pan/TaskPin/actions/workflows/windows.yml"><img src="https://github.com/YChoux-Pan/TaskPin/actions/workflows/windows.yml/badge.svg?branch=main" alt="Windows 构建与测试" /></a>
     <a href="LICENSE"><img src="https://img.shields.io/badge/license-Unlicense-3EC46B" alt="Unlicense" /></a>
   </p>
-  <p><a href="https://github.com/YChoux-Pan/TaskPin/releases/tag/v0.4.2"><strong>下载 Windows 便携版</strong></a> · <a href="README.en.md">English</a> · <a href="CHANGELOG.md">更新日志</a> · <a href="https://github.com/YChoux-Pan/TaskPin/issues">反馈问题</a></p>
+  <p><a href="https://github.com/YChoux-Pan/TaskPin/releases/tag/v0.4.3"><strong>下载 Windows 便携版</strong></a> · <a href="README.en.md">English</a> · <a href="CHANGELOG.md">更新日志</a> · <a href="https://github.com/YChoux-Pan/TaskPin/issues">反馈问题</a></p>
 </div>
 
 ---
 
 TaskPin 把截图后的几个动作接在一起：**截取画面 → 标注或固定 → 识别为任务 → 在便签与日历中回看**。可以只用截图和贴图，也可以把桌面卡片作为每天的待办入口。截图、任务和 PaddleOCR 在本地处理，AI 按需开启。
 
-**0.4.2：[区域截图中的翻译贴图](docs/SCREEN-TRANSLATION.md)**。按 **F1** 框选，点击工具栏「翻译」（Ctrl+T），中文结果直接贴在桌面，可拖动、缩放和切换原图。文字识别统一使用随包附带的 **PaddleOCR PP-OCRv5** 本地模型；翻译共用 AI 页连接。
+**0.4.3：截图翻译提速与交互修复。** OCR 复用已加载的本地模型，可选择默认 **PaddleOCR PP-OCRv5** 或自定义兼容模型；分别测量识别、翻译与渲染耗时。按 **F1** 框选后，**F3** 贴住当前选区，**Ctrl+T** 翻译（可在设置 → 热键修改）。修复滚轮反向回弹、光标缩放基准和文字对照比例。[实测与验收](docs/reports/2026-11-21-ocr-performance-0.4.3.md)。
 
 [功能](#功能一览) · [预览](#界面预览) · [开始使用](#开始使用) · [快捷键](#快捷键) · [开发](#构建与参与) · [文档](#文档导航)
 
@@ -37,6 +37,8 @@ TaskPin 把截图后的几个动作接在一起：**截取画面 → 标注或�
 保存或快速保存成功后，**完整文件路径自动进入剪贴板**，方便粘贴到文件选择器或其他应用。取消、保存失败时保留原剪贴板。
 
 ## 界面预览
+
+![TaskPin 0.4.3 文字对照：不透明背景与等宽双栏](docs/screenshots/taskpin-0.4.3-comparison.png)
 
 ![桌面翻译贴图：PaddleOCR PP-OCRv5 与真实 DeepSeek 生成样本](docs/screenshots/taskpin-0.4.2-translation-pin.png)
 
@@ -58,17 +60,17 @@ TaskPin 把截图后的几个动作接在一起：**截取画面 → 标注或�
 
 **系统：Windows 10 / 11 x64。当前界面主要为中文。**
 
-1. 在 [0.4.2 发行页](https://github.com/YChoux-Pan/TaskPin/releases/tag/v0.4.2) 下载 <code>TaskPin-0.4.2-windows-x64.zip</code>。
+1. 在 [0.4.3 发行页](https://github.com/YChoux-Pan/TaskPin/releases/tag/v0.4.3) 下载 <code>TaskPin-0.4.3-windows-x64.zip</code>。
 2. 完整解压，保留 DLL 和插件子目录，双击 <code>TaskPinQt.exe</code>。无需安装 Qt 或开发工具。
 3. 按 **F1** 开始截图，按 **F3** 贴住剪贴板图片，通过托盘打开设置、日历与其他工具。
 
-0.4.2 为预览版。[发行页](https://github.com/YChoux-Pan/TaskPin/releases)同时提供源码、图标包、改动记录、测试报告和 SHA256SUMS.txt。升级时先通过托盘退出程序，再替换程序文件。用户数据默认保存在本机用户目录。
+0.4.3 为预览版。[发行页](https://github.com/YChoux-Pan/TaskPin/releases)同时提供源码、图标包、改动记录、测试报告和 SHA256SUMS.txt。升级时先通过托盘退出程序，再替换程序文件。用户数据默认保存在本机用户目录。
 
 <details>
 <summary>校验下载文件</summary>
 
 ~~~powershell
-Get-FileHash -Algorithm SHA256 -LiteralPath .\TaskPin-0.4.2-windows-x64.zip
+Get-FileHash -Algorithm SHA256 -LiteralPath .\TaskPin-0.4.3-windows-x64.zip
 ~~~
 
 将结果与发行附件 SHA256SUMS.txt 中的同名条目比较。
@@ -80,8 +82,8 @@ Get-FileHash -Algorithm SHA256 -LiteralPath .\TaskPin-0.4.2-windows-x64.zip
 | 全局操作 | 默认快捷键 |
 |---|---|
 | 区域截图 | **F1** |
-| 翻译当前选区 | 框选后 **Ctrl+T** 或工具栏「翻译」 |
-| 贴住剪贴板图片 / 显隐全部贴图 | **F3** / **Shift+F3** |
+| 翻译当前选区 | 框选后 **Ctrl+T** 或工具栏「翻译」；可在设置 → 热键修改 |
+| 贴图 / 显隐全部贴图 | **F3** / **Shift+F3**；F1 编辑器内 F3 贴当前选区，平时贴剪贴板 |
 | 当前显示器全屏 / 上次区域 | Ctrl+Alt+F / Ctrl+Alt+R |
 | 速记 / 显隐任务卡片 / 截屏历史 | Ctrl+Alt+Space / Ctrl+Alt+D / Ctrl+Alt+G |
 
@@ -118,7 +120,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File TaskPinQt/scripts/test.ps1
 | 使用与项目 | 开发与验证 |
 |---|---|
 | [更新日志](CHANGELOG.md) | [构建与打包](docs/BUILDING.md) |
-| [截图翻译贴图](docs/SCREEN-TRANSLATION.md) | [0.4.2 翻译贴图与模型实测](docs/reports/2026-11-21-translation-pin-paddle.md) |
+| [截图翻译贴图](docs/SCREEN-TRANSLATION.md) | [0.4.3 性能与快捷键实测](docs/reports/2026-11-21-ocr-performance-0.4.3.md) |
 | [保存路径与快捷键](docs/SAVE-PATH-HOTKEYS.md) | [软件架构](docs/ARCHITECTURE.md) |
 | [Canva 图标与设计来源](docs/BRANDING.md) | [测试记录与已知限制](docs/TESTING.md) |
 | [问题反馈](https://github.com/YChoux-Pan/TaskPin/issues) | [发行流程](docs/RELEASING.md) |

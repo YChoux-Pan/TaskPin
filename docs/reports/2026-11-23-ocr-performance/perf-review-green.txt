@@ -1,0 +1,12 @@
+********* Start testing of TranslationTests *********
+Config: Using QtTest library 6.4.3, Qt 6.4.3 (x86_64-little_endian-llp64 shared (dynamic) release build; by GCC 11.2.0), windows 11
+PASS   : TranslationTests::initTestCase()
+PASS   : TranslationTests::saturatedOcrQueueKeepsFailureIdDuringImmediateReplacement()
+PASS   : TranslationTests::immediateOcrInputFailureKeepsCallerIdSnapshot()
+QWARN  : TranslationTests::customOcrValidationKeepsUiResponsiveAndCancelPreservesFiles() QFontDatabase: Cannot find font directory [development]/pin-build/lib/fonts.
+Note that Qt no longer ships fonts. Deploy some (from https://dejavu-fonts.github.io/ for example) or switch to fontconfig.
+PASS   : TranslationTests::customOcrValidationKeepsUiResponsiveAndCancelPreservesFiles()
+PASS   : TranslationTests::ocrProfileSelectionSavesAndCancelKeepsPrevious()
+PASS   : TranslationTests::cleanupTestCase()
+Totals: 6 passed, 0 failed, 0 skipped, 0 blacklisted, 5955ms
+********* Finished testing of TranslationTests *********

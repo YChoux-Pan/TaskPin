@@ -39,11 +39,12 @@ const QList<QPair<QString, QString>> &Settings::hotkeyActions()
         {QStringLiteral("snip"), QStringLiteral("区域截图")},
         {QStringLiteral("full"), QStringLiteral("全屏截图并复制")},
         {QStringLiteral("last"), QStringLiteral("上一次区域截图")},
-        {QStringLiteral("pin"), QStringLiteral("贴住剪贴板图片")},
+        {QStringLiteral("pin"), QStringLiteral("贴图（框选区 / 剪贴板）")},
         {QStringLiteral("pins"), QStringLiteral("显示 / 隐藏全部贴图")},
         {QStringLiteral("quick"), QStringLiteral("速记")},
         {QStringLiteral("toggle"), QStringLiteral("显示 / 隐藏卡片")},
         {QStringLiteral("history"), QStringLiteral("截屏历史")},
+        {QStringLiteral("editorTranslate"), QStringLiteral("截图翻译（F1框选后）")},
     };
     return list;
 }
@@ -59,6 +60,7 @@ QMap<QString, QString> Settings::defaultHotkeys()
         {QStringLiteral("quick"), QStringLiteral("Ctrl+Alt+Space")},
         {QStringLiteral("toggle"), QStringLiteral("Ctrl+Alt+D")},
         {QStringLiteral("history"), QStringLiteral("Ctrl+Alt+G")},
+        {QStringLiteral("editorTranslate"), QStringLiteral("Ctrl+T")},
     };
 }
 

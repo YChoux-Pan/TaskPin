@@ -1,11 +1,12 @@
 #include "ui/PinWindow.h"
 #include "core/Settings.h"
 #include "core/InstanceNames.h"
-#include "app/AppHost.h"
 #include "core/Store.h"
 #include "ui/CardWindow.h"
 #include "ui/SnipOverlay.h"
 #include "ui/SettingsDialog.h"
+#include "platform/HotkeyEdit.h"
+#include "platform/Hotkeys.h"
 #include <QCheckBox>
 #include <QClipboard>
 #include <QDialogButtonBox>
@@ -22,6 +23,7 @@
 #include <QAction>
 #include <QContextMenuEvent>
 #include <QMenu>
+#include <QLabel>
 #include <QScreen>
 #include <QScopeGuard>
 #include <QSpinBox>
@@ -30,6 +32,10 @@
 #include <QWheelEvent>
 #include <QtTest>
 #include <functional>
+// Install a synthetic editor for host routing tests without taking a desktop capture.
+#define private public
+#include "app/AppHost.h"
+#undef private
 #ifdef Q_OS_WIN
 #include <qt_windows.h>
 #endif
@@ -143,6 +149,141 @@ private slots:
         QVERIFY(file.open(QIODevice::ReadOnly));
         QCOMPARE(QJsonDocument::fromJson(file.readAll()).object().value("version").toInt(), 3);
         file.close();
+    }
+    void editorTranslationHotkeyPersistsThroughDialog()
+    {
+        const Settings previous = Settings::instance();
+        const auto restore = qScopeGuard([previous] { Settings::instance() = previous; Settings::instance().save(); });
+        Settings::instance().resetToDefaults();
+        SettingsDialog dialog;
+        auto *translate = dialog.findChild<HotkeyEdit *>("hotkey_editorTranslate");
+        QVERIFY(translate);
+        QCOMPARE(translate->chord(), QString("Ctrl+T"));
+        bool scopedLabel = false;
+        for (auto *candidate : dialog.findChildren<QLabel *>())
+            scopedLabel |= candidate->text().contains(QStringLiteral("翻译")) && candidate->text().contains(QStringLiteral("F1框选后"));
+        QVERIFY(scopedLabel);
+        QTest::keyClick(translate, Qt::Key_F8, Qt::AltModifier);
+        auto *buttons = dialog.findChild<QDialogButtonBox *>(); QVERIFY(buttons);
+        QSignalSpy saved(&dialog, &SettingsDialog::saved);
+        for (auto *button : buttons->buttons())
+            if (buttons->buttonRole(button) == QDialogButtonBox::AcceptRole) button->click();
+        QCOMPARE(saved.count(), 1);
+        Settings reloaded; reloaded.load();
+        QCOMPARE(reloaded.chordFor("editorTranslate"), QString("Alt+F8"));
+        QCOMPARE(reloaded.chordFor("translate"), QString());
+        SettingsDialog reopened;
+        auto *again = reopened.findChild<HotkeyEdit *>("hotkey_editorTranslate"); QVERIFY(again);
+        QCOMPARE(again->chord(), QString("Alt+F8"));
+        QTest::keyClick(again, Qt::Key_F9, Qt::AltModifier);
+        reopened.reject();
+        Settings afterCancel; afterCancel.load();
+        QCOMPARE(afterCancel.chordFor("editorTranslate"), QString("Alt+F8"));
+        SettingsDialog cleared;
+        auto *clearEdit = cleared.findChild<HotkeyEdit *>("hotkey_editorTranslate"); QVERIFY(clearEdit);
+        QTest::keyClick(clearEdit, Qt::Key_Backspace);
+        auto *clearButtons = cleared.findChild<QDialogButtonBox *>(); QVERIFY(clearButtons);
+        for (auto *button : clearButtons->buttons())
+            if (clearButtons->buttonRole(button) == QDialogButtonBox::AcceptRole) button->click();
+        Settings afterClear; afterClear.load();
+        QCOMPARE(afterClear.chordFor("editorTranslate"), QString("Ctrl+T"));
+    }
+    void editorTranslationRejectsShortcutCollision_data()
+    {
+        QTest::addColumn<QString>("chord");
+        QTest::newRow("global-pin") << QString("F3");
+        QTest::newRow("editor-copy") << QString("Enter");
+        QTest::newRow("editor-save") << QString("Ctrl+S");
+        QTest::newRow("pin-alias") << QString("Ctrl+P");
+        QTest::newRow("pin-fallback") << QString("Ctrl+Shift+F12");
+        QTest::newRow("snip-fallback") << QString("Ctrl+Shift+F9");
+    }
+    void editorTranslationRejectsShortcutCollision()
+    {
+        QFETCH(QString, chord);
+        const Settings previous = Settings::instance();
+        const auto restore = qScopeGuard([previous] { Settings::instance() = previous; Settings::instance().save(); });
+        Settings::instance().resetToDefaults();
+        QVERIFY(Settings::instance().save());
+        SettingsDialog dialog;
+        auto *translate = dialog.findChild<HotkeyEdit *>("hotkey_editorTranslate"); QVERIFY(translate);
+        translate->setChord(chord);
+        auto *buttons = dialog.findChild<QDialogButtonBox *>(); QVERIFY(buttons);
+        QSignalSpy saved(&dialog, &SettingsDialog::saved);
+        for (auto *button : buttons->buttons())
+            if (buttons->buttonRole(button) == QDialogButtonBox::AcceptRole) button->click();
+        QCOMPARE(saved.count(), 0);
+        QCOMPARE(Settings::instance().chordFor("editorTranslate"), QString("Ctrl+T"));
+        Settings reloaded; reloaded.load();
+        QCOMPARE(reloaded.chordFor("editorTranslate"), QString("Ctrl+T"));
+        auto *error = dialog.findChild<QLabel *>("settingsSaveError"); QVERIFY(error);
+        QVERIFY(!error->text().isEmpty());
+    }
+    void globalHotkeysProtectEditorCommands_data()
+    {
+        QTest::addColumn<QString>("action");
+        QTest::addColumn<QString>("chord");
+        QTest::addColumn<bool>("accepted");
+        QTest::newRow("history-cannot-steal-pin-alias") << QString("history") << QString("Ctrl+P") << false;
+        QTest::newRow("quick-cannot-steal-ocr") << QString("quick") << QString("Ctrl+R") << false;
+        QTest::newRow("pin-can-use-its-own-alias") << QString("pin") << QString("Ctrl+P") << true;
+    }
+    void globalHotkeysProtectEditorCommands()
+    {
+        QFETCH(QString, action); QFETCH(QString, chord); QFETCH(bool, accepted);
+        const Settings previous = Settings::instance();
+        const auto restore = qScopeGuard([previous] { Settings::instance() = previous; Settings::instance().save(); });
+        Settings::instance().resetToDefaults();
+        QVERIFY(Settings::instance().save());
+        const QString original = Settings::instance().chordFor(action);
+        SettingsDialog dialog;
+        auto *edit = dialog.findChild<HotkeyEdit *>("hotkey_" + action); QVERIFY(edit);
+        edit->setChord(chord);
+        auto *buttons = dialog.findChild<QDialogButtonBox *>(); QVERIFY(buttons);
+        QSignalSpy saved(&dialog, &SettingsDialog::saved);
+        for (auto *button : buttons->buttons())
+            if (buttons->buttonRole(button) == QDialogButtonBox::AcceptRole) button->click();
+        QCOMPARE(saved.count(), accepted ? 1 : 0);
+        Settings reloaded; reloaded.load();
+        QCOMPARE(reloaded.chordFor(action), accepted ? chord : original);
+        auto *error = dialog.findChild<QLabel *>("settingsSaveError"); QVERIFY(error);
+        QCOMPARE(error->text().isEmpty(), accepted);
+    }
+    void pinHotkeyRoutesToEditorInsteadOfClipboard_data()
+    {
+        QTest::addColumn<bool>("selected");
+        QTest::newRow("selected") << true;
+        QTest::newRow("no-selection") << false;
+    }
+    void pinHotkeyRoutesToEditorInsteadOfClipboard()
+    {
+        QFETCH(bool, selected);
+        AppHost host;
+        QPixmap pixels(800, 600); pixels.fill(Qt::red);
+        host.m_snip = new SnipOverlay({pixels, QRect(-800, 100, 800, 600), 1., "synthetic"});
+        host.m_snip->setAttribute(Qt::WA_DeleteOnClose, false);
+        if (selected) host.m_snip->setPreselect({-760, 140, 300, 200});
+        QSignalSpy pinned(host.m_snip, &SnipOverlay::pinned);
+        QImage clipboard(20, 10, QImage::Format_RGB32); clipboard.fill(Qt::blue);
+        QApplication::clipboard()->setImage(clipboard);
+        const int before = PinWindow::all().size();
+        const auto closePins = qScopeGuard([] { PinWindow::closeAll(); QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete); });
+        QVERIFY(QMetaObject::invokeMethod(&host, "onHotkey", Qt::DirectConnection, Q_ARG(int, Hotkeys::Pin)));
+        QCOMPARE(PinWindow::all().size(), before);
+        QCOMPARE(pinned.count(), selected ? 1 : 0);
+        if (selected) QCOMPARE(qvariant_cast<QImage>(pinned.first().first()).size(), QSize(300, 200));
+        QCOMPARE(QApplication::clipboard()->image(), clipboard);
+    }
+    void pinHotkeyWithoutEditorKeepsClipboardBehavior()
+    {
+        AppHost host;
+        QImage clipboard(20, 10, QImage::Format_RGB32); clipboard.fill(Qt::blue);
+        QApplication::clipboard()->setImage(clipboard);
+        const int before = PinWindow::all().size();
+        const auto closePins = qScopeGuard([] { PinWindow::closeAll(); QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete); });
+        QVERIFY(QMetaObject::invokeMethod(&host, "onHotkey", Qt::DirectConnection, Q_ARG(int, Hotkeys::Pin)));
+        QCOMPARE(PinWindow::all().size(), before + 1);
+        QCOMPARE(PinWindow::all().last()->image(), clipboard);
     }
     void instanceNamespaces()
     {

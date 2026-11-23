@@ -1,0 +1,223 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuite name="IntegrationTests" timestamp="2026&#x002D;11&#x002D;23T09:00:10" hostname="XYC&#x002D;PYC" tests="48" failures="0" errors="0" skipped="0" time="0.859">
+  <properties>
+    <property name="QTestVersion" value="6.4.3"/>
+    <property name="QtVersion" value="6.4.3"/>
+    <property name="QtBuild" value="Qt 6.4.3 (x86_64&#x002D;little_endian&#x002D;llp64 shared (dynamic) release build; by GCC 11.2.0)"/>
+  </properties>
+  <testcase name="initTestCase" classname="IntegrationTests" time="0.001"/>
+  <testcase name="hotkeySettingsUpgrade(fresh)" classname="IntegrationTests" time="0.005"/>
+  <testcase name="hotkeySettingsUpgrade(old&#x002D;defaults)" classname="IntegrationTests" time="0.002"/>
+  <testcase name="hotkeySettingsUpgrade(legacy&#x002D;flat)" classname="IntegrationTests" time="0.002"/>
+  <testcase name="hotkeySettingsUpgrade(custom)" classname="IntegrationTests" time="0.002"/>
+  <testcase name="hotkeySettingsUpgrade(new&#x002D;schema&#x002D;preserves&#x002D;old&#x002D;chords)" classname="IntegrationTests" time="0.002"/>
+  <testcase name="hotkeySettingsUpgrade(mixed)" classname="IntegrationTests" time="0.002"/>
+  <testcase name="editorTranslationHotkeyPersistsThroughDialog" classname="IntegrationTests" time="0.021">
+    <system-err>
+      <![CDATA[QFontDatabase: Cannot find font directory [development]/pin-build/lib/fonts.
+Note that Qt no longer ships fonts. Deploy some (from https://dejavu-fonts.github.io/ for example) or switch to fontconfig.]]>
+    </system-err>
+  </testcase>
+  <testcase name="editorTranslationRejectsShortcutCollision(global&#x002D;pin)" classname="IntegrationTests" time="0.006"/>
+  <testcase name="editorTranslationRejectsShortcutCollision(editor&#x002D;copy)" classname="IntegrationTests" time="0.007"/>
+  <testcase name="editorTranslationRejectsShortcutCollision(editor&#x002D;save)" classname="IntegrationTests" time="0.005"/>
+  <testcase name="editorTranslationRejectsShortcutCollision(pin&#x002D;alias)" classname="IntegrationTests" time="0.005"/>
+  <testcase name="editorTranslationRejectsShortcutCollision(pin&#x002D;fallback)" classname="IntegrationTests" time="0.005"/>
+  <testcase name="editorTranslationRejectsShortcutCollision(snip&#x002D;fallback)" classname="IntegrationTests" time="0.005"/>
+  <testcase name="globalHotkeysProtectEditorCommands(history&#x002D;cannot&#x002D;steal&#x002D;pin&#x002D;alias)" classname="IntegrationTests" time="0.005"/>
+  <testcase name="globalHotkeysProtectEditorCommands(quick&#x002D;cannot&#x002D;steal&#x002D;ocr)" classname="IntegrationTests" time="0.005"/>
+  <testcase name="globalHotkeysProtectEditorCommands(pin&#x002D;can&#x002D;use&#x002D;its&#x002D;own&#x002D;alias)" classname="IntegrationTests" time="0.010"/>
+  <testcase name="pinHotkeyRoutesToEditorInsteadOfClipboard(selected)" classname="IntegrationTests" time="0.001">
+    <system-out>
+      <![CDATA[onHotkey id=4]]>
+    </system-out>
+  </testcase>
+  <testcase name="pinHotkeyRoutesToEditorInsteadOfClipboard(no&#x002D;selection)" classname="IntegrationTests" time="0.000">
+    <system-out>
+      <![CDATA[onHotkey id=4]]>
+    </system-out>
+  </testcase>
+  <testcase name="pinHotkeyWithoutEditorKeepsClipboardBehavior" classname="IntegrationTests" time="0.000">
+    <system-out>
+      <![CDATA[onHotkey id=4]]>
+      <![CDATA[pin created 20x10 group=默认]]>
+      <![CDATA[toast: 已贴到桌面 20 × 10]]>
+      <![CDATA[pin closed, 0 remaining]]>
+    </system-out>
+  </testcase>
+  <testcase name="instanceNamespaces" classname="IntegrationTests" time="0.007"/>
+  <testcase name="aliasedDataDirectoryNamespaceIsStable" classname="IntegrationTests" time="0.265"/>
+  <testcase name="pinPresetsAndReset" classname="IntegrationTests" time="0.002">
+    <system-out>
+      <![CDATA[pin created 200x100 group=默认]]>
+      <![CDATA[pin closed, 0 remaining]]>
+    </system-out>
+  </testcase>
+  <testcase name="automationWindowsRemainSelectable" classname="IntegrationTests" time="0.010">
+    <system-out>
+      <![CDATA[pin created 100x60 group=默认]]>
+      <![CDATA[pin closed, 0 remaining]]>
+      <![CDATA[pin created 100x60 group=默认]]>
+      <![CDATA[pin closed, 0 remaining]]>
+    </system-out>
+  </testcase>
+  <testcase name="pinWheelValuesVisible" classname="IntegrationTests" time="0.156">
+    <system-out>
+      <![CDATA[pin created 200x100 group=默认]]>
+      <![CDATA[pin closed, 0 remaining]]>
+    </system-out>
+  </testcase>
+  <testcase name="pinActionsPreserved" classname="IntegrationTests" time="0.001">
+    <system-out>
+      <![CDATA[pin created 200x100 group=默认]]>
+      <![CDATA[pin click-through=1]]>
+      <![CDATA[cleared click-through on all pins]]>
+      <![CDATA[pin closed, 0 remaining]]>
+    </system-out>
+  </testcase>
+  <testcase name="oversizedPinPlacement" classname="IntegrationTests" time="0.000">
+    <system-out>
+      <![CDATA[pin created 6000x4000 group=默认]]>
+      <![CDATA[pin closed, 0 remaining]]>
+    </system-out>
+  </testcase>
+  <testcase name="capturePinGeometry(1&#x002D;120&#x002D;80)" classname="IntegrationTests" time="0.000">
+    <system-out>
+      <![CDATA[pin created 400x200 group=默认]]>
+      <![CDATA[pin closed, 0 remaining]]>
+    </system-out>
+  </testcase>
+  <testcase name="capturePinGeometry(1&#x002D;&#x002D;1500&#x002D;&#x002D;700)" classname="IntegrationTests" time="0.000">
+    <system-out>
+      <![CDATA[pin created 400x200 group=默认]]>
+      <![CDATA[pin closed, 0 remaining]]>
+    </system-out>
+  </testcase>
+  <testcase name="capturePinGeometry(1&#x002D;0&#x002D;0)" classname="IntegrationTests" time="0.000">
+    <system-out>
+      <![CDATA[pin created 400x200 group=默认]]>
+      <![CDATA[pin closed, 0 remaining]]>
+    </system-out>
+  </testcase>
+  <testcase name="capturePinGeometry(1&#x002D;1520&#x002D;880)" classname="IntegrationTests" time="0.000">
+    <system-out>
+      <![CDATA[pin created 400x200 group=默认]]>
+      <![CDATA[pin closed, 0 remaining]]>
+    </system-out>
+  </testcase>
+  <testcase name="capturePinGeometry(1.25&#x002D;120&#x002D;80)" classname="IntegrationTests" time="0.000">
+    <system-out>
+      <![CDATA[pin created 500x250 group=默认]]>
+      <![CDATA[pin closed, 0 remaining]]>
+    </system-out>
+  </testcase>
+  <testcase name="capturePinGeometry(1.25&#x002D;&#x002D;1500&#x002D;&#x002D;700)" classname="IntegrationTests" time="0.000">
+    <system-out>
+      <![CDATA[pin created 500x250 group=默认]]>
+      <![CDATA[pin closed, 0 remaining]]>
+    </system-out>
+  </testcase>
+  <testcase name="capturePinGeometry(1.25&#x002D;0&#x002D;0)" classname="IntegrationTests" time="0.000">
+    <system-out>
+      <![CDATA[pin created 500x250 group=默认]]>
+      <![CDATA[pin closed, 0 remaining]]>
+    </system-out>
+  </testcase>
+  <testcase name="capturePinGeometry(1.25&#x002D;1520&#x002D;880)" classname="IntegrationTests" time="0.000">
+    <system-out>
+      <![CDATA[pin created 500x250 group=默认]]>
+      <![CDATA[pin closed, 0 remaining]]>
+    </system-out>
+  </testcase>
+  <testcase name="capturePinGeometry(1.5&#x002D;120&#x002D;80)" classname="IntegrationTests" time="0.000">
+    <system-out>
+      <![CDATA[pin created 600x300 group=默认]]>
+      <![CDATA[pin closed, 0 remaining]]>
+    </system-out>
+  </testcase>
+  <testcase name="capturePinGeometry(1.5&#x002D;&#x002D;1500&#x002D;&#x002D;700)" classname="IntegrationTests" time="0.000">
+    <system-out>
+      <![CDATA[pin created 600x300 group=默认]]>
+      <![CDATA[pin closed, 0 remaining]]>
+    </system-out>
+  </testcase>
+  <testcase name="capturePinGeometry(1.5&#x002D;0&#x002D;0)" classname="IntegrationTests" time="0.000">
+    <system-out>
+      <![CDATA[pin created 600x300 group=默认]]>
+      <![CDATA[pin closed, 0 remaining]]>
+    </system-out>
+  </testcase>
+  <testcase name="capturePinGeometry(1.5&#x002D;1520&#x002D;880)" classname="IntegrationTests" time="0.000">
+    <system-out>
+      <![CDATA[pin created 600x300 group=默认]]>
+      <![CDATA[pin closed, 0 remaining]]>
+    </system-out>
+  </testcase>
+  <testcase name="capturePinGeometry(2&#x002D;120&#x002D;80)" classname="IntegrationTests" time="0.000">
+    <system-out>
+      <![CDATA[pin created 800x400 group=默认]]>
+      <![CDATA[pin closed, 0 remaining]]>
+    </system-out>
+  </testcase>
+  <testcase name="capturePinGeometry(2&#x002D;&#x002D;1500&#x002D;&#x002D;700)" classname="IntegrationTests" time="0.000">
+    <system-out>
+      <![CDATA[pin created 800x400 group=默认]]>
+      <![CDATA[pin closed, 0 remaining]]>
+    </system-out>
+  </testcase>
+  <testcase name="capturePinGeometry(2&#x002D;0&#x002D;0)" classname="IntegrationTests" time="0.000">
+    <system-out>
+      <![CDATA[pin created 800x400 group=默认]]>
+      <![CDATA[pin closed, 0 remaining]]>
+    </system-out>
+  </testcase>
+  <testcase name="capturePinGeometry(2&#x002D;1520&#x002D;880)" classname="IntegrationTests" time="0.000">
+    <system-out>
+      <![CDATA[pin created 800x400 group=默认]]>
+      <![CDATA[pin closed, 0 remaining]]>
+    </system-out>
+  </testcase>
+  <testcase name="automationHostSettingsAndDiagnostics" classname="IntegrationTests" time="0.025">
+    <system-out>
+      <![CDATA[TaskPin Qt 0.4.3 started, rolled over 0 task(s)]]>
+      <![CDATA[card z-order: topmost (native topmost=0)]]>
+      <![CDATA[settings applied]]>
+      <![CDATA[card z-order: topmost (native topmost=0)]]>
+      <![CDATA[toast: 设置已保存]]>
+      <![CDATA[settings applied]]>
+      <![CDATA[card z-order: topmost (native topmost=0)]]>
+      <![CDATA[toast: 设置已保存]]>
+      <![CDATA[pin created 60x40 group=默认]]>
+      <![CDATA[toast: 已贴到桌面 60 × 40]]>
+      <![CDATA[pin closed, 0 remaining]]>
+    </system-out>
+  </testcase>
+  <testcase name="automationDialogSavePreservesAutostart(disabled)" classname="IntegrationTests" time="0.023">
+    <system-out>
+      <![CDATA[TaskPin Qt 0.4.3 started, rolled over 0 task(s)]]>
+      <![CDATA[card z-order: topmost (native topmost=0)]]>
+      <![CDATA[settings applied]]>
+      <![CDATA[card z-order: topmost (native topmost=0)]]>
+      <![CDATA[toast: 设置已保存]]>
+    </system-out>
+    <system-err>
+      <![CDATA[This plugin does not support propagateSizeHints()]]>
+      <![CDATA[This plugin does not support raise()]]>
+    </system-err>
+  </testcase>
+  <testcase name="automationDialogSavePreservesAutostart(enabled)" classname="IntegrationTests" time="0.019">
+    <system-out>
+      <![CDATA[TaskPin Qt 0.4.3 started, rolled over 0 task(s)]]>
+      <![CDATA[card z-order: topmost (native topmost=0)]]>
+      <![CDATA[settings applied]]>
+      <![CDATA[card z-order: topmost (native topmost=0)]]>
+      <![CDATA[toast: 设置已保存]]>
+    </system-out>
+    <system-err>
+      <![CDATA[This plugin does not support propagateSizeHints()]]>
+      <![CDATA[This plugin does not support raise()]]>
+    </system-err>
+  </testcase>
+  <testcase name="separateProcesses" classname="IntegrationTests" time="0.252"/>
+  <testcase name="cleanupTestCase" classname="IntegrationTests" time="0.000"/>
+</testsuite>

@@ -98,6 +98,104 @@ private slots:
         drag(w, { 200, 180 }, { 230, 200 });
         QCOMPARE(w.selection(), QRect(70, 60, 300, 200));
     }
+    void configuredPinExportsAnnotatedSelection_data()
+    {
+        QTest::addColumn<QString>("chord");
+        QTest::addColumn<int>("key");
+        QTest::addColumn<Qt::KeyboardModifiers>("modifiers");
+        QTest::newRow("default-F3") << QString("F3") << int(Qt::Key_F3) << Qt::KeyboardModifiers{};
+        QTest::newRow("custom") << QString("Ctrl+Shift+F6") << int(Qt::Key_F6)
+            << Qt::KeyboardModifiers(Qt::ControlModifier | Qt::ShiftModifier);
+    }
+    void configuredPinExportsAnnotatedSelection()
+    {
+        QFETCH(QString, chord); QFETCH(int, key); QFETCH(Qt::KeyboardModifiers, modifiers);
+        const Settings previous = Settings::instance();
+        const auto restore = qScopeGuard([previous] { Settings::instance() = previous; });
+        Settings::instance().setChord("pin", chord);
+        SnipOverlay w(fixture(1.5, {-800, 100}));
+        ready(w, {-760, 140, 300, 200}); rectangle(w);
+        QCOMPARE(action(w, "pin").shortcut, chord);
+        QSignalSpy pinned(&w, &SnipOverlay::pinned), captured(&w, &SnipOverlay::captured);
+        QApplication::clipboard()->setText("keep-clipboard");
+        QTest::keyClick(&w, Qt::Key(key), modifiers);
+        QCOMPARE(pinned.count(), 1); QCOMPARE(captured.count(), 1);
+        const QImage image = qvariant_cast<QImage>(pinned.first().first());
+        QCOMPARE(image.size(), QSize(450, 300));
+        QVERIFY(image.pixelColor(90, 60) != QColor(Qt::red));
+        QCOMPARE(captured.first().at(1).toRect(), QRect(-760, 140, 300, 200));
+        QCOMPARE(QApplication::clipboard()->text(), QString("keep-clipboard"));
+        QTest::keyClick(&w, Qt::Key(key), modifiers);
+        QCOMPARE(pinned.count(), 1);
+    }
+    void configuredTranslationReplacesDefaultShortcut()
+    {
+        const Settings previous = Settings::instance();
+        const auto restore = qScopeGuard([previous] { Settings::instance() = previous; });
+        Settings::instance().setChord("editorTranslate", "Alt+F8");
+        SnipOverlay w(fixture()); ready(w);
+        QCOMPARE(action(w, "translate").shortcut, QString("Alt+F8"));
+        QSignalSpy translated(&w, &SnipOverlay::translationRequested);
+        QTest::keyClick(&w, Qt::Key_T, Qt::ControlModifier);
+        QCOMPARE(translated.count(), 0);
+        QTest::keyClick(&w, Qt::Key_F8, Qt::AltModifier);
+        QCOMPARE(translated.count(), 1);
+    }
+    void actualPinFallbackAppearsAndWorksInEditor()
+    {
+        SnipOverlay w(fixture()); ready(w);
+        QVERIFY(QMetaObject::invokeMethod(&w, "setPinShortcut", Qt::DirectConnection,
+            Q_ARG(QString, QString("Ctrl+Shift+F12"))));
+        QCOMPARE(action(w, "pin").shortcut, QString("Ctrl+Shift+F12"));
+        QSignalSpy pinned(&w, &SnipOverlay::pinned);
+        QTest::keyClick(&w, Qt::Key_F3);
+        QCOMPARE(pinned.count(), 0);
+        QTest::keyClick(&w, Qt::Key_F12, Qt::ControlModifier | Qt::ShiftModifier);
+        QCOMPARE(pinned.count(), 1);
+    }
+    void bareCustomTranslationDoesNotConsumeTextInput()
+    {
+        const Settings previous = Settings::instance();
+        const auto restore = qScopeGuard([previous] { Settings::instance() = previous; });
+        Settings::instance().setChord("editorTranslate", "X");
+        SnipOverlay w(fixture()); ready(w);
+        QTest::keyClick(&w, Qt::Key_T);
+        QTest::mouseClick(&w, Qt::LeftButton, Qt::NoModifier, {100, 100});
+        auto *edit = w.findChild<QLineEdit *>(); QVERIFY(edit);
+        QSignalSpy translated(&w, &SnipOverlay::translationRequested);
+        QTest::keyClick(edit, Qt::Key_X);
+        QCOMPARE(edit->text(), QString("x")); QCOMPARE(translated.count(), 0);
+        QTest::keyClick(edit, Qt::Key_Return);
+        QTest::keyClick(&w, Qt::Key_X);
+        QCOMPARE(translated.count(), 1);
+    }
+    void configuredOutputCommitsFocusedText_data()
+    {
+        QTest::addColumn<bool>("translate");
+        QTest::newRow("pin") << false;
+        QTest::newRow("translation") << true;
+    }
+    void configuredOutputCommitsFocusedText()
+    {
+        QFETCH(bool, translate);
+        const Settings previous = Settings::instance();
+        const auto restore = qScopeGuard([previous] { Settings::instance() = previous; });
+        Settings::instance().setChord(translate ? "editorTranslate" : "pin", "Alt+F8");
+        SnipOverlay w(fixture()); ready(w);
+        QTest::keyClick(&w, Qt::Key_T);
+        QTest::mouseClick(&w, Qt::LeftButton, Qt::NoModifier, {100, 100});
+        auto *edit = w.findChild<QLineEdit *>(); QVERIFY(edit);
+        edit->setText(QStringLiteral("中文任务"));
+        QSignalSpy pinned(&w, &SnipOverlay::pinned), translated(&w, &SnipOverlay::translationRequested);
+        QTest::keyClick(edit, Qt::Key_F8, Qt::AltModifier);
+        QCOMPARE(translate ? translated.count() : pinned.count(), 1);
+        const QImage image = qvariant_cast<QImage>((translate ? translated : pinned).first().first());
+        bool hasAnnotation = false;
+        for (int y = 60; y < 110; ++y)
+            for (int x = 60; x < 150; ++x)
+                hasAnnotation |= image.pixelColor(x, y) != QColor(Qt::red);
+        QVERIFY(hasAnnotation);
+    }
     void translationActionIsAlongsideTaskRecognition() {
         SnipOverlay w(fixture());ready(w);
         const auto translate=action(w,"translate"),ocr=action(w,"ocr");

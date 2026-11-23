@@ -10,6 +10,8 @@ from pathlib import Path
 import shutil
 import struct
 import subprocess
+import threading
+import queue
 import tempfile
 import time
 
@@ -34,10 +36,60 @@ def call(runtime: Path, request: bytes, helper: Path | None = None) -> tuple[dic
     return reply, elapsed
 
 
-def request(image: Image.Image) -> bytes:
+def request(image: Image.Image, profile: Path | None = None) -> bytes:
     stream = io.BytesIO()
     image.save(stream, format="PNG")
-    return json.dumps({"image": base64.b64encode(stream.getvalue()).decode("ascii")}).encode("utf-8")
+    payload = {"image": base64.b64encode(stream.getvalue()).decode("ascii")}
+    if profile is not None:
+        payload["profilePath"] = str(profile)
+    return json.dumps(payload).encode("utf-8")
+
+
+def check_worker(runtime: Path, image: Image.Image, profile_path: Path, profile: dict) -> list[dict]:
+    worker = subprocess.Popen([str(runtime / "python.exe"), "-I", "-B", str(runtime / "helper.py"), "--worker"],
+                              stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                              cwd=runtime, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+    output = queue.Queue()
+    def receive():
+        for line in worker.stdout:
+            output.put(line)
+        output.put(None)
+    threading.Thread(target=receive, daemon=True).start()
+    def exchange(identifier: str, path: Path | None = None) -> dict:
+        payload = json.loads(request(image, path));payload["requestId"] = identifier
+        try:
+            worker.stdin.write(json.dumps(payload).encode() + b"\n");worker.stdin.flush()
+        except OSError:
+            raise AssertionError("Helper did not accept persistent worker requests") from None
+        line = output.get(timeout=90)
+        assert line is not None, "Worker exited before replying"
+        reply = json.loads(line)
+        assert reply.get("requestId") == identifier, "Worker did not match the request"
+        return reply
+    try:
+        cold = exchange("cold");warm = exchange("warm")
+        assert cold["ok"] and warm["ok"] and cold["lines"] == warm["lines"]
+        assert cold["stageMs"]["load"] > 0 and warm["stageMs"]["load"] == 0
+        assert warm["workerReused"] is True and cold["workerReused"] is False
+        switched = json.loads(json.dumps(profile));switched["cpu"]["intraOpThreads"] = 1
+        profile_path.write_text(json.dumps(switched), encoding="utf-8")
+        custom = exchange("switch", profile_path)
+        assert custom["ok"] and custom["profileId"] == "custom-v5-fixture"
+        assert custom["stageMs"]["load"] > 0 and not custom["workerReused"]
+        missing = exchange("missing", profile_path.parent / "absent.json")
+        assert missing == {"ok": False, "errorCode": "profile_missing", "requestId": "missing"}
+        after_failure = exchange("after-failure", profile_path)
+        assert after_failure["ok"] and after_failure["workerReused"]
+        return [{"fixture": "worker-" + name, "matched": True, "stageMs": reply["stageMs"]}
+                for name, reply in (("cold", cold), ("warm", warm), ("switch", custom))]
+    finally:
+        try:
+            worker.stdin.close()
+        except OSError:
+            pass
+        worker.wait(timeout=20)
+        assert not worker.stderr.read(), "Worker emitted diagnostics"
+        worker.stdout.close();worker.stderr.close()
 
 
 def fixture(lines: list[str], dark: bool = False, font_path: Path | None = None) -> Image.Image:
@@ -59,6 +111,12 @@ def check_regions(reply: dict, image: Image.Image) -> None:
     assert reply["ok"] and reply["engine"] == "PaddleOCR PP-OCRv5"
     assert reply["modelVersion"] == "PP-OCRv5_mobile/RapidOCR-v3.10.0"
     assert reply["language"] == "multi"
+    assert reply.get("profileId") == "builtin-ppocrv5-mobile", "Helper did not report selected profile"
+    assert reply.get("modelIdentity", "").startswith("sha256:")
+    stages = reply.get("stageMs", {})
+    for stage in ("import", "load", "inference", "verifyModels", "prepareImage", "formatResult", "total"):
+        assert isinstance(stages[stage], (float, int)) and stages[stage] >= 0
+    assert stages["total"] >= sum(stages[stage] for stage in ("import", "load", "inference", "verifyModels", "prepareImage", "formatResult"))
     assert 1 <= len(reply["lines"]) <= 512
     for line in reply["lines"]:
         assert isinstance(line["confidence"], (float, int)) and 0 < line["confidence"] <= 1
@@ -92,7 +150,51 @@ def main() -> None:
         assert any(item["confidence"] < 1 for item in reply["lines"]), "Confidences unexpectedly all perfect"
         results.append({"fixture": name, "regions": len(reply["lines"]), "matched": True,
                         "minimumConfidence": min(item["confidence"] for item in reply["lines"]),
-                        "processSeconds": round(seconds, 3)})
+                        "processSeconds": round(seconds, 3), "stageMs": reply["stageMs"]})
+
+    # A user-selected local profile must actually drive the engine and metadata.
+    # Copy only JSON: weights stay in their existing, verified runtime location.
+    with tempfile.TemporaryDirectory(prefix="taskpin-ocr-profiles-") as temporary:
+        profile_path = Path(temporary) / "custom.json"
+        lock = json.loads((runtime / "runtime-lock.json").read_text(encoding="utf-8"))
+        profile = {"schemaVersion": 1, "id": "custom-v5-fixture", "modelVersion": "fixture-v5-local",
+                   "language": "multi", "cpu": {"intraOpThreads": 2, "interOpThreads": 1}}
+        for model in lock["models"]:
+            profile[model["task"]] = {"path": str(runtime / "models" / model["filename"]),
+                                     "sha256": model["sha256"], "ocrVersion": "PP-OCRv5", "modelType": "mobile"}
+        # Windows editors/PowerShell can write a UTF-8 BOM; it must select the
+        # same local profile accepted by Qt instead of failing only at runtime.
+        profile_path.write_text(json.dumps(profile), encoding="utf-8-sig")
+        custom_image = fixture(["Hello TaskPin 2026"], font_path=args.font)
+        reply, seconds = call(runtime, request(custom_image, profile_path))
+        assert reply["ok"] and reply["profileId"] == "custom-v5-fixture"
+        assert reply["modelVersion"] == "fixture-v5-local"
+        assert "HelloTaskPin2026" in "".join(line["text"] for line in reply["lines"]).replace(" ", "")
+        assert reply["stageMs"]["inference"] > 0
+        results.append({"fixture": "custom-v5-local", "matched": True, "processSeconds": round(seconds, 3), "stageMs": reply["stageMs"]})
+        results.extend(check_worker(runtime, custom_image, profile_path, profile))
+        for mutate, expected in [
+            (lambda p: p["det"].update(sha256="0" * 64), "model_hash_mismatch"),
+            (lambda p: p["rec"].update(path=str(Path(temporary) / "missing.onnx")), "model_missing"),
+            (lambda p: p["rec"].update(ocrVersion="PP-OCRv99"), "profile_unsupported"),
+            (lambda p: p["cpu"].update(intraOpThreads=64), "profile_unsupported"),
+            (lambda p: p.update(downloadUrl="https://example.invalid/model.onnx"), "profile_invalid"),
+        ]:
+            invalid = json.loads(json.dumps(profile));mutate(invalid)
+            profile_path.write_text(json.dumps(invalid), encoding="utf-8")
+            reply, _ = call(runtime, request(custom_image, profile_path))
+            assert reply == {"ok": False, "errorCode": expected}, (expected, reply)
+        reply, _ = call(runtime, request(custom_image, Path(temporary) / "missing.json"))
+        assert reply == {"ok": False, "errorCode": "profile_missing"}
+        # Correct hashes do not make arbitrary bytes a compatible OCR model.
+        import hashlib
+        broken_model = Path(temporary) / "broken.onnx"
+        broken_model.write_bytes(b"generated-not-an-onnx-model")
+        incompatible = json.loads(json.dumps(profile))
+        incompatible["det"].update(path=str(broken_model), sha256=hashlib.sha256(broken_model.read_bytes()).hexdigest())
+        profile_path.write_text(json.dumps(incompatible), encoding="utf-8")
+        reply, _ = call(runtime, request(custom_image, profile_path))
+        assert reply == {"ok": False, "errorCode": "model_incompatible"}
 
     # Boundary image is valid and blank. It must complete with an empty result.
     blank = Image.new("RGB", (4000, 4000), "white")

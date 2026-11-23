@@ -31,6 +31,7 @@ private:
     QWidget *buildMiscPage();
 
     bool apply();
+    bool validateHotkeys();
     void emitPreview();
     void chooseColor(class QPushButton *button, QColor &value, bool preview);
 

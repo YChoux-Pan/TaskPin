@@ -34,6 +34,12 @@ public:
     /// Save the current composition; failures preserve this editing session.
     bool saveToPath(const QString &path);
 
+public slots:
+    /// The host forwards its registered pin hotkey here while this editor is active.
+    void pinSelection();
+    /// Keep the editor hint and local key handling aligned with a global fallback chord.
+    void setPinShortcut(const QString &chord);
+
 signals:
     void copied(const QImage &image);
     void saved(const QString &path);
@@ -71,6 +77,8 @@ private:
 
     QString hitToolbar(const QPoint &pos) const;
     void handleAction(const QString &id);
+    QString actionShortcut(const QString &id) const;
+    bool handleOutputShortcut(QKeyEvent *event, bool textInput = false);
     void setTool(Tool t);
 
     int selectionHandleAt(const QPoint &pos) const;
@@ -136,4 +144,5 @@ private:
     QVector<SnipAction> m_actions;
     QString m_error;
     bool m_completed = false;
+    QString m_pinShortcut;
 };

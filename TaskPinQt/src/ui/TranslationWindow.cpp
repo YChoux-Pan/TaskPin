@@ -9,11 +9,14 @@
 #include <QCloseEvent>
 #include <QDialog>
 #include <QHideEvent>
+#include <QHBoxLayout>
 #include <QLabel>
 #include <QMenu>
 #include <QPainter>
+#include <QPalette>
 #include <QPlainTextEdit>
 #include <QPushButton>
+#include <QScreen>
 #include <QSplitter>
 #include <QTimer>
 #include <QUuid>
@@ -124,18 +127,58 @@ void TranslationWindow::extendMenu(QMenu *menu)
 void TranslationWindow::showComparison()
 {
     if(m_comparison){m_comparison->show();m_comparison->raise();return;}
-    auto *dialog=new QDialog(this);dialog->setAttribute(Qt::WA_DeleteOnClose);dialog->setWindowTitle(QStringLiteral("TaskPin 翻译文字对照"));
-    dialog->setWindowFlag(Qt::WindowStaysOnTopHint,true);dialog->resize(840,480);m_comparison=dialog;
-    auto *layout=new QVBoxLayout(dialog);auto *warning=new QLabel(m_warning,dialog);warning->setTextFormat(Qt::PlainText);warning->setWordWrap(true);layout->addWidget(warning);
-    auto *splitter=new QSplitter(dialog);layout->addWidget(splitter);
+    auto *dialog=new QDialog(this,Qt::Dialog|Qt::WindowStaysOnTopHint);
+    dialog->setObjectName("translationComparison");dialog->setAttribute(Qt::WA_DeleteOnClose);
+    dialog->setWindowTitle(QStringLiteral("TaskPin 翻译文字对照"));dialog->setWindowIcon(taskpinIcon());
+    dialog->setAttribute(Qt::WA_TranslucentBackground,false);dialog->setAttribute(Qt::WA_NoSystemBackground,false);
+    dialog->setWindowOpacity(1.0);dialog->setAutoFillBackground(true);
+    // Explicit brushes prevent a translucent pin's palette from resolving into this normal window.
+    QPalette surface=QApplication::palette();
+    for(auto group:{QPalette::Active,QPalette::Inactive,QPalette::Disabled}){
+        for(int role=0;role<QPalette::NColorRoles;++role){
+            const auto colorRole=static_cast<QPalette::ColorRole>(role);
+            auto brush=surface.brush(group,colorRole);
+            if(colorRole==QPalette::Window||colorRole==QPalette::Base||colorRole==QPalette::AlternateBase||colorRole==QPalette::Button){
+                auto color=brush.color();color.setAlpha(255);brush.setColor(color);
+            }
+            surface.setBrush(group,colorRole,brush);
+        }
+    }
+    dialog->setPalette(surface);m_comparison=dialog;
+    auto *layout=new QVBoxLayout(dialog);layout->setContentsMargins(12,12,12,12);layout->setSpacing(10);
+    auto *header=new QWidget(dialog);header->setObjectName("translationComparisonHeader");
+    header->setSizePolicy(QSizePolicy::Preferred,QSizePolicy::Fixed);
+    auto *headingLayout=new QHBoxLayout(header);headingLayout->setContentsMargins(0,0,0,0);headingLayout->setSpacing(14);
+    auto *heading=new QLabel(QStringLiteral("文字对照"),header);auto headingFont=heading->font();headingFont.setBold(true);heading->setFont(headingFont);
+    headingLayout->addWidget(heading,0,Qt::AlignTop);
+    auto *warning=new QLabel(m_warning.isEmpty()?QStringLiteral("可选中文字，或使用复制按钮。"):m_warning,header);
+    warning->setObjectName("translationComparisonStatus");warning->setTextFormat(Qt::PlainText);warning->setWordWrap(true);
+    warning->setToolTip(m_warning);warning->setMaximumHeight(warning->fontMetrics().lineSpacing()*2+2);
+    warning->setSizePolicy(QSizePolicy::Expanding,QSizePolicy::Preferred);headingLayout->addWidget(warning,1);
+    layout->addWidget(header,0);
+    auto *splitter=new QSplitter(Qt::Horizontal,dialog);splitter->setObjectName("translationComparisonPanes");
+    splitter->setChildrenCollapsible(false);layout->addWidget(splitter,1);
     auto pane=[this,splitter](const QString &title,const QString &name,const QString &text,QPlainTextEdit **editor){
-        auto *panel=new QWidget(splitter);auto *box=new QVBoxLayout(panel);box->addWidget(new QLabel(title,panel));
-        *editor=new QPlainTextEdit(text,panel);(*editor)->setReadOnly(true);(*editor)->setObjectName(name);box->addWidget(*editor);
-        auto *copy=new QPushButton(QStringLiteral("复制"),panel);copy->setObjectName(name+"Copy");box->addWidget(copy);
+        auto *panel=new QWidget(splitter);auto *box=new QVBoxLayout(panel);box->setContentsMargins(0,0,0,0);box->setSpacing(6);
+        auto *row=new QHBoxLayout;row->addWidget(new QLabel(title,panel));row->addStretch();
+        auto *copy=new QPushButton(QStringLiteral("复制"),panel);copy->setObjectName(name+"Copy");
+        copy->setMinimumWidth(72);copy->setMaximumWidth(120);row->addWidget(copy);box->addLayout(row);
+        *editor=new QPlainTextEdit(text,panel);(*editor)->setReadOnly(true);(*editor)->setObjectName(name);
+        (*editor)->setMinimumSize(120,100);box->addWidget(*editor,1);
         connect(copy,&QPushButton::clicked,this,[this,editor]{const auto text=(*editor)->toPlainText();QApplication::clipboard()->setText(text);if(QApplication::clipboard()->text()!=text)setStatus(m_state,QStringLiteral("剪贴板被占用，复制未完成。"));});
     };
     pane(QStringLiteral("OCR 原文"),"translationSource",m_sourceText,&m_source);pane(QStringLiteral("中文译文"),"translationTarget",m_targetText,&m_target);
+    splitter->setStretchFactor(0,1);splitter->setStretchFactor(1,1);
+    QScreen *screen=QGuiApplication::screenAt(contentGeometry().center());if(!screen)screen=this->screen();
+    const QRect available=screen?screen->availableGeometry():QRect(0,0,800,600);
+    const QSize bounds=available.size()-QSize(qMin(24,available.width()/10),qMin(24,available.height()/10));
+    dialog->setMinimumSize(QSize(560,360).boundedTo(bounds));
+    dialog->resize(QSize(qMin(900,qRound(available.width()*.72)),qMin(620,qRound(available.height()*.72))).expandedTo(dialog->minimumSize()).boundedTo(bounds));
+    dialog->move(available.center()-QPoint(dialog->width()/2,dialog->height()/2));
     connect(dialog,&QObject::destroyed,this,[this]{m_source=nullptr;m_target=nullptr;});dialog->show();
+    layout->activate();
+    const int paneWidth=qMax(1,splitter->width()-splitter->handleWidth());
+    splitter->setSizes({paneWidth/2,paneWidth-paneWidth/2});
 }
 void TranslationWindow::hideEvent(QHideEvent *event){if(m_comparison)m_comparison->hide();PinWindow::hideEvent(event);}
 void TranslationWindow::closeEvent(QCloseEvent *event){m_closing=true;cancel();if(m_comparison)m_comparison->close();PinWindow::closeEvent(event);}

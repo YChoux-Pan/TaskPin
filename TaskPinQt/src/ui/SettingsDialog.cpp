@@ -4,6 +4,7 @@
 #include "core/Settings.h"
 #include "platform/Autostart.h"
 #include "platform/HotkeyEdit.h"
+#include "platform/HotkeyText.h"
 
 #include <QCheckBox>
 #include <QColorDialog>
@@ -115,6 +116,13 @@ SettingsDialog::SettingsDialog(QWidget *parent) : QDialog(parent), m_ui(new Ui)
     connect(save, &QPushButton::clicked, this, [this] {
         if(apply())accept();
     });
+    connect(m_translation,&TranslationSettingsPage::saveReady,this,[this] {
+        if(apply())accept();
+    });
+    connect(m_translation,&TranslationSettingsPage::validationBusyChanged,save,[save](bool busy) {
+        save->setEnabled(!busy);
+        save->setText(busy?QStringLiteral("正在验证模型…"):QStringLiteral("保存"));
+    });
     connect(buttons, &QDialogButtonBox::rejected, this, &QDialog::reject);
     connect(this,&QDialog::finished,m_translation,&TranslationSettingsPage::cancelTest);
     connect(m_ui->cardWidth, qOverload<int>(&QSpinBox::valueChanged), this, &SettingsDialog::emitPreview);
@@ -223,13 +231,15 @@ QWidget *SettingsDialog::buildHotkeyPage()
     auto *form = new QFormLayout();
     for (const auto &action : Settings::hotkeyActions()) {
         auto *edit = new HotkeyEdit(page);
+        edit->setObjectName("hotkey_" + action.first);
         edit->setChord(Settings::instance().chordFor(action.first));
         m_hotkeyEdits[action.first] = edit;
         form->addRow(action.second, edit);
     }
     layout->addLayout(form);
     layout->addWidget(hintLabel(QStringLiteral(
-        "默认 F1 截图、F3 贴图、Shift+F3 显隐全部贴图，与 Snipaste 一致。\n"
+        "默认 F1 截图、F3 贴图、Shift+F3 显隐全部贴图。F1框选后，贴图键会贴住当前选区与标注；平时贴剪贴板内容。\n"
+        "截图翻译快捷键只在 F1 框选编辑器中生效，默认 Ctrl+T；Ctrl+P 仍可贴住选区。\n"
         "点进输入框后直接按下组合键即可录制；Backspace 清除（恢复默认）。\n"
         "被其它软件占用时会自动降级到备用键，并把实际生效的按键写进日志。")));
 
@@ -397,10 +407,23 @@ QWidget *SettingsDialog::buildMiscPage()
 
 bool SettingsDialog::apply()
 {
+    if (!validateHotkeys()) return false;
     const auto previous=Settings::instance();
-    const QString translationPath=Settings::dataDir()+"/translation.json";
-    QFile priorFile(translationPath);const bool priorExists=priorFile.exists();QByteArray priorTranslation;
-    if(priorExists){if(!priorFile.open(QIODevice::ReadOnly)){m_saveError->setText(QStringLiteral("无法读取现有翻译设置，更改未保存。"));return false;}priorTranslation=priorFile.readAll();priorFile.close();}
+    struct PriorFile { QString path; bool exists; QByteArray bytes; };
+    QList<PriorFile> priorFiles;
+    for (const auto &name : {QStringLiteral("translation.json"), QStringLiteral("ocr.json")}) {
+        PriorFile prior{Settings::dataDir() + "/" + name, false, {}};
+        QFile file(prior.path);
+        prior.exists = file.exists();
+        if (prior.exists) {
+            if (!file.open(QIODevice::ReadOnly)) {
+                m_saveError->setText(QStringLiteral("无法读取现有翻译或 OCR 设置，更改未保存。"));
+                return false;
+            }
+            prior.bytes = file.readAll();
+        }
+        priorFiles.append(prior);
+    }
     if(!m_translation->save()){showTranslationPage();return false;}
     auto &s = Settings::instance();
     static const QStringList positions{QStringLiteral("TopRight"), QStringLiteral("TopLeft"),
@@ -439,12 +462,65 @@ bool SettingsDialog::apply()
     QString error;
     if(!s.save(&error)) {
         s=previous;bool restored=true;
-        if(priorExists){QSaveFile restore(translationPath);restored=restore.open(QIODevice::WriteOnly) && restore.write(priorTranslation)==priorTranslation.size() && restore.commit();}
-        else restored=QFile::remove(translationPath);
-        m_saveError->setText(error+(restored?QStringLiteral("；更改未保存，草稿仍保留，请修复目录权限后重试。"):QStringLiteral("；翻译设置回滚失败，请检查磁盘后重新确认翻译模式。")));
+        for (const auto &prior : priorFiles) {
+            if (prior.exists) {
+                QSaveFile restore(prior.path);
+                const bool fileRestored = restore.open(QIODevice::WriteOnly)
+                    && restore.write(prior.bytes) == prior.bytes.size() && restore.commit();
+                restored = fileRestored && restored;
+            } else if (QFile::exists(prior.path)) {
+                restored = QFile::remove(prior.path) && restored;
+            }
+        }
+        m_saveError->setText(error+(restored?QStringLiteral("；更改未保存，草稿仍保留，请修复目录权限后重试。"):QStringLiteral("；翻译或 OCR 设置回滚失败，请检查磁盘后重新确认设置。")));
         return false;
     }
     // AppHost applies OS integration after saved(), including automation isolation.
     emit saved();
+    return true;
+}
+
+bool SettingsDialog::validateHotkeys()
+{
+    QMap<QString, QString> used;
+    QMap<QString, QString> globalFallbacks;
+    for (const auto &action : Settings::hotkeyActions()) {
+        if (action.first == "editorTranslate") continue;
+        const auto fallback = HotkeyText::parse(Settings::fallbackChord(action.first));
+        if (fallback.valid()) globalFallbacks.insert(fallback.text, action.second);
+    }
+    const QStringList reserved{
+        "V", "R", "O", "A", "L", "P", "H", "T", "N", "M", "B", "E",
+        "Space", "Enter", "Esc", "Delete", "Backspace", "Ctrl+P", "Ctrl+R",
+        "Ctrl+Z", "Ctrl+Shift+Z", "Ctrl+Y", "Ctrl+S", "Ctrl+Shift+S",
+        "Left", "Right", "Up", "Down", "Shift+Left", "Shift+Right", "Shift+Up", "Shift+Down",
+        "Alt+Left", "Alt+Right", "Alt+Up", "Alt+Down"
+    };
+    for (const auto &action : Settings::hotkeyActions()) {
+        const auto *edit = m_hotkeyEdits.value(action.first);
+        const QString value = edit->chord().isEmpty() ? Settings::defaultChord(action.first) : edit->chord();
+        const auto chord = HotkeyText::parse(value);
+        QString error;
+        if (!chord.valid()) {
+            error = QStringLiteral("“%1”的快捷键无效，请重新录制。").arg(action.second);
+        } else if (used.contains(chord.text)) {
+            error = QStringLiteral("“%1”与“%2”使用相同快捷键 %3，请更换后保存。")
+                .arg(action.second, used.value(chord.text), chord.text);
+        } else if (action.first == "editorTranslate" && globalFallbacks.contains(chord.text)) {
+            error = QStringLiteral("“%1”的快捷键 %2 与“%3”的备用全局快捷键冲突，请更换后保存。")
+                .arg(action.second, chord.text, globalFallbacks.value(chord.text));
+        } else if (reserved.contains(chord.text)
+                   && !(action.first == "pin" && chord.text == "Ctrl+P")) {
+            error = QStringLiteral("“%1”的快捷键 %2 与截图编辑器内置操作冲突，请更换后保存。")
+                .arg(action.second, chord.text);
+        }
+        if (!error.isEmpty()) {
+            m_saveError->setText(error);
+            m_tabs->setCurrentIndex(1);
+            return false;
+        }
+        used.insert(chord.text, action.second);
+    }
+    m_saveError->clear();
     return true;
 }

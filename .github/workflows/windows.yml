@@ -21,6 +21,10 @@ jobs:
         uses: actions/setup-python@v7.1.0
         with:
           python-version: '3.12'
+      - name: Select Node for Playwright Test
+        uses: actions/setup-node@v7.1.0
+        with:
+          node-version: '24'
       - name: Install Qt 6.4.3 and matching MinGW
         uses: jurplel/install-qt-action@v4.5.0
         with:
@@ -51,3 +55,19 @@ jobs:
             docs/artifacts/automated/*.txt
             docs/artifacts/automated/*.xml
             docs/artifacts/automated/*.log
+            docs/artifacts/playwright/**
+      - name: Playwright native acceptance
+        if: success()
+        run: |
+          cmake --build TaskPinQt/build --parallel 2 --target TaskPinTranslationProbe
+          npx --yes pnpm@11.25.0 install --frozen-lockfile --ignore-scripts
+          $env:TASKPIN_BUILD_DIR = Join-Path $env:GITHUB_WORKSPACE 'TaskPinQt/build'
+          $env:TASKPIN_TEST_FONT = Join-Path $env:GITHUB_WORKSPACE 'docs/artifacts/fonts/NotoSansCJKsc-Regular.otf'
+          node node_modules/@playwright/test/cli.js test --config tests/playwright/playwright.config.ts
+      - name: Upload Playwright reports and native screenshots
+        if: always()
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: playwright-native-acceptance
+          if-no-files-found: warn
+          path: docs/artifacts/playwright/
