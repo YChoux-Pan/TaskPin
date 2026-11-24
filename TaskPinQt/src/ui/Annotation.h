@@ -22,6 +22,7 @@ struct Annotation {
     QString text;
     QPoint pos;
     int fontSize = 18;
+    bool textBackground = true;
     int number = 1;
     bool blur = false;   // Pixelate: false = mosaic blocks, true = soft blur
     int block = 14;      // Pixelate block size in logical pixels

@@ -15,6 +15,7 @@ public:
     void cancel();
     bool busy() const { return !m_requestId.isEmpty(); }
     static bool available();
+    static void prewarm();
     static QString runtimeDirectory();
     static bool decode(const QByteArray &json, const QSize &imageSize, OcrResult *result, QString *error);
 signals:

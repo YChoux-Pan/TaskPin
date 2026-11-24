@@ -11,11 +11,16 @@
 #include <QTimer>
 #include <cmath>
 #include <optional>
+#ifdef Q_OS_WIN
+#include <qt_windows.h>
+#endif
 
 namespace Translation {
 namespace {
 constexpr int MaxReplyBytes=1024*1024;
 constexpr int MaxQueuedRequests=8;
+constexpr int NormalIdleTimeoutMs=60000;
+constexpr int WarmIdleTimeoutMs=10*60*1000;
 QPointer<OcrWorker> sharedWorker;
 }
 
@@ -32,6 +37,18 @@ public:
         connect(&m_idle,&QTimer::timeout,this,[this] {if(!m_active && m_queue.isEmpty())stopProcess();});
     }
     ~OcrWorker() override {stopProcess();}
+    void prewarm(const QString &runtime,const OcrProfiles &selection)
+    {
+        if(m_active || !m_queue.isEmpty())return;
+        Request request;
+        request.warmup=true;request.id=QString::number(++m_sequence);request.runtime=runtime;
+        request.profilePath=selection.profilePath();request.profile=selection.profile;
+        if(OcrProfiles::isLocalProfile(selection.profile))request.modelDirectory=OcrProfiles::modelDirectory();
+        // The synthetic blank uses the same model loading path as an actual screenshot.
+        request.image=QImage(128,64,QImage::Format_RGB32);request.image.fill(Qt::white);
+        request.queued.start();request.requestStarted.start();
+        m_queue.append(std::move(request));startNext();
+    }
     void enqueue(Ocr *owner,const QImage &image,const QString &runtime,const OcrProfiles &selection)
     {
         if(m_queue.size()>=MaxQueuedRequests){const QString taskId=owner->m_taskId;emit owner->failed(taskId,QStringLiteral("本地 OCR 等待队列已满，请稍后重试。"));return;}
@@ -50,11 +67,11 @@ private:
     struct Request {
         QPointer<Ocr> owner;QString id,runtime,profilePath,profile,modelDirectory;QImage image;QSize size;
         QElapsedTimer queued,requestStarted,processStarted;
-        qint64 queueMs=0;bool sent=false;
+        qint64 queueMs=0;bool sent=false,warmup=false;
     };
     void stopProcess()
     {
-        m_idle.stop();m_output.clear();
+        m_idle.stop();m_output.clear();m_keepWarm=false;
         if(!m_process)return;
         auto *process=m_process.data();m_process.clear();
         disconnect(process,nullptr,this,nullptr);process->setParent(nullptr);
@@ -65,15 +82,22 @@ private:
     void startNext()
     {
         if(m_active)return;
-        while(!m_queue.isEmpty() && m_queue.first().owner.isNull())m_queue.removeFirst();
-        if(m_queue.isEmpty()){if(m_process)m_idle.start(60000);return;}
+        while(!m_queue.isEmpty() && !m_queue.first().warmup && m_queue.first().owner.isNull())m_queue.removeFirst();
+        if(m_queue.isEmpty()){if(m_process)m_idle.start(m_keepWarm?WarmIdleTimeoutMs:NormalIdleTimeoutMs);return;}
         m_idle.stop();m_active=m_queue.takeFirst();m_active->queueMs=m_active->queued.elapsed();m_active->processStarted.start();
         if(m_process && (m_runtime!=m_active->runtime || m_process->state()==QProcess::NotRunning))stopProcess();
-        m_timeout.start(90000);
+        m_timeout.start(m_active->warmup?15000:90000);
         if(m_process){if(m_process->state()==QProcess::Running)sendActive();return;}
         auto *process=new QProcess(this);m_process=process;m_runtime=m_active->runtime;
+        process->setObjectName("paddleOcrProcess");
         process->setProgram(m_runtime+"/python.exe");process->setWorkingDirectory(m_runtime);
         process->setArguments({"-I","-B",m_runtime+"/helper.py","--worker"});
+#ifdef Q_OS_WIN
+        const bool warmupProcess=m_active->warmup;
+        process->setCreateProcessArgumentsModifier([warmupProcess](QProcess::CreateProcessArguments *args) {
+            if(warmupProcess)args->flags |= BELOW_NORMAL_PRIORITY_CLASS;
+        });
+#endif
         connect(process,&QProcess::started,this,[this,process] {if(m_process==process)sendActive();});
         connect(process,&QProcess::readyReadStandardOutput,this,[this,process] {if(m_process==process)readReplies(process);});
         connect(process,&QProcess::readyReadStandardError,this,[process] {process->readAllStandardError();});
@@ -113,6 +137,18 @@ private:
             }
             if(!m_active || document.object().value("requestId").toString()!=m_active->id)continue;
             Request done=std::move(*m_active);m_active.reset();m_timeout.stop();
+            if(done.warmup) {
+#ifdef Q_OS_WIN
+                HANDLE handle=OpenProcess(PROCESS_SET_INFORMATION,FALSE,DWORD(process->processId()));
+                const bool restored=handle && SetPriorityClass(handle,NORMAL_PRIORITY_CLASS);
+                if(handle)CloseHandle(handle);
+                // If Windows won't restore normal priority, restart before real OCR.
+                if(!restored)stopProcess();
+                else m_keepWarm=document.object().value("ok").toBool();
+#else
+                m_keepWarm=document.object().value("ok").toBool();
+#endif
+            }
             const QJsonObject timings{{"queue",double(done.queueMs)},{"process",double(done.processStarted.elapsed())},{"requestTotal",double(done.requestStarted.elapsed())}};
             if(done.owner)done.owner->accept(done.id,line,done.size,timings);
             startNext();
@@ -126,7 +162,7 @@ private:
     }
     QPointer<QProcess> m_process;QString m_runtime;QByteArray m_output;
     QList<Request> m_queue;std::optional<Request> m_active;
-    QTimer m_timeout,m_idle;quint64 m_sequence=0;
+    QTimer m_timeout,m_idle;quint64 m_sequence=0;bool m_keepWarm=false;
 };
 
 QString Ocr::runtimeDirectory()
@@ -138,6 +174,14 @@ bool Ocr::available()
 {
     const QString runtime=runtimeDirectory();
     return QFileInfo::exists(runtime+"/python.exe") && QFileInfo::exists(runtime+"/helper.py");
+}
+void Ocr::prewarm()
+{
+    if(!available())return;
+    QString error;const auto selection=OcrProfiles::load(&error);
+    if(!error.isEmpty() || !selection.validate(&error,false))return;
+    if(!sharedWorker)sharedWorker=new OcrWorker(QCoreApplication::instance());
+    sharedWorker->prewarm(runtimeDirectory(),selection);
 }
 Ocr::Ocr(QObject *parent) : QObject(parent) {}
 Ocr::~Ocr() { cancel(); }

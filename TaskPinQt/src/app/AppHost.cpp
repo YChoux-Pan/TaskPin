@@ -25,6 +25,8 @@
 #include "ui/AppIcon.h"
 #include "ui/TranslationWindow.h"
 #include "translation/OcrProfiles.h"
+#include "translation/TranslationConfig.h"
+#include "translation/TranslationOcr.h"
 
 #include <QAction>
 #include <QApplication>
@@ -226,6 +228,10 @@ void AppHost::start(const QString &initialCommand)
     });
 
     if (!initialCommand.isEmpty()) QTimer::singleShot(0, this, [this, initialCommand] { handleCommand(initialCommand); });
+    if (!taskPinAutomation()) QTimer::singleShot(2000, this, [] {
+        const auto mode = Translation::Config::load().mode;
+        if (mode == "local" || mode == "cloud") Translation::Ocr::prewarm();
+    });
 }
 
 void AppHost::handleCommand(const QString &command)
