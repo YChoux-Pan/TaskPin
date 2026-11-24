@@ -28,6 +28,10 @@
 #include <QJsonObject>
 #include <QPlainTextEdit>
 #include <QPushButton>
+#include <QProcess>
+#ifdef Q_OS_WIN
+#include <qt_windows.h>
+#endif
 #include <QSignalSpy>
 #include <QScopeGuard>
 #include <QStandardItemModel>
@@ -618,6 +622,34 @@ private slots:
         QCOMPARE(result.stageMs.value("load").toDouble(-1),0.0);QCOMPARE(result.stageMs.value("inference").toDouble(),100.0);
         QVERIFY(!Translation::Ocr::decode(R"({"ok":true,"stageMs":{"load":-1},"lines":[]})",{200,100},&result,&error));
         QVERIFY(!Translation::Ocr::decode(R"({"ok":true,"stageMs":{"load":"fast"},"lines":[]})",{200,100},&result,&error));
+    }
+    void prewarmReusesSelectedModelForFirstScreenshot() {
+        if(!Translation::Ocr::available())QSKIP("Real packaged OCR runtime not available");
+        QTemporaryDir isolated;QVERIFY(isolated.isValid());
+        const auto previousData=qgetenv("TASKPIN_DATA");
+        qputenv("TASKPIN_DATA",isolated.path().toUtf8());
+        const auto reset=qScopeGuard([&]{qputenv("TASKPIN_DATA",previousData);});
+        OcrProfiles profile;profile.profile="builtin-ppocrv6-tiny";QString error;QVERIFY(profile.save(&error));
+        Translation::Ocr recognizer;
+        QSignalSpy finished(&recognizer,&Translation::Ocr::finished),failed(&recognizer,&Translation::Ocr::failed);
+        QImage image(320,100,QImage::Format_RGB32);image.fill(Qt::white);
+        Translation::Ocr::prewarm();
+        QVERIFY(!recognizer.busy());
+        Translation::Ocr::prewarm();
+        recognizer.recognize("first-real-screenshot",image);
+        QTRY_VERIFY_WITH_TIMEOUT(!finished.isEmpty() || !failed.isEmpty(),20000);
+        QCOMPARE(failed.size(),0);QCOMPARE(finished.size(),1);
+        QCOMPARE(finished.first().first().toString(),QString("first-real-screenshot"));
+        const auto result=qvariant_cast<OcrResult>(finished.first()[1]);
+        QCOMPARE(result.profileId,profile.profile);QVERIFY(result.workerReused);
+        QCOMPARE(result.stageMs.value("load").toDouble(-1),0.0);
+#ifdef Q_OS_WIN
+        auto *worker=QCoreApplication::instance()->findChild<QObject *>("paddleOcrWorker");QVERIFY(worker);
+        auto *process=worker->findChild<QProcess *>("paddleOcrProcess");QVERIFY(process);
+        const HANDLE processHandle=OpenProcess(PROCESS_QUERY_INFORMATION,FALSE,DWORD(process->processId()));QVERIFY(processHandle);
+        const DWORD priority=GetPriorityClass(processHandle);CloseHandle(processHandle);
+        QCOMPARE(priority,DWORD(NORMAL_PRIORITY_CLASS));
+#endif
     }
     void sharedOcrWorkerReusesModelAndHonorsCancelledOwners() {
         if(!Translation::Ocr::available())QSKIP("Real packaged OCR runtime not available");

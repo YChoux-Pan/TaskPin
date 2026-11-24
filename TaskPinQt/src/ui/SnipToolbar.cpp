@@ -35,6 +35,8 @@ const Definition definitions[] = {
     { "width+", "增大线宽", "滚轮 ↑" },
     { "font-", "减小字号", "滚轮 ↓" },
     { "font+", "增大字号", "滚轮 ↑" },
+    { "font-value", "当前字号", "" },
+    { "text-background", "切换文字背景", "" },
     { "block-", "减小强度", "滚轮 ↓" },
     { "block+", "增大强度", "滚轮 ↑" },
     { "quick", "快速保存", "Ctrl+Shift+S" },
@@ -63,10 +65,18 @@ QRect SnipToolbar::layout(QVector<SnipAction> &actions, const QRect &viewport, c
     if (actions.isEmpty() || viewport.width() < 40 || viewport.height() < 40) return {};
     constexpr int pad = 6, gap = 3, button = 30, margin = 4;
     const QRect available = viewport.adjusted(margin, margin, -margin, -margin);
+    QVector<int> cells;
     auto sizeFor = [&](const QRect &space, int &columns) {
         columns = qMin(20, (space.width() - 2 * pad + gap) / (button + gap));
         if (columns < 1) return QSize();
-        const int rows = (actions.size() + columns - 1) / columns;
+        cells.clear();
+        int index = 0;
+        for (const auto &action : actions) {
+            if (action.id == "font-" && columns >= 3 && columns - index % columns < 3)
+                index += columns - index % columns;
+            cells.append(index++);
+        }
+        const int rows = (index + columns - 1) / columns;
         return QSize(columns * (button + gap) - gap + 2 * pad, rows * (button + gap) - gap + 2 * pad);
     };
     const QRect spaces[] = {
@@ -91,7 +101,7 @@ QRect SnipToolbar::layout(QVector<SnipAction> &actions, const QRect &viewport, c
     }
     if (bar.isEmpty()) return {};
     for (int i = 0; i < actions.size(); ++i)
-        actions[i].rect = QRect(bar.left() + pad + (i % columns) * (button + gap),
-            bar.top() + pad + (i / columns) * (button + gap), button, button);
+        actions[i].rect = QRect(bar.left() + pad + (cells[i] % columns) * (button + gap),
+            bar.top() + pad + (cells[i] / columns) * (button + gap), button, button);
     return bar;
 }

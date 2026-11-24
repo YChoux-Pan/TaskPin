@@ -138,6 +138,7 @@ void SnipOverlay::setPreselect(const QRect &r)
 {
     m_sel = r.translated(-m_shot.logicalRect.topLeft()).intersected(rect());
     m_hasSel = m_sel.width() > 4 && m_sel.height() > 4;
+    updateSelectionCursor();
     update();
 }
 
@@ -148,7 +149,7 @@ void SnipOverlay::setTool(Tool t)
     if (!m_hasSel) return;
     commitText();
     m_tool = t;
-    setCursor(t == Tool::Select ? Qt::ArrowCursor : Qt::CrossCursor);
+    updateSelectionCursor();
     if (t != Tool::Select) m_selected = -1;
     update();
 }
@@ -434,9 +435,14 @@ void SnipOverlay::drawToolbar(QPainter &p)
             add(QStringLiteral("swatch:%1").arg(i), 3);
         add("custom", 3);
     }
-    if (m_tool != Tool::Select && m_tool != Tool::Eraser) {
-        add(text ? "font-" : pixels ? "block-" : "width-", 4);
-        add(text ? "font+" : pixels ? "block+" : "width+", 4);
+    if (text) {
+        add("text-background", 3);
+        add("font-", 4, m_fontSize > 10);
+        add("font-value", 4, false);
+        add("font+", 4, m_fontSize < 96);
+    } else if (m_tool != Tool::Select && m_tool != Tool::Eraser) {
+        add(pixels ? "block-" : "width-", 4);
+        add(pixels ? "block+" : "width+", 4);
     }
     m_toolbarRect = SnipToolbar::layout(m_actions, rect(), selection());
     p.save();
@@ -453,7 +459,8 @@ void SnipOverlay::drawToolbar(QPainter &p)
             p.drawLine(r.left() - 2, r.top() + 7, r.left() - 2, r.bottom() - 7);
         }
         previous = a.group;
-        const bool selected = a.id == "tool:" + enumTools.at(active);
+        const bool selected = a.id == "tool:" + enumTools.at(active)
+            || (a.id == "text-background" && m_textBackground);
         p.setPen(Qt::NoPen);
         if (a.id == "copy" || selected || a.id == m_hoverHot) {
             p.setBrush(a.id == "copy" ? kToolAccent
@@ -477,13 +484,26 @@ void SnipOverlay::drawToolbar(QPainter &p)
             p.drawRoundedRect(r.adjusted(6, 6, -6, -6), 3, 3);
             p.setPen(Qt::white);
             p.drawText(r, Qt::AlignCenter, "+");
+        } else if (a.id == "text-background") {
+            p.setPen(QPen(fg, 1.4));
+            p.setBrush(Qt::NoBrush);
+            const QRect inset = r.adjusted(7, 7, -7, -7);
+            p.drawRoundedRect(inset, 2, 2);
+            p.drawText(inset, Qt::AlignCenter, "A");
+            if (!m_textBackground) p.drawLine(inset.bottomLeft(), inset.topRight());
         } else if (a.group == 4) {
             p.setPen(fg);
             QFont f = font();
             f.setPixelSize(11);
             p.setFont(f);
-            const int value = text ? m_fontSize : pixels ? m_block : m_width;
-            p.drawText(r, Qt::AlignCenter, QString(a.id.endsWith('+') ? "+%1" : "−%1").arg(value));
+            if (text) {
+                if (a.id == "font-value") p.setPen(kFg);
+                p.drawText(r, Qt::AlignCenter, a.id == "font-value" ? QString::number(m_fontSize)
+                    : a.id.endsWith('+') ? QStringLiteral("+") : QStringLiteral("−"));
+            } else {
+                const int value = pixels ? m_block : m_width;
+                p.drawText(r, Qt::AlignCenter, QString(a.id.endsWith('+') ? "+%1" : "−%1").arg(value));
+            }
         } else if (a.id == "more") {
             p.setPen(fg);
             p.drawText(r, Qt::AlignCenter, QStringLiteral("•••"));
@@ -520,6 +540,7 @@ void SnipOverlay::mousePressEvent(QMouseEvent *e)
     if (!m_hasSel) {
         // clicking while the cursor is over a window snaps to that window instead of rubber-banding
         m_mode = Mode::SelectRect;
+        updateSelectionCursor();
         m_dragStart = e->pos();
         m_dragLast = e->pos();
         m_dragMoved = false;
@@ -568,6 +589,7 @@ void SnipOverlay::mousePressEvent(QMouseEvent *e)
         m_dragMoved = false;
         m_sel = QRect(e->pos(), QSize());
         m_hasSel = false;
+        updateSelectionCursor();
         update();
         return;
     }
@@ -731,16 +753,14 @@ void SnipOverlay::mouseMoveEvent(QMouseEvent *e)
     }
 
     if (m_tool == Tool::Select && !m_hasSel) updateHoverWindow(e->pos());
-    if (m_tool == Tool::Select && m_hasSel) {
-        const int h = selectionHandleAt(e->pos());
-        const Qt::CursorShape handles[] { Qt::SizeFDiagCursor, Qt::SizeBDiagCursor, Qt::SizeBDiagCursor,
-            Qt::SizeFDiagCursor, Qt::SizeVerCursor, Qt::SizeVerCursor, Qt::SizeHorCursor, Qt::SizeHorCursor };
-        setCursor(m_toolbarRect.contains(e->pos()) ? Qt::ArrowCursor
-                : h >= 0                           ? handles[h]
-                : m_sel.contains(e->pos())         ? Qt::SizeAllCursor
-                                                   : Qt::CrossCursor);
-    }
     update();
+}
+
+void SnipOverlay::updateSelectionCursor()
+{
+    const bool selecting = !m_hasSel || m_mode == Mode::SelectRect;
+    if (selecting) setCursor(Qt::CrossCursor);
+    else unsetCursor();
 }
 
 void SnipOverlay::mouseReleaseEvent(QMouseEvent *e)
@@ -763,6 +783,7 @@ void SnipOverlay::mouseReleaseEvent(QMouseEvent *e)
             m_sel = r;
             m_hasSel = true;
         }
+        updateSelectionCursor();
         update();
         return;
     }
@@ -777,10 +798,12 @@ void SnipOverlay::mouseReleaseEvent(QMouseEvent *e)
 
 void SnipOverlay::wheelEvent(QWheelEvent *e)
 {
+    if (!e->angleDelta().y()) return;
     const int dir = e->angleDelta().y() > 0 ? 1 : -1;
-    if (m_tool == Tool::Text)
+    if (m_tool == Tool::Text) {
         m_fontSize = qBound(10, m_fontSize + dir * 2, 96);
-    else if (m_tool == Tool::Mosaic || m_tool == Tool::Blur)
+        updateTextEditor(m_color);
+    } else if (m_tool == Tool::Mosaic || m_tool == Tool::Blur)
         m_block = qBound(4, m_block + dir * 2, 80);
     else
         m_width = qBound(1, m_width + dir, 40);
@@ -843,6 +866,7 @@ void SnipOverlay::keyPressEvent(QKeyEvent *e)
     case Qt::Key_Space:
         m_sel = rect();
         m_hasSel = true;
+        updateSelectionCursor();
         update();
         return;
     case Qt::Key_Return:
@@ -992,7 +1016,9 @@ void SnipOverlay::handleAction(const QString &id)
         return;
     }
     if (!m_hasSel) return;
-    commitText();
+    const bool changesTextStyle = id == "custom" || id == "text-background"
+        || id.startsWith("font") || id.startsWith("swatch:");
+    if (!changesTextStyle) commitText();
     if (id == "more") {
         QMenu menu(this);
         QAction *quick = menu.addAction(SnipToolbar::label("quick") + "\tCtrl+Shift+S");
@@ -1005,7 +1031,10 @@ void SnipOverlay::handleAction(const QString &id)
         return;
     }
     if (id == "custom") {
-        const QColor c = QColorDialog::getColor(m_color, this, QStringLiteral("自选颜色"));
+        QColorDialog dialog(m_color, this);
+        dialog.setWindowTitle(QStringLiteral("自选颜色"));
+        connect(&dialog, &QColorDialog::currentColorChanged, this, &SnipOverlay::updateTextEditor);
+        const QColor c = dialog.exec() == QDialog::Accepted ? dialog.selectedColor() : QColor();
         if (c.isValid()) {
             if (m_selected >= 0 && m_selected < m_items.size() && m_items[m_selected].color != c) {
                 m_gestureRecorded = false;
@@ -1015,13 +1044,25 @@ void SnipOverlay::handleAction(const QString &id)
             m_color = c;
             update();
         }
+        updateTextEditor(m_color);
+        if (m_textEdit) m_textEdit->setFocus();
+        return;
+    }
+    if (id == "text-background") {
+        m_textBackground = !m_textBackground;
+        updateTextEditor(m_color);
+        if (m_textEdit) m_textEdit->setFocus();
+        update();
         return;
     }
     if (id.startsWith("font") || id.startsWith("block")) {
         const int d = id.endsWith('+') ? 2 : -2;
-        if (id.startsWith("font"))
+        if (id == "font-value") return;
+        if (id.startsWith("font")) {
             m_fontSize = qBound(10, m_fontSize + d, 96);
-        else
+            updateTextEditor(m_color);
+            if (m_textEdit) m_textEdit->setFocus();
+        } else
             m_block = qBound(4, m_block + d, 80);
         update();
         return;
@@ -1062,6 +1103,8 @@ void SnipOverlay::handleAction(const QString &id)
             m_items[m_selected].color = c;
         }
         m_color = c;
+        updateTextEditor(m_color);
+        if (m_textEdit) m_textEdit->setFocus();
         update();
         return;
     }
@@ -1229,20 +1272,29 @@ void SnipOverlay::mouseDoubleClickEvent(QMouseEvent *e)
 void SnipOverlay::beginText(const QPoint &at)
 {
     commitText();
-    QFont f = font();
-    f.setPixelSize(m_fontSize);
-    m_textPos = at + QPoint(0, QFontMetrics(f).ascent());
+    m_textAnchor = at;
     m_textEdit = new QLineEdit(this);
-    m_textEdit->setFont(f);
-    m_textEdit->setGeometry(
-        at.x(), at.y(), qMin(240, width() - at.x()), qMin(m_fontSize + 10, height() - at.y()));
-    m_textEdit->setStyleSheet(
-        "QLineEdit { background: rgba(20,25,32,235); border: 1px solid #4C9AFF; color: #E8ECF2; }");
+    m_textEdit->setCursor(cursor());
+    updateTextEditor(m_color);
     m_textEdit->installEventFilter(this);
     m_textEdit->show();
     m_textEdit->setFocus();
-    // Enter commits (returnPressed) and clicking elsewhere commits too; Esc cancels in eventFilter.
-    connect(m_textEdit, &QLineEdit::editingFinished, this, &SnipOverlay::commitText);
+}
+
+void SnipOverlay::updateTextEditor(const QColor &color)
+{
+    if (!m_textEdit) return;
+    QFont f = font();
+    f.setPixelSize(m_fontSize);
+    m_textEdit->setFont(f);
+    const QRect area = selection();
+    const int boxHeight = QFontMetrics(f).height() + 8;
+    const int y = qBound(area.top(), m_textAnchor.y(), qMax(area.top(), area.bottom() - boxHeight + 1));
+    m_textEdit->setGeometry(m_textAnchor.x(), y, qMin(420, area.right() - m_textAnchor.x() + 1),
+        qMin(boxHeight, area.height()));
+    m_textEdit->setStyleSheet(QStringLiteral("QLineEdit { background: %1; color: %2; font-size: %3px; border: 1px solid #4C9AFF; padding: 0px; }")
+        .arg(m_textBackground ? QStringLiteral("rgba(16,20,26,200)") : QStringLiteral("transparent"), color.name())
+        .arg(m_fontSize));
 }
 
 bool SnipOverlay::eventFilter(QObject *obj, QEvent *e)
@@ -1259,6 +1311,10 @@ bool SnipOverlay::eventFilter(QObject *obj, QEvent *e)
             return true;
         }
     }
+    if (obj == m_textEdit && e->type() == QEvent::Wheel) {
+        wheelEvent(static_cast<QWheelEvent *>(e));
+        return true;
+    }
     return QWidget::eventFilter(obj, e);
 }
 
@@ -1266,9 +1322,12 @@ void SnipOverlay::commitText()
 {
     if (!m_textEdit) return;
     QLineEdit *edit = m_textEdit;
-    m_textEdit = nullptr; // drop the pointer first: setFocus() below emits editingFinished again
+    m_textEdit = nullptr;
     const QString text = edit->text().trimmed();
+    const QFontMetrics metrics(edit->font());
+    const QPoint baseline(edit->x() + 2, edit->y() + (edit->height() - metrics.height()) / 2 + metrics.ascent());
     edit->removeEventFilter(this);
+    edit->hide();
     edit->deleteLater();
     setFocus();
     if (text.isEmpty()) return;
@@ -1277,8 +1336,9 @@ void SnipOverlay::commitText()
     a.kind = Annotation::Text;
     a.color = m_color;
     a.text = text;
-    a.pos = m_textPos;
+    a.pos = baseline;
     a.fontSize = m_fontSize;
+    a.textBackground = m_textBackground;
     m_gestureRecorded = false;
     recordMutation();
     m_items.append(a);
@@ -1291,6 +1351,7 @@ void SnipOverlay::cancelText()
     QLineEdit *edit = m_textEdit;
     m_textEdit = nullptr;
     edit->removeEventFilter(this);
+    edit->hide();
     edit->deleteLater();
     setFocus();
     update();

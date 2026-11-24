@@ -98,6 +98,59 @@ private slots:
         drag(w, { 200, 180 }, { 230, 200 });
         QCOMPARE(w.selection(), QRect(70, 60, 300, 200));
     }
+    void regionSelectionOwnsCrosshair()
+    {
+        SnipOverlay w(fixture());
+        ready(w, {});
+        QCOMPARE(w.cursor().shape(), Qt::CrossCursor);
+        drag(w, { 40, 40 }, { 339, 239 });
+        QCOMPARE(w.cursor().shape(), Qt::ArrowCursor);
+        clickAction(w, "tool:pen");
+        QCOMPARE(w.cursor().shape(), Qt::ArrowCursor);
+        clickAction(w, "tool:select");
+        QTest::mousePress(&w, Qt::LeftButton, Qt::NoModifier, { 20, 20 });
+        QCOMPARE(w.cursor().shape(), Qt::CrossCursor);
+        QTest::mouseRelease(&w, Qt::LeftButton, Qt::NoModifier, { 320, 220 });
+        QCOMPARE(w.cursor().shape(), Qt::ArrowCursor);
+    }
+    void textFormattingUpdatesCurrentDraftAndExport()
+    {
+        SnipOverlay w(fixture());
+        ready(w, { 430, 350, 300, 130 });
+        clickAction(w, "tool:text");
+        QTest::mouseClick(&w, Qt::LeftButton, Qt::NoModifier, { 450, 370 });
+        auto *edit = w.findChild<QLineEdit *>();
+        QVERIFY(edit);
+        inputChinese(edit, QStringLiteral("当前文字"));
+        QVERIFY(action(w, "font-value").rect.isValid());
+        QCOMPARE(action(w, "font-").rect.top(), action(w, "font+").rect.top());
+        const int initial = edit->font().pixelSize();
+        clickAction(w, "font+");
+        QCOMPARE(edit->font().pixelSize(), initial + 2);
+        QVERIFY(edit->styleSheet().contains(QStringLiteral("font-size: 20px")));
+        clickAction(w, "font-");
+        QCOMPARE(edit->font().pixelSize(), initial);
+        const auto initialColor = edit->palette().color(QPalette::Text);
+        clickAction(w, "swatch:2");
+        QVERIFY(edit->palette().color(QPalette::Text) != initialColor);
+        clickAction(w, "text-background");
+        QCOMPARE(edit->palette().color(QPalette::Base).alpha(), 0);
+        QCOMPARE(edit->text(), QStringLiteral("当前文字"));
+        QCoreApplication::processEvents();
+        QVERIFY(edit->hasFocus());
+        const QImage rendered = output(w);
+        QVERIFY(!rendered.isNull());
+        QCOMPARE(rendered.pixelColor(290, 120), QColor(Qt::white));
+        int whitePixels = 0, greenPixels = 0;
+        for(int y = 0; y < rendered.height(); ++y)
+            for(int x = 0; x < rendered.width(); ++x) {
+                const QColor pixel = rendered.pixelColor(x, y);
+                whitePixels += pixel == QColor(Qt::white);
+                greenPixels += pixel == QColor(0x3E, 0xC4, 0x6B);
+            }
+        QVERIFY(whitePixels > rendered.width() * rendered.height() * .90);
+        QVERIFY(greenPixels > 0);
+    }
     void configuredPinExportsAnnotatedSelection_data()
     {
         QTest::addColumn<QString>("chord");

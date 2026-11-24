@@ -64,9 +64,11 @@ void Annotation::paint(QPainter &p, const QImage *base, qreal dpr) const
         p.setFont(f);
         const QFontMetrics fm(f);
         const QRect box(pos.x() - 5, pos.y() - fm.ascent() - 3, fm.horizontalAdvance(text) + 10, fm.height() + 6);
-        p.setPen(Qt::NoPen);
-        p.setBrush(QColor(16, 20, 26, 200));
-        p.drawRoundedRect(box, 5, 5);
+        if (textBackground) {
+            p.setPen(Qt::NoPen);
+            p.setBrush(QColor(16, 20, 26, 200));
+            p.drawRoundedRect(box, 5, 5);
+        }
         p.setPen(color);
         p.drawText(pos, text);
         break;

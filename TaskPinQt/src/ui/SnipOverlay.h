@@ -85,6 +85,8 @@ private:
 
     QImage compose() const;
     void beginText(const QPoint &at);
+    void updateTextEditor(const QColor &color);
+    void updateSelectionCursor();
     void commitText();
     void cancelText();
     void undo();
@@ -122,6 +124,7 @@ private:
     QColor m_color{0xE5, 0x3B, 0x3B};
     int m_width = 3;
     int m_fontSize = 18;
+    bool m_textBackground = true;
     int m_block = 14;
     int m_nextNumber = 1;
 
@@ -133,7 +136,7 @@ private:
     int m_selected = -1;
 
     QLineEdit *m_textEdit = nullptr;
-    QPoint m_textPos;
+    QPoint m_textAnchor;
 
     struct Hot {
         QRect rect;

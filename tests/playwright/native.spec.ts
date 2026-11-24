@@ -91,7 +91,8 @@ test('Comparison stays opaque and proportional on light/dark pins', async ({}, i
 test('F3 and custom editor shortcuts export the selected image', async ({}, info) => {
   await qt('TaskPinScreenshotTests', ['configuredPinExportsAnnotatedSelection',
     'configuredTranslationReplacesDefaultShortcut', 'bareCustomTranslationDoesNotConsumeTextInput',
-    'configuredOutputCommitsFocusedText', 'actualPinFallbackAppearsAndWorksInEditor'], info);
+    'configuredOutputCommitsFocusedText', 'actualPinFallbackAppearsAndWorksInEditor',
+    'regionSelectionOwnsCrosshair', 'textFormattingUpdatesCurrentDraftAndExport'], info);
 });
 
 test('Host hotkey routing, persistence and collision checks match settings', async ({}, info) => {
@@ -105,7 +106,8 @@ test('OCR profile validation, save and cancel preserve configuration', async ({}
     'invalidOcrProfileDoesNotSaveEitherConfiguration', 'ocrTimingMetadataIsValidatedAndPreserved',
     'sharedOcrWorkerReusesModelAndHonorsCancelledOwners', 'invalidSavedOcrSelectionFailsVisiblyBeforeRuntimeFallback',
     'ocrModelHashFailureExplainsSelectedModelProblem', 'saturatedOcrQueueKeepsFailureIdDuringImmediateReplacement',
-    'immediateOcrInputFailureKeepsCallerIdSnapshot', 'customOcrValidationKeepsUiResponsiveAndCancelPreservesFiles'], info);
+    'immediateOcrInputFailureKeepsCallerIdSnapshot', 'customOcrValidationKeepsUiResponsiveAndCancelPreservesFiles',
+    'prewarmReusesSelectedModelForFirstScreenshot'], info);
 });
 
 test('Bundled lightweight PaddleOCR switches, persists and translates a selected region', async ({}, info) => {
