@@ -20,18 +20,22 @@
 #include <QFont>
 #include <QFontMetrics>
 #include <QGuiApplication>
+#include <QHBoxLayout>
 #include <QInputDialog>
 #include <QKeyEvent>
+#include <QLabel>
 #include <QMenu>
 #include <QMouseEvent>
 #include <QPainter>
 #include <QPointer>
 #include <QScreen>
 #include <QSignalBlocker>
+#include <QSlider>
 #include <QTextDocument>
 #include <QTimer>
 #include <QTransform>
 #include <QWheelEvent>
+#include <QWidgetAction>
 #include <algorithm>
 #include <cmath>
 
@@ -396,11 +400,32 @@ void PinWindow::buildMenu(QMenu *menu)
         connect(a, &QAction::triggered, this, [this, value] { applyAppearance(value, m_borderWidth, m_borderColor); });
     }
     auto *border = appearance->addMenu(QStringLiteral("边框宽度"));
-    for (int value : {0, 1, 2, 4, 8}) {
-        auto *a = border->addAction(value == 0 ? QStringLiteral("关闭边框") : QStringLiteral("%1 px").arg(value));
-        a->setCheckable(true); a->setChecked(m_borderWidth == value);
-        connect(a, &QAction::triggered, this, [this, value] { applyAppearance(m_shadowStrength, value, m_borderColor); });
-    }
+    auto *borderAction = new QWidgetAction(border);
+    auto *row = new QWidget(border);
+    auto *layout = new QHBoxLayout(row);
+    auto *slider = new QSlider(Qt::Horizontal, row);
+    slider->setObjectName(QStringLiteral("pinBorderWidth"));
+    slider->setAccessibleName(border->title());
+    slider->setMinimumWidth(140);
+    slider->setRange(0, 8);
+    slider->setValue(m_borderWidth);
+    auto *value = new QLabel(QStringLiteral("%1 px").arg(slider->value()), row);
+    value->setObjectName(QStringLiteral("pinBorderWidthValue"));
+    layout->addWidget(slider, 1);
+    layout->addWidget(value);
+    row->setFocusProxy(slider);
+    borderAction->setDefaultWidget(row);
+    border->addAction(borderAction);
+    connect(border, &QMenu::aboutToShow, slider, [slider] {
+        QTimer::singleShot(0, slider, [slider] {
+            if (slider->isVisible()) slider->setFocus(Qt::PopupFocusReason);
+        });
+    });
+    connect(slider, &QSlider::valueChanged, this, [this, value](int width) {
+        value->setText(QStringLiteral("%1 px").arg(width));
+        m_borderWidth = width;
+        update();
+    });
     appearance->addAction(QStringLiteral("边框颜色…"), this, [this] {
         const QPointer<PinWindow> alive=this;
         const auto c = QColorDialog::getColor(m_borderColor, this, QStringLiteral("贴图边框颜色"));

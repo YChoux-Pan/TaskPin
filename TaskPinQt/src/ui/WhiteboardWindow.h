@@ -8,6 +8,9 @@
 #include <QVector>
 #include <QWidget>
 
+class QLabel;
+class QSlider;
+
 /// Handwriting board: frozen-screen whiteboard (W1) or ink floating over the desktop (W2).
 class WhiteboardWindow : public QWidget {
     Q_OBJECT
@@ -20,6 +23,7 @@ signals:
     void printRequested(const QImage &image);
 
 protected:
+    void resizeEvent(QResizeEvent *e) override;
     void paintEvent(QPaintEvent *e) override;
     void mousePressEvent(QMouseEvent *e) override;
     void mouseMoveEvent(QMouseEvent *e) override;
@@ -40,7 +44,8 @@ private:
     bool m_transparent = false;
 
     QColor m_color{0xE5, 0x3B, 0x3B};
-    int m_width = 4;
+    QSlider *m_widthSlider;
+    QLabel *m_widthValue;
 
     QVector<Annotation> m_strokes;
     QVector<Annotation> m_redo;

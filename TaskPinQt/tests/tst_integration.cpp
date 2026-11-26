@@ -26,7 +26,9 @@
 #include <QLabel>
 #include <QScreen>
 #include <QScopeGuard>
+#include <QSlider>
 #include <QSpinBox>
+#include <QTabWidget>
 #include <QTemporaryDir>
 #include <QTimer>
 #include <QWheelEvent>
@@ -409,6 +411,121 @@ private slots:
         QTest::keyClick(&pin, Qt::Key_Minus);
         QTest::keyClick(&pin, Qt::Key_0, Qt::ControlModifier);
         QCOMPARE(pin.zoom(), 1.0);
+    }
+    void widthSlidersSaveAndCancel()
+    {
+        const Settings previous = Settings::instance();
+        const auto restore = qScopeGuard([previous] { Settings::instance() = previous; Settings::instance().save(); });
+        Settings::instance().resetToDefaults();
+        Settings::instance().annotationWidth = 17;
+        Settings::instance().pinBorderWidth = 5;
+        QVERIFY(Settings::instance().save());
+        SettingsDialog dialog;
+        auto *tabs = dialog.findChild<QTabWidget *>();
+        QVERIFY(tabs);
+        tabs->setCurrentIndex(2);
+        dialog.show();
+        auto *annotation = dialog.findChild<QSlider *>("annotationWidth");
+        auto *border = dialog.findChild<QSlider *>("pinBorderWidth");
+        auto *annotationValue = dialog.findChild<QLabel *>("annotationWidthValue");
+        auto *borderValue = dialog.findChild<QLabel *>("pinBorderWidthValue");
+        QVERIFY(annotation && border && annotationValue && borderValue);
+        QCOMPARE(annotation->orientation(), Qt::Horizontal);
+        QCOMPARE(border->orientation(), Qt::Horizontal);
+        QCOMPARE(annotationValue->text(), QString("17 px"));
+        QCOMPARE(borderValue->text(), QString("5 px"));
+        QTest::keyClick(annotation, Qt::Key_End);
+        QCOMPARE(annotation->value(), 40);
+        const QPoint handle(annotation->width() - 4, annotation->rect().center().y());
+        QTest::mousePress(annotation, Qt::LeftButton, {}, handle);
+        QTest::mouseMove(annotation, annotation->rect().center());
+        QTest::mouseRelease(annotation, Qt::LeftButton, {}, annotation->rect().center());
+        const int dragged = annotation->value();
+        QVERIFY(dragged > 1 && dragged < 40);
+        QCOMPARE(annotationValue->text(), QString("%1 px").arg(dragged));
+        QTest::keyClick(border, Qt::Key_Home);
+        QCOMPARE(borderValue->text(), QString("0 px"));
+        QCOMPARE(Settings::instance().annotationWidth, 17);
+        QCOMPARE(Settings::instance().pinBorderWidth, 5);
+
+        auto *buttons = dialog.findChild<QDialogButtonBox *>();
+        QVERIFY(buttons);
+        for (auto *button : buttons->buttons())
+            if (buttons->buttonRole(button) == QDialogButtonBox::AcceptRole) button->click();
+        QCOMPARE(dialog.result(), int(QDialog::Accepted));
+        Settings onDisk;
+        onDisk.load();
+        QCOMPARE(onDisk.annotationWidth, dragged);
+        QCOMPARE(onDisk.pinBorderWidth, 0);
+
+        SettingsDialog reopened;
+        auto *annotationAgain = reopened.findChild<QSlider *>("annotationWidth");
+        auto *borderAgain = reopened.findChild<QSlider *>("pinBorderWidth");
+        QVERIFY(annotationAgain && borderAgain);
+        QCOMPARE(annotationAgain->value(), dragged);
+        QCOMPARE(borderAgain->value(), 0);
+        QTest::keyClick(annotationAgain, Qt::Key_Home);
+        QTest::keyClick(borderAgain, Qt::Key_End);
+        QCOMPARE(annotationAgain->value(), 1);
+        QCOMPARE(borderAgain->value(), 8);
+        reopened.reject();
+        onDisk.load();
+        QCOMPARE(onDisk.annotationWidth, dragged);
+        QCOMPARE(onDisk.pinBorderWidth, 0);
+        QCOMPARE(Settings::instance().annotationWidth, dragged);
+        QCOMPARE(Settings::instance().pinBorderWidth, 0);
+    }
+    void pinBorderSliderUpdatesOnlyCurrentPin()
+    {
+        const int defaultBorder = Settings::instance().pinBorderWidth;
+        QImage source(100, 60, QImage::Format_RGB32);
+        source.fill(Qt::white);
+        PinWindow pin(source);
+        PinWindow peer(source);
+        pin.applyAppearance(0, 4, Qt::black);
+        peer.applyAppearance(0, 4, Qt::black);
+        const QRect before = pin.contentGeometry();
+        inspectMenu(pin, [](QMenu *menu) {
+            auto *width = named(menu, QStringLiteral("边框宽度"));
+            QVERIFY(width && width->menu());
+            auto *submenu = width->menu();
+            auto *slider = submenu->findChild<QSlider *>("pinBorderWidth");
+            auto *value = submenu->findChild<QLabel *>("pinBorderWidthValue");
+            QVERIFY(slider && value);
+            QCOMPARE(slider->orientation(), Qt::Horizontal);
+            QCOMPARE(value->text(), QString("4 px"));
+            submenu->popup(menu->pos());
+            QTRY_VERIFY(slider->hasFocus());
+            QTest::keyClick(slider, Qt::Key_End);
+            QCOMPARE(value->text(), QString("8 px"));
+            const QPoint handle(slider->width() - 4, slider->rect().center().y());
+            QTest::mousePress(slider, Qt::LeftButton, {}, handle);
+            QTest::mouseMove(slider, slider->rect().center());
+            QTest::mouseRelease(slider, Qt::LeftButton, {}, slider->rect().center());
+            QVERIFY(slider->value() > 0 && slider->value() < 8);
+            QVERIFY(submenu->isVisible());
+            QTest::keyClick(slider, Qt::Key_End);
+            QTest::keyClick(slider, Qt::Key_Left);
+            QCOMPARE(value->text(), QString("7 px"));
+            submenu->close();
+        });
+        auto sampleEdge = [](PinWindow &window) {
+            QImage result(window.size(), QImage::Format_RGB32);
+            window.render(&result);
+            return result.pixelColor(5, result.height() / 2);
+        };
+        QCOMPARE(sampleEdge(pin), QColor(Qt::black));
+        QCOMPARE(sampleEdge(peer), QColor(Qt::white));
+        QCOMPARE(pin.contentGeometry(), before);
+        QCOMPARE(Settings::instance().pinBorderWidth, defaultBorder);
+        inspectMenu(pin, [](QMenu *menu) {
+            auto *slider = menu->findChild<QSlider *>("pinBorderWidth");
+            QVERIFY(slider);
+            QCOMPARE(slider->value(), 7);
+            QTest::keyClick(slider, Qt::Key_Home);
+            QCOMPARE(slider->value(), 0);
+        });
+        QCOMPARE(sampleEdge(pin), QColor(Qt::white));
     }
     void automationWindowsRemainSelectable()
     {

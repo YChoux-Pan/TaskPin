@@ -165,6 +165,90 @@ private slots:
         QCOMPARE(w.grab(control).toImage(), controlBefore);
         QTest::mouseRelease(&w, Qt::LeftButton, Qt::NoModifier, corner);
     }
+    void sizeSliderEditsSelectedAnnotation_data()
+    {
+        QTest::addColumn<QString>("tool");
+        QTest::addColumn<QString>("sliderId");
+        QTest::addColumn<int>("kind");
+        const auto row = [](const char *tool, const char *slider, Annotation::Kind kind) {
+            QTest::newRow(tool) << QString::fromLatin1(tool) << QString::fromLatin1(slider) << int(kind);
+        };
+        row("rect", "width-slider", Annotation::Rect);
+        row("ellipse", "width-slider", Annotation::Ellipse);
+        row("arrow", "width-slider", Annotation::Arrow);
+        row("line", "width-slider", Annotation::Line);
+        row("pen", "width-slider", Annotation::Pen);
+        row("marker", "width-slider", Annotation::Highlighter);
+        row("number", "number-size-slider", Annotation::Number);
+        row("mosaic", "block-slider", Annotation::Pixelate);
+        row("blur", "block-slider", Annotation::Pixelate);
+    }
+    void sizeSliderEditsSelectedAnnotation()
+    {
+        QFETCH(QString, tool);
+        QFETCH(QString, sliderId);
+        QFETCH(int, kind);
+        const auto shot = fixture();
+        const QRect region(40, 100, 700, 350);
+        const QPoint from(280, 220), to(482, 358);
+        const bool number = kind == Annotation::Number;
+        const bool pixels = kind == Annotation::Pixelate;
+        QPoint hit = number ? from : (from + to) / 2;
+        if (kind == Annotation::Rect || kind == Annotation::Ellipse) hit.setY(from.y());
+
+        // The two-color boundary in the fixture passes through the filter region.
+        // Render a mark with an explicit size independently of the toolbar and history.
+        const auto expected = [&](int value) {
+            Annotation mark;
+            mark.kind = Annotation::Kind(kind);
+            mark.color = Settings::instance().annotationColor;
+            mark.width = pixels ? 3 : value;
+            mark.block = pixels ? value : 14;
+            mark.blur = tool == "blur";
+            mark.pos = from;
+            mark.rect = QRect(from, to);
+            mark.points = { from, to };
+            const QImage base = shot.pixmap.toImage();
+            QImage image = base.copy(region).convertToFormat(QImage::Format_ARGB32_Premultiplied);
+            QPainter p(&image);
+            p.setRenderHint(QPainter::SmoothPixmapTransform);
+            p.translate(-region.topLeft());
+            mark.paint(p, &base);
+            p.end();
+            return image;
+        };
+        const QImage small = expected(pixels ? 5 : 2);
+        const QImage large = expected(pixels ? 80 : 40);
+        QVERIFY(small != large);
+        for (bool undo : { false, true }) {
+            SnipOverlay w(shot);
+            ready(w, region);
+            clickAction(w, "tool:" + tool);
+            QRect slider = action(w, sliderId).rect;
+            QVERIFY(slider.width() > slider.height());
+            QTest::mouseClick(&w, Qt::LeftButton, Qt::NoModifier, { slider.left(), slider.center().y() });
+            QTest::keyClick(&w, Qt::Key_Right);
+            QTest::keyClick(&w, Qt::Key_Right);
+            QTest::keyClick(&w, Qt::Key_Left);
+            if (number) placeLabel(w, false, from);
+            else drag(w, from, to);
+            clickAction(w, "tool:eraser");
+            clickAction(w, "tool:select");
+            QTest::mouseClick(&w, Qt::LeftButton, Qt::NoModifier, hit);
+            slider = action(w, sliderId).rect;
+            QVERIFY(slider.width() > slider.height());
+            const QImage before = w.grab(region).toImage();
+            const QPoint end(slider.right(), slider.center().y());
+            QTest::mousePress(&w, Qt::LeftButton, Qt::NoModifier, slider.center());
+            QMouseEvent move(QEvent::MouseMove, end, w.mapToGlobal(end), Qt::NoButton, Qt::LeftButton, Qt::NoModifier);
+            QApplication::sendEvent(&w, &move);
+            QVERIFY(w.grab(region).toImage() != before);
+            QTest::mouseRelease(&w, Qt::LeftButton, Qt::NoModifier, end);
+            if (undo) QTest::keyClick(&w, Qt::Key_Z, Qt::ControlModifier);
+            QCOMPARE(w.selection(), region);
+            QCOMPARE(output(w), undo ? small : large);
+        }
+    }
     void draftTextGripMovesInputAndExport()
     {
         const QPoint origin(95, 98), offset(70, 48);
@@ -356,14 +440,19 @@ private slots:
         auto *edit = w.findChild<QLineEdit *>();
         QVERIFY(edit);
         inputChinese(edit, QStringLiteral("当前文字"));
-        QVERIFY(action(w, "font-value").rect.isValid());
-        QCOMPARE(action(w, "font-").rect.top(), action(w, "font+").rect.top());
-        const int initial = edit->font().pixelSize();
-        clickAction(w, "font+");
-        QCOMPARE(edit->font().pixelSize(), initial + 2);
-        QVERIFY(edit->styleSheet().contains(QStringLiteral("font-size: 20px")));
-        clickAction(w, "font-");
-        QCOMPARE(edit->font().pixelSize(), initial);
+        const QRect slider = action(w, "font-slider").rect;
+        QVERIFY(slider.width() > slider.height());
+        drag(w, slider.center(), { slider.right(), slider.center().y() });
+        QCOMPARE(edit->font().pixelSize(), 96);
+        drag(w, slider.center(), { slider.left(), slider.center().y() });
+        QCOMPARE(edit->font().pixelSize(), 10);
+        QVERIFY(edit->hasFocus());
+        edit->setCursorPosition(2);
+        QTest::keyClick(edit, Qt::Key_Left);
+        QCOMPARE(edit->cursorPosition(), 1);
+        QTest::keyClick(edit, Qt::Key_Right);
+        QCOMPARE(edit->cursorPosition(), 2);
+        QCOMPARE(edit->font().pixelSize(), 10);
         const auto initialColor = edit->palette().color(QPalette::Text);
         clickAction(w, "swatch:2");
         QVERIFY(edit->palette().color(QPalette::Text) != initialColor);
@@ -384,6 +473,45 @@ private slots:
             }
         QVERIFY(whitePixels > rendered.width() * rendered.height() * .90);
         QVERIFY(greenPixels > 0);
+    }
+    void selectedTextFontSliderRestoresPreviousSize()
+    {
+        const QRect region(55, 320, 640, 235);
+        const QPoint origin(170, 425);
+        QImage original;
+        for (int step = 0; step < 3; ++step) {
+            SnipOverlay w(fixture());
+            ready(w, region);
+            clickAction(w, "tool:text");
+            QRect slider = action(w, "font-slider").rect;
+            QVERIFY(slider.width() > slider.height());
+            QTest::mouseClick(&w, Qt::LeftButton, Qt::NoModifier, { slider.left(), slider.center().y() });
+            QTest::keyClick(&w, Qt::Key_Right);
+            QTest::mouseClick(&w, Qt::LeftButton, Qt::NoModifier, origin);
+            auto *edit = qobject_cast<QLineEdit *>(w.focusWidget());
+            QVERIFY(edit);
+            QCOMPARE(edit->font().pixelSize(), 11);
+            inputChinese(edit, QStringLiteral("任务"));
+            QTest::keyClick(edit, Qt::Key_Return);
+            if (step > 0) {
+                clickAction(w, "tool:eraser");
+                clickAction(w, "tool:select");
+                QTest::mouseClick(&w, Qt::LeftButton, Qt::NoModifier, origin + QPoint(6, 7));
+                slider = action(w, "font-slider").rect;
+                QVERIFY(slider.width() > slider.height());
+                drag(w, slider.center(), { slider.right(), slider.center().y() });
+                if (step == 2) QTest::keyClick(&w, Qt::Key_Z, Qt::ControlModifier);
+            }
+            const QImage result = output(w);
+            QCOMPARE(result.size(), region.size());
+            if (step == 0) original = result;
+            if (step == 1) {
+                // The enlarged label spans well beyond the original two 11px glyphs.
+                const QRect beyondOriginal(origin - region.topLeft() + QPoint(50, -75), QSize(100, 75));
+                QVERIFY(result.copy(beyondOriginal) != original.copy(beyondOriginal));
+            }
+            if (step == 2) QCOMPARE(result, original);
+        }
     }
     void configuredPinExportsAnnotatedSelection_data()
     {
@@ -810,7 +938,7 @@ private slots:
             QVERIFY2(w.rect().contains(a.rect), qPrintable(a.id));
             QVERIFY(!a.label.isEmpty());
         }
-        QVERIFY(!action(w, "font+").rect.isEmpty());
+        QVERIFY(!action(w, "font-slider").rect.isEmpty());
         QVERIFY(!action(w, "more").rect.isEmpty());
         const QString dir = qEnvironmentVariable("TASKPIN_TEST_ARTIFACT_DIR");
         if (!dir.isEmpty()) QVERIFY(w.grab().save(dir + "/narrow-toolbar.png"));

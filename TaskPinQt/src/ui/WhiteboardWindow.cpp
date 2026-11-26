@@ -11,9 +11,10 @@
 #include <QFileDialog>
 #include <QFontMetrics>
 #include <QKeyEvent>
+#include <QLabel>
 #include <QMouseEvent>
 #include <QPainter>
-#include <QPainterPath>
+#include <QSlider>
 #include <QWheelEvent>
 
 namespace {
@@ -22,13 +23,15 @@ constexpr int kGap = 4;
 constexpr int kSwatch = 22;
 constexpr int kPad = 8;
 constexpr int kSwatchCount = 7;
+constexpr int kSwatchesWidth = kSwatchCount * (kSwatch + kGap) - kGap;
+const QStringList kActionIds{QStringLiteral("undo"), QStringLiteral("clear"), QStringLiteral("copy"),
+                             QStringLiteral("save"), QStringLiteral("print"), QStringLiteral("close")};
 
 const QColor kBar(0xEC, 0xEE, 0xF3, 250);
 const QColor kBarEdge(0x1A, 0x1D, 0x22, 30);
 const QColor kFg(0x2E, 0x33, 0x3B);
 const QColor kToolAccent(0x2F, 0x6F, 0xEB);
 const QColor kDanger(0xC0, 0x3B, 0x2E);
-const QColor kAccent(0x4C, 0x9A, 0xFF);
 
 QColor swatches[kSwatchCount] = {
     QColor(0xE5, 0x3B, 0x3B), QColor(0xFF, 0xB0, 0x20), QColor(0x3E, 0xC4, 0x6B),
@@ -38,7 +41,8 @@ QColor swatches[kSwatchCount] = {
 }   // namespace
 
 WhiteboardWindow::WhiteboardWindow(const ScreenCapture &shot, bool transparent, QWidget *parent)
-    : QWidget(parent), m_shot(shot), m_transparent(transparent)
+    : QWidget(parent), m_shot(shot), m_transparent(transparent),
+      m_widthSlider(new QSlider(Qt::Horizontal, this)), m_widthValue(new QLabel(this))
 {
     setWindowFlags(Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint | Qt::Tool);
     setAttribute(Qt::WA_DeleteOnClose, true);
@@ -49,11 +53,41 @@ WhiteboardWindow::WhiteboardWindow(const ScreenCapture &shot, bool transparent, 
     setFocusPolicy(Qt::StrongFocus);
     setWindowTitle(QStringLiteral("TaskPin 白板"));
 
+    m_widthSlider->setRange(1, 40);
+    m_widthSlider->setAccessibleName(QStringLiteral("画笔粗细"));
+    m_widthSlider->setToolTip(QStringLiteral("画笔粗细"));
+    m_widthSlider->setCursor(Qt::ArrowCursor);
+    m_widthSlider->setFocusPolicy(Qt::StrongFocus);
+    m_widthValue->setAlignment(Qt::AlignCenter);
+    m_widthValue->setAttribute(Qt::WA_TransparentForMouseEvents);
+    auto palette = m_widthValue->palette();
+    palette.setColor(QPalette::WindowText, kFg);
+    m_widthValue->setPalette(palette);
+    connect(m_widthSlider, &QSlider::valueChanged, this, [this](int width) {
+        m_widthValue->setText(QStringLiteral("%1 px").arg(width));
+    });
+    m_widthSlider->setValue(4);
+
     m_base = shot.pixmap.toImage();
     m_base.setDevicePixelRatio(1.0);
 }
 
 // ---------------------------------------------------------------- painting
+
+void WhiteboardWindow::resizeEvent(QResizeEvent *e)
+{
+    QWidget::resizeEvent(e);
+    const int valueWidth = m_widthValue->fontMetrics().horizontalAdvance(QStringLiteral("40 px")) + 4;
+    const int actionsWidth = int(kActionIds.size()) * (kBtn + kGap) - kGap;
+    const int fixedWidth = 2 * kPad + kSwatchesWidth + 10 + kGap + valueWidth + 10 + actionsWidth;
+    const int sliderWidth = qBound(48, width() - fixedWidth, 104);
+    const int barWidth = fixedWidth + sliderWidth;
+    m_toolbarRect = QRect((width() - barWidth) / 2, height() - 92, barWidth, kBtn + 2 * kPad);
+    const int sliderX = m_toolbarRect.left() + kPad + kSwatchesWidth + 10;
+    const int y = m_toolbarRect.top() + kPad;
+    m_widthSlider->setGeometry(sliderX, y, sliderWidth, kBtn);
+    m_widthValue->setGeometry(sliderX + sliderWidth + kGap, y, valueWidth, kBtn);
+}
 
 void WhiteboardWindow::paintEvent(QPaintEvent *)
 {
@@ -78,11 +112,7 @@ void WhiteboardWindow::drawToolbar(QPainter &p)
 {
     m_hot.clear();
 
-    const QStringList actionIds{QStringLiteral("undo"), QStringLiteral("clear"), QStringLiteral("copy"),
-                                QStringLiteral("save"), QStringLiteral("print"), QStringLiteral("close")};
-    const int barWidth = kSwatchCount * (kSwatch + kGap) - kGap + 10 + (2 * 28 + kGap) + 10 +
-                         actionIds.size() * (kBtn + kGap) - kGap + kPad * 2;
-    const QRect bar((QWidget::width() - barWidth) / 2, height() - 48 - 44, barWidth, kBtn + kPad * 2);
+    const QRect &bar = m_toolbarRect;
 
     p.setPen(QPen(kBarEdge, 1));
     p.setBrush(kBar);
@@ -99,18 +129,8 @@ void WhiteboardWindow::drawToolbar(QPainter &p)
         p.drawEllipse(r.adjusted(1, 1, -1, -1));
         cx += kSwatch + kGap;
     }
-    cx += 10;
-
-    for (const QString &id : {QStringLiteral("width-"), QStringLiteral("width+")}) {
-        const QRect r(cx, cy, 28, kBtn);
-        m_hot.append({r, id});
-        IconSet::draw(p, id == QStringLiteral("width+") ? QStringLiteral("plus") : QStringLiteral("minus"),
-                      QRectF(r.adjusted(4, 7, -4, -7)), kFg);
-        cx += 28 + kGap;
-    }
-    cx += 10;
-
-    for (const QString &id : actionIds) {
+    cx = m_widthValue->geometry().right() + 1 + 10;
+    for (const QString &id : kActionIds) {
         const QRect r(cx, cy, kBtn, kBtn);
         m_hot.append({r, id});
         const QColor tint = id == QStringLiteral("close") ? kDanger : kFg;
@@ -118,12 +138,10 @@ void WhiteboardWindow::drawToolbar(QPainter &p)
         cx += kBtn + kGap;
     }
 
-    m_toolbarRect = bar;
-
     QFont f = font();
     f.setPixelSize(11);
     p.setFont(f);
-    const QString hint = QStringLiteral("手写 · 滚轮调粗细 · Ctrl+Z 撤销 · Enter 复制 · Esc 退出");
+    const QString hint = QStringLiteral("手写 · 滚轮或方向键调粗细 · Ctrl+Z 撤销 · Enter 复制 · Esc 退出");
     p.setPen(QColor(0x9A, 0xA5, 0xB4));
     p.drawText(QRect(bar.left(), bar.top() - 22, bar.width(), 18), Qt::AlignCenter, hint);
 }
@@ -143,12 +161,13 @@ void WhiteboardWindow::mousePressEvent(QMouseEvent *e)
         handleAction(id);
         return;
     }
+    if (m_toolbarRect.contains(e->pos())) return;
 
     m_drawing = true;
     m_current = Annotation();
     m_current.kind = Annotation::Pen;
     m_current.color = m_color;
-    m_current.width = m_width;
+    m_current.width = m_widthSlider->value();
     m_current.points = {e->pos()};
     update();
 }
@@ -176,13 +195,17 @@ void WhiteboardWindow::mouseReleaseEvent(QMouseEvent *e)
 
 void WhiteboardWindow::wheelEvent(QWheelEvent *e)
 {
-    m_width = qBound(1, m_width + (e->angleDelta().y() > 0 ? 1 : -1), 40);
-    update();
+    const int delta = e->angleDelta().y();
+    if (delta != 0) m_widthSlider->setValue(m_widthSlider->value() + (delta > 0 ? 1 : -1));
 }
 
 void WhiteboardWindow::keyPressEvent(QKeyEvent *e)
 {
     switch (e->key()) {
+    case Qt::Key_Left:
+    case Qt::Key_Down: m_widthSlider->triggerAction(QAbstractSlider::SliderSingleStepSub); return;
+    case Qt::Key_Right:
+    case Qt::Key_Up: m_widthSlider->triggerAction(QAbstractSlider::SliderSingleStepAdd); return;
     case Qt::Key_Escape: close(); return;
     case Qt::Key_Return:
     case Qt::Key_Enter: handleAction(QStringLiteral("copy")); return;
@@ -220,16 +243,6 @@ void WhiteboardWindow::handleAction(const QString &id)
 {
     if (id.startsWith(QStringLiteral("swatch:"))) {
         m_color = swatches[id.mid(7).toInt()];
-        update();
-        return;
-    }
-    if (id == QStringLiteral("width-")) {
-        m_width = qMax(1, m_width - 1);
-        update();
-        return;
-    }
-    if (id == QStringLiteral("width+")) {
-        m_width = qMin(40, m_width + 1);
         update();
         return;
     }

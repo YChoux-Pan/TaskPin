@@ -31,18 +31,14 @@ const Definition definitions[] = {
     { "close", "取消截图", "Esc" },
     { "more", "更多", "" },
     { "custom", "自选颜色", "" },
-    { "width-", "减小线宽", "滚轮 ↓" },
-    { "width+", "增大线宽", "滚轮 ↑" },
-    { "width-slider", "矩形线宽", "← / →" },
+    { "width-slider", "线宽", "← / →" },
+    { "number-size-slider", "序号大小", "← / →" },
+    { "font-slider", "字号", "← / →" },
+    { "block-slider", "像素块大小", "← / →" },
     { "arrow-style", "箭头样式", "A" },
     { "number-format", "编号格式", "" },
     { "number-fill", "编号配色", "" },
-    { "font-", "减小字号", "滚轮 ↓" },
-    { "font+", "增大字号", "滚轮 ↑" },
-    { "font-value", "当前字号", "" },
     { "text-background", "切换文字背景", "" },
-    { "block-", "减小强度", "滚轮 ↓" },
-    { "block+", "增大强度", "滚轮 ↑" },
     { "quick", "快速保存", "Ctrl+Shift+S" },
     { "print", "打印", "" },
 };
@@ -78,10 +74,8 @@ QRect SnipToolbar::layout(QVector<SnipAction> &actions, const QRect &viewport, c
         spans.clear();
         int index = 0;
         for (const auto &action : actions) {
-            const int span = action.id == "width-slider" ? qMin(5, columns) : 1;
+            const int span = action.id.endsWith("-slider") ? qMin(5, columns) : 1;
             if (columns - index % columns < span)
-                index += columns - index % columns;
-            if (action.id == "font-" && columns >= 3 && columns - index % columns < 3)
                 index += columns - index % columns;
             cells.append(index);
             spans.append(span);

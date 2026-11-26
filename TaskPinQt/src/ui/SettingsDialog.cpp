@@ -14,6 +14,7 @@
 #include <QDir>
 #include <QDoubleSpinBox>
 #include <QFileDialog>
+#include <QFontMetrics>
 #include <QFormLayout>
 #include <QHBoxLayout>
 #include <QLabel>
@@ -53,6 +54,31 @@ QLabel *hintLabel(const QString &text)
     return label;
 }
 
+QSlider *addWidthSlider(QFormLayout *form, const QString &title, const QString &name,
+                        int minimum, int maximum, int current)
+{
+    auto *slider = new QSlider(Qt::Horizontal, form->parentWidget());
+    slider->setObjectName(name);
+    slider->setAccessibleName(title);
+    slider->setRange(minimum, maximum);
+    slider->setValue(current);
+    auto *value = new QLabel(form->parentWidget());
+    value->setObjectName(name + QStringLiteral("Value"));
+    value->setMinimumWidth(value->fontMetrics().horizontalAdvance(QStringLiteral("%1 px").arg(maximum)));
+    value->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
+    const auto showValue = [value](int pixels) { value->setText(QStringLiteral("%1 px").arg(pixels)); };
+    showValue(slider->value());
+    QObject::connect(slider, &QSlider::valueChanged, value, showValue);
+
+    auto *row = new QHBoxLayout();
+    row->addWidget(slider, 1);
+    row->addWidget(value);
+    auto *label = new QLabel(title, form->parentWidget());
+    label->setBuddy(slider);
+    form->addRow(label, row);
+    return slider;
+}
+
 }   // namespace
 
 struct SettingsDialog::Ui {
@@ -67,10 +93,10 @@ struct SettingsDialog::Ui {
     QLineEdit *autoSaveDir = nullptr;
     QLineEdit *namePattern = nullptr;
     QSpinBox *historyLimit = nullptr;
-    QSpinBox *annotationWidth = nullptr;
+    QSlider *annotationWidth = nullptr;
     QDoubleSpinBox *pinOpacity = nullptr;
     QSpinBox *pinShadow = nullptr;
-    QSpinBox *pinBorderWidth = nullptr;
+    QSlider *pinBorderWidth = nullptr;
     QCheckBox *aiEnabled = nullptr;
     QLineEdit *aiBaseUrl = nullptr;
     QLineEdit *aiKey = nullptr;
@@ -278,10 +304,8 @@ QWidget *SettingsDialog::buildSnipPage()
     });
     form->addRow(QStringLiteral("默认标注颜色"), color);
 
-    m_ui->annotationWidth = new QSpinBox(page);
-    m_ui->annotationWidth->setRange(1, 40);
-    m_ui->annotationWidth->setValue(qBound(1, s.annotationWidth, 40));
-    form->addRow(QStringLiteral("默认线宽"), m_ui->annotationWidth);
+    m_ui->annotationWidth = addWidthSlider(form, QStringLiteral("默认线宽"), QStringLiteral("annotationWidth"),
+                                           1, 40, s.annotationWidth);
 
     m_ui->autoSave = new QCheckBox(QStringLiteral("每次截图自动另存一份"), page);
     m_ui->autoSave->setChecked(s.autoSave);
@@ -325,12 +349,8 @@ QWidget *SettingsDialog::buildSnipPage()
     m_ui->pinShadow->setSpecialValueText(QStringLiteral("关闭阴影"));
     m_ui->pinShadow->setValue(s.pinShadowStrength);
     form->addRow(QStringLiteral("贴图阴影强度"), m_ui->pinShadow);
-    m_ui->pinBorderWidth = new QSpinBox(page);
-    m_ui->pinBorderWidth->setRange(0, 8);
-    m_ui->pinBorderWidth->setSuffix(" px");
-    m_ui->pinBorderWidth->setSpecialValueText(QStringLiteral("无边框"));
-    m_ui->pinBorderWidth->setValue(s.pinBorderWidth);
-    form->addRow(QStringLiteral("贴图边框宽度"), m_ui->pinBorderWidth);
+    m_ui->pinBorderWidth = addWidthSlider(form, QStringLiteral("贴图边框宽度"), QStringLiteral("pinBorderWidth"),
+                                          0, 8, s.pinBorderWidth);
     auto *borderColor = new QPushButton(page);
     styleColorButton(borderColor, m_pinBorderColor);
     connect(borderColor, &QPushButton::clicked, this, [this, borderColor] {

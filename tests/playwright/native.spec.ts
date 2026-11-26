@@ -93,6 +93,19 @@ test('Rectangle toolbar stays visible and slider and keys change exported stroke
     'rectangleStrokeFollowsSliderAndArrowKeys'], info);
 });
 
+test('Sliders resize selected annotations and undo restores their exported appearance', async ({}, info) => {
+  await qt('TaskPinScreenshotTests', ['sizeSliderEditsSelectedAnnotation',
+    'selectedTextFontSliderRestoresPreviousSize', 'textFormattingUpdatesCurrentDraftAndExport'], info);
+});
+
+test('Whiteboard width controls change the stroke drawn at the displayed size', async ({}, info) => {
+  await qt('TaskPinExperienceTests', ['whiteboardWidthControlsDrawWithDisplayedWidth'], info);
+});
+
+test('Width settings follow save and cancel and pin border changes apply to the current pin', async ({}, info) => {
+  await qt('TaskPinIntegrationTests', ['widthSlidersSaveAndCancel', 'pinBorderSliderUpdatesOnlyCurrentPin'], info);
+});
+
 test('Draft text moves by its grip and committed labels move directly with undo and redo', async ({}, info) => {
   await qt('TaskPinScreenshotTests', ['draftTextGripMovesInputAndExport', 'committedLabelsDragInCreationTool'], info);
 });
@@ -114,7 +127,7 @@ test('F3 and custom editor shortcuts export the selected image', async ({}, info
   await qt('TaskPinScreenshotTests', ['configuredPinExportsAnnotatedSelection',
     'configuredTranslationReplacesDefaultShortcut', 'bareCustomTranslationDoesNotConsumeTextInput',
     'configuredOutputCommitsFocusedText', 'actualPinFallbackAppearsAndWorksInEditor',
-    'regionSelectionOwnsCrosshair', 'textFormattingUpdatesCurrentDraftAndExport'], info);
+    'regionSelectionOwnsCrosshair'], info);
 });
 
 test('Host hotkey routing, persistence and collision checks match settings', async ({}, info) => {

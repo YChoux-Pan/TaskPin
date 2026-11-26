@@ -9,12 +9,14 @@
 #include "ui/SettingsDialog.h"
 #include "ui/SnipOverlay.h"
 #include "ui/TranslationWindow.h"
+#include "ui/WhiteboardWindow.h"
 #include <QColorDialog>
 #include <QClipboard>
 #include <QContextMenuEvent>
 #include <QDialogButtonBox>
 #include <QDialog>
 #include <QJsonDocument>
+#include <QLabel>
 #include <QLineF>
 #include <QListWidget>
 #include <QMenu>
@@ -125,6 +127,58 @@ private slots:
         for (auto w : windows) if (w) delete w;
         QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
         QSqlDatabase::removeDatabase("taskpin");
+    }
+    void whiteboardWidthControlsDrawWithDisplayedWidth_data()
+    {
+        QTest::addColumn<bool>("transparent");
+        QTest::newRow("frozen-screen") << false;
+        QTest::newRow("transparent") << true;
+    }
+    void whiteboardWidthControlsDrawWithDisplayedWidth()
+    {
+        QFETCH(bool, transparent);
+        ScreenCapture shot;
+        shot.logicalRect = QRect(0, 0, 800, 480);
+        shot.pixmap = QPixmap(shot.logicalRect.size());
+        shot.pixmap.fill(Qt::white);
+        WhiteboardWindow board(shot, transparent);
+        board.setAttribute(Qt::WA_DeleteOnClose, false);
+        board.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&board));
+
+        auto *slider = board.findChild<QSlider *>();
+        QVERIFY(slider && slider->isVisible());
+        QCOMPARE(slider->orientation(), Qt::Horizontal);
+        auto *value = board.findChild<QLabel *>();
+        QVERIFY(value && value->isVisible());
+        QCOMPARE(slider->value(), 4);
+        QTest::keyClick(slider, Qt::Key_End);
+        const auto drag = [](QWidget &w, QPoint from, QPoint to) {
+            QTest::mousePress(&w, Qt::LeftButton, {}, from);
+            QMouseEvent move(QEvent::MouseMove, to, w.mapToGlobal(to), Qt::NoButton,
+                             Qt::LeftButton, Qt::NoModifier);
+            QApplication::sendEvent(&w, &move);
+            QTest::mouseRelease(&w, Qt::LeftButton, {}, to);
+        };
+        drag(*slider, {slider->width() - 4, slider->rect().center().y()}, slider->rect().center());
+        QVERIFY(slider->value() > slider->minimum() && slider->value() < slider->maximum());
+
+        QTest::keyClick(slider, Qt::Key_End);
+        wheel(board, -120);
+        QCOMPARE(slider->value(), 39);
+        QTest::keyClick(&board, Qt::Key_Left);
+        QCOMPARE(slider->value(), 38);
+        QCOMPARE(value->text(), QStringLiteral("38 px"));
+
+        drag(board, {100, 100}, {200, 100});
+        QSignalSpy printed(&board, &WhiteboardWindow::printRequested);
+        QTest::keyClick(&board, Qt::Key_P, Qt::ControlModifier);
+        QCOMPARE(printed.count(), 1);
+        const QImage image = qvariant_cast<QImage>(printed.at(0).at(0));
+        const QColor background = transparent ? QColor(Qt::transparent) : QColor(Qt::white);
+        QCOMPARE(image.pixelColor(150, 117), QColor(0xe5, 0x3b, 0x3b));
+        QCOMPARE(image.pixelColor(150, 120), background);
+        QCOMPARE(image.pixelColor(slider->mapTo(&board, slider->rect().center())), background);
     }
     void wheelHonorsSmallDeltasAndReverses()
     {

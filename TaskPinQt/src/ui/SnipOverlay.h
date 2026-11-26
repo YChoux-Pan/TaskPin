@@ -66,7 +66,7 @@ private:
     enum class Tool {
         Select, Rect, Ellipse, Arrow, Line, Pen, Highlighter, Text, Number, Mosaic, Blur, Eraser
     };
-    enum class Mode { Idle, SelectRect, Draw, MoveAnnotation, MoveSelection, ResizeSelection, Erase, AdjustWidth };
+    enum class Mode { Idle, SelectRect, Draw, MoveAnnotation, MoveSelection, ResizeSelection, Erase, AdjustSize };
 
     void drawToolbar(QPainter &p);
     void drawHoverTip(QPainter &p);
@@ -83,8 +83,16 @@ private:
     void setTool(Tool t);
     void showStyleMenu(const QString &id);
     void setStyle(const QString &id, int index);
-    void setRectWidth(int width);
-    void slideWidth(const QPoint &pos);
+    struct SizeControl {
+        QString id;
+        int minimum;
+        int maximum;
+        int SnipOverlay::*setting;
+        int Annotation::*property;
+    };
+    SizeControl sizeControl() const;
+    void setToolSize(int value);
+    void dragSizeSlider(const QPoint &pos);
     bool startAnnotationMove(const QPoint &pos);
 
     int selectionHandleAt(const QPoint &pos) const;
@@ -129,13 +137,14 @@ private:
     Tool m_tool = Tool::Select;
     QColor m_color{0xE5, 0x3B, 0x3B};
     int m_width = 3;
+    int m_numberSize = 3;
     int m_fontSize = 18;
     bool m_textBackground = true;
     int m_block = 14;
     Annotation::NumberFormat m_numberFormat = Annotation::NumberFormat::Decimal;
     Annotation::NumberFill m_numberFill = Annotation::NumberFill::Badge;
     Annotation::ArrowStyle m_arrowStyle = Annotation::ArrowStyle::Filled;
-    QRect m_widthSlider;
+    QRect m_sizeSlider;
 
     QVector<Annotation> m_items;
     EditorHistory m_history;
