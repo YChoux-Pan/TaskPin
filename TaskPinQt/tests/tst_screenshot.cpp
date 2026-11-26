@@ -7,6 +7,7 @@
 #include <QFontDatabase>
 #include <QInputMethodEvent>
 #include <QLineEdit>
+#include <QMenu>
 #include <QPainter>
 #include <QSignalSpy>
 #include <QScopeGuard>
@@ -76,6 +77,28 @@ void inputChinese(QLineEdit *edit, const QString &text)
     commit.setCommitString(text);
     QApplication::sendEvent(edit, &commit);
 }
+bool chooseStyle(SnipOverlay &w, const QString &id, int index)
+{
+    const QRect button = action(w, id).rect;
+    if (button.isEmpty()) return false;
+    QTest::mouseClick(&w, Qt::LeftButton, Qt::NoModifier, button.center());
+    auto *menu = qobject_cast<QMenu *>(QApplication::activePopupWidget());
+    if (!menu || index >= menu->actions().size()) return false;
+    const QRect option = menu->actionGeometry(menu->actions().at(index));
+    if (option.isEmpty()) return false;
+    QTest::mouseClick(menu, Qt::LeftButton, Qt::NoModifier, option.center());
+    return QApplication::activePopupWidget() == nullptr;
+}
+void placeLabel(SnipOverlay &w, bool text, QPoint pos)
+{
+    QTest::mouseClick(&w, Qt::LeftButton, Qt::NoModifier, pos);
+    if (text) {
+        auto *edit = qobject_cast<QLineEdit *>(w.focusWidget());
+        QVERIFY(edit && edit->isVisible());
+        inputChinese(edit, QStringLiteral("任务"));
+        QTest::keyClick(edit, Qt::Key_Return);
+    }
+}
 }
 class ScreenshotTests : public QObject
 {
@@ -90,6 +113,217 @@ private slots:
         const int id = QFontDatabase::addApplicationFont(fontPath);
         QVERIFY2(id >= 0, qPrintable(QStringLiteral("Cannot load Chinese test font: %1").arg(fontPath)));
         QApplication::setFont(QFont(QFontDatabase::applicationFontFamilies(id).first()));
+    }
+    void rectangleStrokeFollowsSliderAndArrowKeys()
+    {
+        const QRect region(40, 335, 600, 210);
+        // Keep the press point fixed; only the drag endpoint or key changes.
+        const auto strokeInk = [&](int sliderPercent, Qt::Key key = Qt::Key_unknown) {
+            SnipOverlay w(fixture());
+            ready(w, region);
+            clickAction(w, "tool:rect");
+            const QRect slider = action(w, "width-slider").rect;
+            if (slider.isEmpty()) return -1;
+            const QPoint end(slider.left() + (slider.width() - 1) * sliderPercent / 100, slider.center().y());
+            drag(w, slider.center(), end);
+            if (key != Qt::Key_unknown) QTest::keyClick(&w, key);
+            drag(w, { 100, 400 }, { 230, 485 });
+            if (w.selection() != region) return -1;
+            const QImage image = output(w);
+            if (image.size() != region.size()) return -1;
+            int ink = 0;
+            for (int y = 375; y <= 425; ++y)
+                ink += 255 - image.pixelColor(160 - region.x(), y - region.y()).green();
+            return ink;
+        };
+        const int thin = strokeInk(0);
+        const int medium = strokeInk(50);
+        const int thick = strokeInk(100);
+        QVERIFY(thin > 0);
+        QVERIFY(thin < medium && medium < thick);
+        const int smaller = strokeInk(50, Qt::Key_Left);
+        const int larger = strokeInk(50, Qt::Key_Right);
+        QVERIFY(thin <= smaller && smaller < medium);
+        QVERIFY(medium < larger && larger <= thick);
+    }
+    void rectangleToolbarStaysVisibleDuringStroke()
+    {
+        SnipOverlay w(fixture());
+        ready(w);
+        clickAction(w, "tool:rect");
+        const QRect control = action(w, "width-slider").rect;
+        QVERIFY(!control.isEmpty());
+        const QRect before = w.toolbarRect();
+        const QImage controlBefore = w.grab(control).toImage();
+        QTest::mousePress(&w, Qt::LeftButton, Qt::NoModifier, { 85, 85 });
+        const QPoint corner(200, 160);
+        QMouseEvent move(QEvent::MouseMove, corner, w.mapToGlobal(corner), Qt::NoButton, Qt::LeftButton, Qt::NoModifier);
+        QApplication::sendEvent(&w, &move);
+        w.repaint();
+        QCOMPARE(w.toolbarRect(), before);
+        QCOMPARE(action(w, "width-slider").rect, control);
+        QCOMPARE(w.grab(control).toImage(), controlBefore);
+        QTest::mouseRelease(&w, Qt::LeftButton, Qt::NoModifier, corner);
+    }
+    void draftTextGripMovesInputAndExport()
+    {
+        const QPoint origin(95, 98), offset(70, 48);
+        SnipOverlay w(fixture());
+        ready(w);
+        clickAction(w, "tool:text");
+        QTest::mouseClick(&w, Qt::LeftButton, Qt::NoModifier, origin);
+        auto *edit = w.findChild<QLineEdit *>();
+        auto *handle = w.findChild<QWidget *>("textMoveHandle");
+        QVERIFY(edit && handle && handle->isVisible());
+        inputChinese(edit, QStringLiteral("任"));
+        const QPoint editorStart = edit->pos();
+        const QPoint press = handle->rect().center();
+        const QPoint globalStart = handle->mapToGlobal(press);
+        QTest::mousePress(handle, Qt::LeftButton, Qt::NoModifier, press);
+        for (const QPoint &global : { globalStart + offset / 2, globalStart + offset }) {
+            QMouseEvent move(QEvent::MouseMove, handle->mapFromGlobal(global), global, Qt::NoButton,
+                             Qt::LeftButton, Qt::NoModifier);
+            QApplication::sendEvent(handle, &move);
+        }
+        QTest::mouseRelease(handle, Qt::LeftButton, Qt::NoModifier, handle->mapFromGlobal(globalStart + offset));
+        QCOMPARE(w.focusWidget(), static_cast<QWidget *>(edit));
+        QCOMPARE(edit->pos(), editorStart + offset);
+        QCOMPARE(edit->text(), QStringLiteral("任"));
+        inputChinese(edit, QStringLiteral("务"));
+        const QImage moved = output(w);
+        QVERIFY(!moved.isNull());
+        SnipOverlay reference(fixture());
+        ready(reference);
+        clickAction(reference, "tool:text");
+        placeLabel(reference, true, origin + offset);
+        QCOMPARE(moved, output(reference));
+    }
+    void committedLabelsDragInCreationTool_data()
+    {
+        QTest::addColumn<bool>("text");
+        QTest::addColumn<int>("historySteps");
+        QTest::newRow("text-move") << true << 0;
+        QTest::newRow("text-undo") << true << 1;
+        QTest::newRow("text-redo") << true << 2;
+        QTest::newRow("number-move") << false << 0;
+        QTest::newRow("number-undo") << false << 1;
+        QTest::newRow("number-redo") << false << 2;
+    }
+    void committedLabelsDragInCreationTool()
+    {
+        QFETCH(bool, text);
+        QFETCH(int, historySteps);
+        const QPoint origin(95, 98), offset(70, 48), second(250, 100);
+        const QPoint grab = origin + (text ? QPoint(8, 9) : QPoint());
+        const QString tool = text ? "tool:text" : "tool:number";
+        SnipOverlay actual(fixture());
+        ready(actual);
+        clickAction(actual, tool);
+        placeLabel(actual, text, origin);
+        QTest::mousePress(&actual, Qt::LeftButton, Qt::NoModifier, grab);
+        for (const QPoint &p : { grab + offset / 2, grab + offset }) {
+            QMouseEvent move(QEvent::MouseMove, p, actual.mapToGlobal(p), Qt::NoButton, Qt::LeftButton, Qt::NoModifier);
+            QApplication::sendEvent(&actual, &move);
+        }
+        QTest::mouseRelease(&actual, Qt::LeftButton, Qt::NoModifier, grab + offset);
+        for (auto *edit : actual.findChildren<QLineEdit *>()) QVERIFY(!edit->isVisible());
+        if (historySteps >= 1) QTest::keyClick(&actual, Qt::Key_Z, Qt::ControlModifier);
+        if (historySteps == 2) QTest::keyClick(&actual, Qt::Key_Y, Qt::ControlModifier);
+        placeLabel(actual, text, second);
+        const QImage result = output(actual);
+        QVERIFY(!result.isNull());
+
+        // An independent two-placement export fixes the exact glyphs, sequence
+        // and positions while accepting platform-specific font rasterization.
+        SnipOverlay reference(fixture());
+        ready(reference);
+        clickAction(reference, tool);
+        placeLabel(reference, text, historySteps == 1 ? origin : origin + offset);
+        placeLabel(reference, text, second);
+        QCOMPARE(result, output(reference));
+    }
+    void numberMenusStyleSelectedAndNewMarks_data()
+    {
+        QTest::addColumn<QString>("control");
+        QTest::addColumn<int>("choices");
+        QTest::newRow("format") << QStringLiteral("number-format") << 6;
+        QTest::newRow("fill") << QStringLiteral("number-fill") << 3;
+    }
+    void numberMenusStyleSelectedAndNewMarks()
+    {
+        QFETCH(QString, control);
+        QFETCH(int, choices);
+        QVector<QImage> styles;
+        for (int index = 0; index < choices; ++index) {
+            SnipOverlay beforePlacement(fixture());
+            ready(beforePlacement);
+            clickAction(beforePlacement, "tool:number");
+            QVERIFY(chooseStyle(beforePlacement, control, index));
+            placeLabel(beforePlacement, false, { 110, 115 });
+            placeLabel(beforePlacement, false, { 200, 115 });
+            const QImage reference = output(beforePlacement);
+            QVERIFY(!reference.isNull());
+            QVERIFY2(!styles.contains(reference), qPrintable(QStringLiteral("Duplicate %1 option %2").arg(control).arg(index)));
+            styles.append(reference);
+
+            SnipOverlay selected(fixture());
+            ready(selected);
+            clickAction(selected, "tool:number");
+            placeLabel(selected, false, { 110, 115 });
+            QVERIFY(chooseStyle(selected, control, index));
+            placeLabel(selected, false, { 200, 115 });
+            QCOMPARE(output(selected), reference);
+        }
+    }
+    void activeArrowCyclesThroughMenuStyles()
+    {
+        QVector<QImage> styles;
+        for (int index = 0; index < 4; ++index) {
+            SnipOverlay w(fixture());
+            ready(w);
+            clickAction(w, "tool:arrow");
+            QVERIFY(chooseStyle(w, "arrow-style", index));
+            drag(w, { 100, 100 }, { 240, 130 });
+            const QImage rendered = output(w);
+            QVERIFY(!rendered.isNull());
+            QVERIFY(!styles.contains(rendered));
+            styles.append(rendered);
+        }
+        for (int steps = 0; steps <= styles.size(); ++steps) {
+            SnipOverlay w(fixture());
+            ready(w);
+            QTest::keyClick(&w, Qt::Key_A);
+            drag(w, { 100, 100 }, { 240, 130 });
+            for (int i = 0; i < steps; ++i) {
+                if (i % 2) QTest::keyClick(&w, Qt::Key_A);
+                else clickAction(w, "tool:arrow");
+            }
+            QCOMPARE(output(w), styles.at(steps % styles.size()));
+        }
+    }
+    void tabTogglesLineAndRestoresArrowStyle()
+    {
+        const QPoint lineStart(80, 90), lineEnd(240, 90);
+        const QPoint arrowStart(80, 160), arrowEnd(240, 160);
+        SnipOverlay w(fixture());
+        ready(w);
+        clickAction(w, "tool:arrow");
+        QVERIFY(chooseStyle(w, "arrow-style", 2));
+        QTest::keyClick(&w, Qt::Key_Tab);
+        drag(w, lineStart, lineEnd);
+        QTest::keyClick(&w, Qt::Key_Tab);
+        drag(w, arrowStart, arrowEnd);
+        const QImage toggled = output(w);
+        QVERIFY(!toggled.isNull());
+
+        SnipOverlay reference(fixture());
+        ready(reference);
+        clickAction(reference, "tool:line");
+        drag(reference, lineStart, lineEnd);
+        clickAction(reference, "tool:arrow");
+        QVERIFY(chooseStyle(reference, "arrow-style", 2));
+        drag(reference, arrowStart, arrowEnd);
+        QCOMPARE(toggled, output(reference));
     }
     void interiorMovesSelection()
     {

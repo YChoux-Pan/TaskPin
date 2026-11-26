@@ -144,6 +144,29 @@ private slots:
         QCOMPARE(pin->contentGeometry(),region);QVERIFY(PinWindow::all().contains(pin));
         QVERIFY(!window.findChild<QPushButton *>("translationRetry"));
     }
+    void translationStatusDrawsRedTextOverCapture() {
+        TranslationWindow pin;
+        pin.applyAppearance(0, 0, Qt::transparent);
+        QImage capture(800, 100, QImage::Format_RGB32);
+        capture.fill(Qt::cyan);
+        pin.setCapture(capture, capture.rect());
+        pin.cancel();
+
+        QImage displayed(pin.size(), QImage::Format_RGB32);
+        displayed.fill(Qt::black);
+        pin.render(&displayed);
+        const QRect besideText(600, 60, 150, 30);
+        QCOMPARE(displayed.copy(besideText), capture.copy(besideText));
+        bool foundRedText = false;
+        for (int y = displayed.height() / 2; y < displayed.height(); ++y) {
+            for (int x = 0; x < besideText.left(); ++x) {
+                const auto pixel = displayed.pixelColor(x, y);
+                if (pixel.red() > 180 && pixel.green() < 80 && pixel.blue() < 80)
+                    foundRedText = true;
+            }
+        }
+        QVERIFY(foundRedText);
+    }
     void translatedFramePreservesMovedZoomedHiddenPin() {
         Config config;config.mode="mock";QString error;QVERIFY(config.save(&error));
         TranslationWindow pin;pin.setAttribute(Qt::WA_DeleteOnClose,false);

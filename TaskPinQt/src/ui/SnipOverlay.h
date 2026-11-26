@@ -60,12 +60,13 @@ protected:
     void keyPressEvent(QKeyEvent *e) override;
     void wheelEvent(QWheelEvent *e) override;
     bool eventFilter(QObject *obj, QEvent *e) override;
+    bool focusNextPrevChild(bool next) override;
 
 private:
     enum class Tool {
         Select, Rect, Ellipse, Arrow, Line, Pen, Highlighter, Text, Number, Mosaic, Blur, Eraser
     };
-    enum class Mode { Idle, SelectRect, Draw, MoveAnnotation, MoveSelection, ResizeSelection, Erase };
+    enum class Mode { Idle, SelectRect, Draw, MoveAnnotation, MoveSelection, ResizeSelection, Erase, AdjustWidth };
 
     void drawToolbar(QPainter &p);
     void drawHoverTip(QPainter &p);
@@ -80,6 +81,11 @@ private:
     QString actionShortcut(const QString &id) const;
     bool handleOutputShortcut(QKeyEvent *event, bool textInput = false);
     void setTool(Tool t);
+    void showStyleMenu(const QString &id);
+    void setStyle(const QString &id, int index);
+    void setRectWidth(int width);
+    void slideWidth(const QPoint &pos);
+    bool startAnnotationMove(const QPoint &pos);
 
     int selectionHandleAt(const QPoint &pos) const;
 
@@ -126,7 +132,10 @@ private:
     int m_fontSize = 18;
     bool m_textBackground = true;
     int m_block = 14;
-    int m_nextNumber = 1;
+    Annotation::NumberFormat m_numberFormat = Annotation::NumberFormat::Decimal;
+    Annotation::NumberFill m_numberFill = Annotation::NumberFill::Badge;
+    Annotation::ArrowStyle m_arrowStyle = Annotation::ArrowStyle::Filled;
+    QRect m_widthSlider;
 
     QVector<Annotation> m_items;
     EditorHistory m_history;
@@ -136,6 +145,8 @@ private:
     int m_selected = -1;
 
     QLineEdit *m_textEdit = nullptr;
+    QWidget *m_textGrip = nullptr;
+    QPoint m_gripOffset;
     QPoint m_textAnchor;
 
     struct Hot {

@@ -13,6 +13,9 @@ class QPainter;
 /// frozen desktop image by the device pixel ratio when it needs real pixels (mosaic / blur).
 struct Annotation {
     enum Kind { Rect, Ellipse, Arrow, Line, Pen, Highlighter, Text, Number, Pixelate };
+    enum class NumberFormat { Decimal, Padded, UpperAlpha, LowerAlpha, UpperRoman, LowerRoman };
+    enum class NumberFill { Badge, Ink, Cutout };
+    enum class ArrowStyle { Filled, Open, Double, Tapered };
 
     Kind kind = Rect;
     QColor color{0xE5, 0x3B, 0x3B};
@@ -26,6 +29,11 @@ struct Annotation {
     int number = 1;
     bool blur = false;   // Pixelate: false = mosaic blocks, true = soft blur
     int block = 14;      // Pixelate block size in logical pixels
+    NumberFormat numberFormat = NumberFormat::Decimal;
+    NumberFill numberFill = NumberFill::Badge;
+    ArrowStyle arrowStyle = ArrowStyle::Filled;
+
+    QString numberLabel() const;
 
     /// `base` is the frozen desktop image in device pixels (needed by Pixelate); may be null.
     void paint(QPainter &p, const QImage *base = nullptr, qreal dpr = 1.0) const;

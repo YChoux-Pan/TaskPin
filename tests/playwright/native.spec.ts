@@ -88,6 +88,28 @@ test('Comparison stays opaque and proportional on light/dark pins', async ({}, i
   await qt('TaskPinExperienceTests', ['comparisonIsOpaqueAndUsesHeightForText'], info);
 });
 
+test('Rectangle toolbar stays visible and slider and keys change exported stroke width', async ({}, info) => {
+  await qt('TaskPinScreenshotTests', ['rectangleToolbarStaysVisibleDuringStroke',
+    'rectangleStrokeFollowsSliderAndArrowKeys'], info);
+});
+
+test('Draft text moves by its grip and committed labels move directly with undo and redo', async ({}, info) => {
+  await qt('TaskPinScreenshotTests', ['draftTextGripMovesInputAndExport', 'committedLabelsDragInCreationTool'], info);
+});
+
+test('Number menus and arrow style cycling update exported annotations', async ({}, info) => {
+  await qt('TaskPinScreenshotTests', ['numberMenusStyleSelectedAndNewMarks', 'activeArrowCyclesThroughMenuStyles',
+    'tabTogglesLineAndRestoresArrowStyle'], info);
+});
+
+test('Rendered numbers preserve cutouts and arrows retain their selectable silhouettes', async ({}, info) => {
+  await qt('TaskPinAnnotationTests', [], info);
+});
+
+test('Translation status draws red text over the captured background', async ({}, info) => {
+  await qt('TaskPinTranslationTests', ['translationStatusDrawsRedTextOverCapture'], info);
+});
+
 test('F3 and custom editor shortcuts export the selected image', async ({}, info) => {
   await qt('TaskPinScreenshotTests', ['configuredPinExportsAnnotatedSelection',
     'configuredTranslationReplacesDefaultShortcut', 'bareCustomTranslationDoesNotConsumeTextInput',

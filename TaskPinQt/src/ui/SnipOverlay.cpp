@@ -21,6 +21,7 @@
 #include <QGuiApplication>
 #include <QKeyEvent>
 #include <QLineEdit>
+#include <QLabel>
 #include <QMenu>
 #include <QMouseEvent>
 #include <QPainter>
@@ -33,6 +34,39 @@
 namespace
 {
 constexpr int kSwatchCount = 7;
+
+const QStringList numberFormats = {QStringLiteral("1, 2, 3"), QStringLiteral("01, 02, 03"),
+    QStringLiteral("A, B, C"), QStringLiteral("a, b, c"), QStringLiteral("I, II, III"), QStringLiteral("i, ii, iii")};
+const QStringList numberFills = {QStringLiteral("色底白字"), QStringLiteral("透明底彩字"), QStringLiteral("色底镂空字")};
+const QStringList arrowStyles = {QStringLiteral("实心箭头"), QStringLiteral("开放箭头"), QStringLiteral("双向箭头"), QStringLiteral("渐宽箭头")};
+
+QLine sliderTrack(const QRect &r)
+{
+    const int rightPad = r.width() >= 76 ? 32 : 7;
+    return QLine(r.left() + 7, r.center().y(), r.right() - rightPad, r.center().y());
+}
+
+void paintStyleSample(QPainter &p, const QRect &r, const QString &id, int index, const QColor &color)
+{
+    Annotation sample;
+    sample.color = color;
+    sample.width = 1;
+    sample.pos = r.center();
+    if (id == "arrow-style") {
+        sample.kind = Annotation::Arrow;
+        sample.arrowStyle = static_cast<Annotation::ArrowStyle>(index);
+        sample.points = {r.bottomLeft() + QPoint(3,-4), r.topRight() + QPoint(-4,4)};
+    } else {
+        sample.kind = Annotation::Number;
+        if (id == "number-format") {
+            sample.numberFormat = static_cast<Annotation::NumberFormat>(index);
+            sample.numberFill = Annotation::NumberFill::Ink;
+        } else {
+            sample.numberFill = static_cast<Annotation::NumberFill>(index);
+        }
+    }
+    sample.paint(p);
+}
 
 // Light toolbar (Iconify-lucide line icons), selection accents stay bright for the dimmed backdrop.
 const QColor kBar(0xEC, 0xEE, 0xF3, 250);
@@ -147,6 +181,10 @@ QRect SnipOverlay::selection() const { return m_sel.normalized(); }
 void SnipOverlay::setTool(Tool t)
 {
     if (!m_hasSel) return;
+    if (t == Tool::Arrow && m_tool == t) {
+        setStyle("arrow-style", (int(m_arrowStyle) + 1) % arrowStyles.size());
+        return;
+    }
     commitText();
     m_tool = t;
     updateSelectionCursor();
@@ -195,7 +233,7 @@ void SnipOverlay::paintEvent(QPaintEvent *)
 
     if (m_hasSel) drawSelection(p);
     drawToolbar(p);
-    drawHoverTip(p);
+    if (m_mode == Mode::Idle) drawHoverTip(p);
     if (m_tool == Tool::Select) drawMagnifier(p);
     if (!m_error.isEmpty()) {
         QFont errorFont = font();
@@ -412,7 +450,7 @@ void SnipOverlay::drawToolbar(QPainter &p)
     m_hot.clear();
     m_actions.clear();
     m_toolbarRect = {};
-    if (!m_hasSel || m_mode != Mode::Idle) return;
+    if (!m_hasSel || m_mode == Mode::SelectRect || m_mode == Mode::MoveSelection || m_mode == Mode::ResizeSelection) return;
     const QStringList tools { "select", "rect", "ellipse", "arrow", "line", "pen", "marker", "text", "number",
         "mosaic", "blur", "eraser" };
     const int active = int(m_tool);
@@ -440,9 +478,16 @@ void SnipOverlay::drawToolbar(QPainter &p)
         add("font-", 4, m_fontSize > 10);
         add("font-value", 4, false);
         add("font+", 4, m_fontSize < 96);
+    } else if (m_tool == Tool::Rect) {
+        add("width-slider", 4);
     } else if (m_tool != Tool::Select && m_tool != Tool::Eraser) {
         add(pixels ? "block-" : "width-", 4);
         add(pixels ? "block+" : "width+", 4);
+    }
+    if (m_tool == Tool::Arrow) add("arrow-style", 5);
+    if (m_tool == Tool::Number) {
+        add("number-format", 5);
+        add("number-fill", 5);
     }
     m_toolbarRect = SnipToolbar::layout(m_actions, rect(), selection());
     p.save();
@@ -491,6 +536,29 @@ void SnipOverlay::drawToolbar(QPainter &p)
             p.drawRoundedRect(inset, 2, 2);
             p.drawText(inset, Qt::AlignCenter, "A");
             if (!m_textBackground) p.drawLine(inset.bottomLeft(), inset.topRight());
+        } else if (a.id == "width-slider") {
+            m_widthSlider = r;
+            const QLine track = sliderTrack(r);
+            const QPoint knob(track.x1() + qRound((m_width - 1) * track.dx() / 39.0), track.y1());
+            p.setPen(QPen(QColor(180, 188, 200), 3, Qt::SolidLine, Qt::RoundCap));
+            p.drawLine(track);
+            p.setPen(QPen(kToolAccent, 3, Qt::SolidLine, Qt::RoundCap));
+            p.drawLine(track.p1(), knob);
+            p.setPen(Qt::NoPen);
+            p.setBrush(kToolAccent);
+            p.drawEllipse(knob, 5, 5);
+            if (r.width() >= 76) {
+                p.setPen(kFg);
+                p.drawText(QRect(track.x2() + 4, r.top(), 27, r.height()), Qt::AlignCenter, QString::number(m_width));
+            }
+        } else if (a.group == 5) {
+            const int value = a.id == "arrow-style" ? int(m_arrowStyle)
+                : a.id == "number-format" ? int(m_numberFormat) : int(m_numberFill);
+            paintStyleSample(p, r.adjusted(2, 2, -5, -2), a.id, value, kFg);
+            p.setBrush(kFg);
+            p.setPen(Qt::NoPen);
+            const QPoint corner = r.bottomRight() - QPoint(3, 4);
+            p.drawPolygon(QPolygon{corner, corner - QPoint(4, 0), corner - QPoint(0, 4)});
         } else if (a.group == 4) {
             p.setPen(fg);
             QFont f = font();
@@ -529,6 +597,11 @@ void SnipOverlay::mousePressEvent(QMouseEvent *e)
     if (m_hasSel) {
         const QString id = hitToolbar(e->pos());
         if (!id.isEmpty()) {
+            if (id == "width-slider") {
+                m_mode = Mode::AdjustWidth;
+                slideWidth(e->pos());
+                return;
+            }
             handleAction(id);
             return;
         }
@@ -551,21 +624,11 @@ void SnipOverlay::mousePressEvent(QMouseEvent *e)
 
     if (m_tool != Tool::Select && !selection().contains(e->pos())) return;
     commitText();
+    m_gestureRecorded = false;
+    if (startAnnotationMove(e->pos())) return;
+    m_selected = -1;
     switch (m_tool) {
     case Tool::Select: {
-        int hit = -1;
-        for (int i = m_items.size() - 1; i >= 0; --i)
-            if (m_items.at(i).hitTest(e->pos())) {
-                hit = i;
-                break;
-            }
-        if (hit >= 0) {
-            m_selected = hit;
-            m_mode = Mode::MoveAnnotation;
-            m_dragLast = e->pos();
-            update();
-            return;
-        }
         const int handle = selectionHandleAt(e->pos());
         if (handle >= 0) {
             m_mode = Mode::ResizeSelection;
@@ -575,7 +638,6 @@ void SnipOverlay::mousePressEvent(QMouseEvent *e)
             update();
             return;
         }
-        m_selected = -1;
         if (m_sel.contains(e->pos())) {
             m_mode = Mode::MoveSelection;
             m_selAtPress = m_sel;
@@ -606,9 +668,13 @@ void SnipOverlay::mousePressEvent(QMouseEvent *e)
         a.color = m_color;
         a.width = m_width;
         a.pos = e->pos();
-        a.number = m_nextNumber++;
+        for (const auto &item : m_items)
+            if (item.kind == Annotation::Number) a.number = qMax(a.number, item.number + 1);
+        a.numberFormat = m_numberFormat;
+        a.numberFill = m_numberFill;
         recordMutation();
         m_items.append(a);
+        m_selected = m_items.size() - 1;
         update();
         break;
     }
@@ -630,6 +696,7 @@ void SnipOverlay::mousePressEvent(QMouseEvent *e)
             break;
         case Tool::Arrow:
             m_current.kind = Annotation::Arrow;
+            m_current.arrowStyle = m_arrowStyle;
             break;
         case Tool::Line:
             m_current.kind = Annotation::Line;
@@ -663,6 +730,9 @@ void SnipOverlay::mouseMoveEvent(QMouseEvent *e)
     if (m_mode == Mode::Idle) refreshHover(e->pos());
 
     switch (m_mode) {
+    case Mode::AdjustWidth:
+        slideWidth(e->pos());
+        return;
     case Mode::SelectRect:
         m_sel = QRect(m_dragStart, boundedPoint(e->pos())).normalized().intersected(rect());
         if ((e->pos() - m_dragStart).manhattanLength() > 3) m_dragMoved = true;
@@ -680,8 +750,9 @@ void SnipOverlay::mouseMoveEvent(QMouseEvent *e)
         if (m_selected >= 0 && m_selected < m_items.size()) {
             QPoint delta = boundedPoint(e->pos()) - m_dragLast;
             const QRect b = m_items[m_selected].bounds();
-            delta.setX(qBound(-b.left(), delta.x(), qMax(-b.left(), width() - 1 - b.right())));
-            delta.setY(qBound(-b.top(), delta.y(), qMax(-b.top(), height() - 1 - b.bottom())));
+            const QRect area = selection();
+            delta.setX(qBound(qMin(0, area.left() - b.left()), delta.x(), qMax(0, area.right() - b.right())));
+            delta.setY(qBound(qMin(0, area.top() - b.top()), delta.y(), qMax(0, area.bottom() - b.bottom())));
             if (!delta.isNull()) {
                 recordMutation();
                 m_items[m_selected].translate(delta);
@@ -763,6 +834,16 @@ void SnipOverlay::updateSelectionCursor()
     else unsetCursor();
 }
 
+bool SnipOverlay::focusNextPrevChild(bool next)
+{
+    if (next && m_hasSel && m_mode == Mode::Idle && !m_textEdit
+        && (m_tool == Tool::Line || m_tool == Tool::Arrow)) {
+        setTool(m_tool == Tool::Arrow ? Tool::Line : Tool::Arrow);
+        return true;
+    }
+    return QWidget::focusNextPrevChild(next);
+}
+
 void SnipOverlay::mouseReleaseEvent(QMouseEvent *e)
 {
     if (e->button() != Qt::LeftButton) return;
@@ -791,6 +872,8 @@ void SnipOverlay::mouseReleaseEvent(QMouseEvent *e)
         m_drawing = false;
         recordMutation();
         m_items.append(m_current);
+        if (m_current.kind == Annotation::Rect || m_current.kind == Annotation::Arrow)
+            m_selected = m_items.size() - 1;
     }
     m_mode = Mode::Idle;
     update();
@@ -805,7 +888,10 @@ void SnipOverlay::wheelEvent(QWheelEvent *e)
         updateTextEditor(m_color);
     } else if (m_tool == Tool::Mosaic || m_tool == Tool::Blur)
         m_block = qBound(4, m_block + dir * 2, 80);
-    else
+    else if (m_tool == Tool::Rect) {
+        m_gestureRecorded = false;
+        setRectWidth(m_width + dir);
+    } else
         m_width = qBound(1, m_width + dir, 40);
     update();
 }
@@ -903,10 +989,13 @@ void SnipOverlay::keyPressEvent(QKeyEvent *e)
         }
         return;
     case Qt::Key_Left:
-        nudgeSelection(e->modifiers(), QPoint(-1, 0));
-        return;
     case Qt::Key_Right:
-        nudgeSelection(e->modifiers(), QPoint(1, 0));
+        if (m_tool == Tool::Rect && e->modifiers() == Qt::NoModifier) {
+            m_gestureRecorded = false;
+            setRectWidth(m_width + (e->key() == Qt::Key_Left ? -1 : 1));
+        } else {
+            nudgeSelection(e->modifiers(), QPoint(e->key() == Qt::Key_Left ? -1 : 1, 0));
+        }
         return;
     case Qt::Key_Up:
         nudgeSelection(e->modifiers(), QPoint(0, -1));
@@ -937,6 +1026,103 @@ void SnipOverlay::nudgeSelection(Qt::KeyboardModifiers mods, const QPoint &delta
 }
 
 // ---------------------------------------------------------------- helpers
+
+bool SnipOverlay::startAnnotationMove(const QPoint &pos)
+{
+    for (int i = m_items.size() - 1; i >= 0; --i) {
+        const auto &item = m_items.at(i);
+        const bool direct = (m_tool == Tool::Text && item.kind == Annotation::Text)
+            || (m_tool == Tool::Number && item.kind == Annotation::Number);
+        if ((m_tool != Tool::Select && !direct) || !item.hitTest(pos)) continue;
+        m_selected = i;
+        m_mode = Mode::MoveAnnotation;
+        m_dragLast = pos;
+        m_color = item.color;
+        if (item.kind == Annotation::Number) {
+            m_numberFormat = item.numberFormat;
+            m_numberFill = item.numberFill;
+        } else if (item.kind == Annotation::Text) {
+            m_fontSize = item.fontSize;
+            m_textBackground = item.textBackground;
+        }
+        update();
+        return true;
+    }
+    return false;
+}
+
+void SnipOverlay::setRectWidth(int width)
+{
+    m_width = qBound(1, width, 40);
+    if (m_drawing && m_current.kind == Annotation::Rect) m_current.width = m_width;
+    if (m_selected >= 0 && m_items.at(m_selected).kind == Annotation::Rect
+        && m_items.at(m_selected).width != m_width) {
+        recordMutation();
+        m_items[m_selected].width = m_width;
+    }
+    update();
+}
+
+void SnipOverlay::slideWidth(const QPoint &pos)
+{
+    const auto track = sliderTrack(m_widthSlider);
+    if (track.dx() > 0) setRectWidth(1 + qRound(39.0 * (pos.x() - track.x1()) / track.dx()));
+}
+
+void SnipOverlay::showStyleMenu(const QString &id)
+{
+    const bool arrow = id == "arrow-style";
+    const bool format = id == "number-format";
+    const QStringList &choices = arrow ? arrowStyles : format ? numberFormats : numberFills;
+    const int current = arrow ? int(m_arrowStyle) : format ? int(m_numberFormat) : int(m_numberFill);
+    auto *menu = new QMenu(this);
+    menu->setAttribute(Qt::WA_DeleteOnClose);
+    for (int i = 0; i < choices.size(); ++i) {
+        QPixmap icon(28, 28);
+        icon.fill(Qt::transparent);
+        {
+            QPainter painter(&icon);
+            paintStyleSample(painter, icon.rect().adjusted(1,1,-1,-1), id, i, kToolAccent);
+        }
+        QAction *choice = menu->addAction(QIcon(icon), choices.at(i));
+        choice->setCheckable(true);
+        choice->setChecked(i == current);
+        connect(choice, &QAction::triggered, this, [this, id, i] { setStyle(id, i); });
+    }
+    for (const auto &a : m_actions) {
+        if (a.id == id) {
+            menu->popup(mapToGlobal(a.rect.bottomLeft() + QPoint(0, 2)));
+            return;
+        }
+    }
+    menu->deleteLater();
+}
+
+void SnipOverlay::setStyle(const QString &id, int index)
+{
+    const Annotation *item = m_selected >= 0 ? &m_items.at(m_selected) : nullptr;
+    m_gestureRecorded = false;
+    if (id == "arrow-style") {
+        m_arrowStyle = static_cast<Annotation::ArrowStyle>(index);
+        if (item && item->kind == Annotation::Arrow && item->arrowStyle != m_arrowStyle) {
+            recordMutation();
+            m_items[m_selected].arrowStyle = m_arrowStyle;
+        }
+    } else if (id == "number-format") {
+        m_numberFormat = static_cast<Annotation::NumberFormat>(index);
+        if (item && item->kind == Annotation::Number && item->numberFormat != m_numberFormat) {
+            recordMutation();
+            m_items[m_selected].numberFormat = m_numberFormat;
+        }
+    } else {
+        m_numberFill = static_cast<Annotation::NumberFill>(index);
+        if (item && item->kind == Annotation::Number && item->numberFill != m_numberFill) {
+            recordMutation();
+            m_items[m_selected].numberFill = m_numberFill;
+        }
+    }
+    update();
+}
 
 QString SnipOverlay::hitToolbar(const QPoint &pos) const
 {
@@ -1019,6 +1205,10 @@ void SnipOverlay::handleAction(const QString &id)
     const bool changesTextStyle = id == "custom" || id == "text-background"
         || id.startsWith("font") || id.startsWith("swatch:");
     if (!changesTextStyle) commitText();
+    if (id == "arrow-style" || id == "number-format" || id == "number-fill") {
+        showStyleMenu(id);
+        return;
+    }
     if (id == "more") {
         QMenu menu(this);
         QAction *quick = menu.addAction(SnipToolbar::label("quick") + "\tCtrl+Shift+S");
@@ -1265,6 +1455,9 @@ void SnipOverlay::mouseDoubleClickEvent(QMouseEvent *e)
 {
     if (e->button() == Qt::LeftButton && m_hasSel && selection().contains(e->pos())
         && !m_toolbarRect.contains(e->pos())) {
+        if (m_tool == Tool::Text || m_tool == Tool::Number) {
+            if (startAnnotationMove(e->pos())) return;
+        }
         m_mode = Mode::Idle;
         handleAction("copy");
     }
@@ -1274,10 +1467,19 @@ void SnipOverlay::beginText(const QPoint &at)
     commitText();
     m_textAnchor = at;
     m_textEdit = new QLineEdit(this);
+    auto *grip = new QLabel(QStringLiteral("✥"), this);
+    grip->setObjectName("textMoveHandle");
+    grip->setAlignment(Qt::AlignCenter);
+    grip->setStyleSheet(QStringLiteral("background:#edf3fd;color:#285db7;border:1px solid #4c9aff;border-radius:3px"));
+    grip->setToolTip(QStringLiteral("拖动文字框"));
+    grip->setCursor(Qt::SizeAllCursor);
+    grip->installEventFilter(this);
+    m_textGrip = grip;
     m_textEdit->setCursor(cursor());
     updateTextEditor(m_color);
     m_textEdit->installEventFilter(this);
     m_textEdit->show();
+    grip->show();
     m_textEdit->setFocus();
 }
 
@@ -1292,6 +1494,10 @@ void SnipOverlay::updateTextEditor(const QColor &color)
     const int y = qBound(area.top(), m_textAnchor.y(), qMax(area.top(), area.bottom() - boxHeight + 1));
     m_textEdit->setGeometry(m_textAnchor.x(), y, qMin(420, area.right() - m_textAnchor.x() + 1),
         qMin(boxHeight, area.height()));
+    const int gripSize = 18;
+    const int gx = m_textAnchor.x() - gripSize >= 0 ? m_textAnchor.x() - gripSize : m_textAnchor.x();
+    const int gy = gx == m_textAnchor.x() ? (y >= gripSize ? y - gripSize : y + m_textEdit->height()) : y;
+    m_textGrip->setGeometry(gx, gy, gripSize, gripSize);
     m_textEdit->setStyleSheet(QStringLiteral("QLineEdit { background: %1; color: %2; font-size: %3px; border: 1px solid #4C9AFF; padding: 0px; }")
         .arg(m_textBackground ? QStringLiteral("rgba(16,20,26,200)") : QStringLiteral("transparent"), color.name())
         .arg(m_fontSize));
@@ -1299,6 +1505,27 @@ void SnipOverlay::updateTextEditor(const QColor &color)
 
 bool SnipOverlay::eventFilter(QObject *obj, QEvent *e)
 {
+    if (obj == m_textGrip && m_textEdit
+        && (e->type() == QEvent::MouseButtonPress || e->type() == QEvent::MouseMove
+            || e->type() == QEvent::MouseButtonRelease)) {
+        auto *mouse = static_cast<QMouseEvent *>(e);
+        const QPoint pointer = mapFromGlobal(mouse->globalPosition().toPoint());
+        if (e->type() == QEvent::MouseButtonPress && mouse->button() == Qt::LeftButton) {
+            m_gripOffset = pointer - m_textEdit->geometry().topLeft();
+            return true;
+        }
+        if ((e->type() == QEvent::MouseMove && mouse->buttons().testFlag(Qt::LeftButton))
+            || (e->type() == QEvent::MouseButtonRelease && mouse->button() == Qt::LeftButton)) {
+            const QRect area = selection();
+            const QPoint wanted = pointer - m_gripOffset;
+            const int textWidth = QFontMetrics(m_textEdit->font()).horizontalAdvance(m_textEdit->text()) + 6;
+            m_textAnchor = {qBound(area.left(), wanted.x(), qMax(area.left(), area.right() - textWidth + 1)),
+                qBound(area.top(), wanted.y(), qMax(area.top(), area.bottom() - m_textEdit->height() + 1))};
+            updateTextEditor(m_color);
+            m_textEdit->setFocus();
+            return true;
+        }
+    }
     if (obj == m_textEdit && e->type() == QEvent::KeyPress) {
         auto *key = static_cast<QKeyEvent *>(e);
         if (handleOutputShortcut(key, true)) return true;
@@ -1323,6 +1550,9 @@ void SnipOverlay::commitText()
     if (!m_textEdit) return;
     QLineEdit *edit = m_textEdit;
     m_textEdit = nullptr;
+    m_textGrip->hide();
+    m_textGrip->deleteLater();
+    m_textGrip = nullptr;
     const QString text = edit->text().trimmed();
     const QFontMetrics metrics(edit->font());
     const QPoint baseline(edit->x() + 2, edit->y() + (edit->height() - metrics.height()) / 2 + metrics.ascent());
@@ -1342,6 +1572,7 @@ void SnipOverlay::commitText()
     m_gestureRecorded = false;
     recordMutation();
     m_items.append(a);
+    m_selected = m_items.size() - 1;
     update();
 }
 
@@ -1350,6 +1581,9 @@ void SnipOverlay::cancelText()
     if (!m_textEdit) return;
     QLineEdit *edit = m_textEdit;
     m_textEdit = nullptr;
+    m_textGrip->hide();
+    m_textGrip->deleteLater();
+    m_textGrip = nullptr;
     edit->removeEventFilter(this);
     edit->hide();
     edit->deleteLater();

@@ -3,8 +3,116 @@
 #include <QFont>
 #include <QFontMetrics>
 #include <QPainter>
-#include <QPolygon>
+#include <QPainterPath>
+#include <QPainterPathStroker>
 #include <cmath>
+
+namespace {
+struct NumberShape {
+    QPainterPath glyph;
+    QPainterPath badge;
+};
+
+NumberShape numberShape(const Annotation &a)
+{
+    const qreal radius = 11 + a.width;
+    QFont font;
+    font.setPixelSize(int(radius) + 4);
+    font.setBold(true);
+    NumberShape shape;
+    shape.glyph.addText(QPointF(), font, a.numberLabel());
+    const QRectF ink = shape.glyph.boundingRect();
+    shape.glyph.translate(QPointF(a.pos) - ink.center());
+
+    const qreal height = qMax(2 * radius, ink.height() + 6);
+    const qreal width = qMax(height, ink.width() + radius);
+    QRectF box(0, 0, width, height);
+    box.moveCenter(a.pos);
+    shape.badge.addRoundedRect(box, height / 2, height / 2);
+    return shape;
+}
+
+QPainterPath arrowShape(const Annotation &a)
+{
+    if (a.points.size() < 2) return {};
+    const QPointF tail = a.points.first();
+    const QPointF delta = QPointF(a.points.last()) - tail;
+    const qreal length = std::hypot(delta.x(), delta.y());
+    if (length == 0) return {};
+
+    using Style = Annotation::ArrowStyle;
+    const qreal stroke = qMax(1, a.width);
+    const bool doubleHead = a.arrowStyle == Style::Double;
+    const qreal head = qMin((8 + 3 * stroke) * 0.90, length * (doubleHead ? 0.44 : 0.8));
+    const qreal wing = head * 0.48;
+    QPainterPath shape;
+    if (a.arrowStyle == Style::Tapered) {
+        const qreal neck = qMin(stroke, wing * 0.58);
+        shape.moveTo(0, 0);
+        shape.lineTo(length - head, -neck);
+        shape.lineTo(length - head, -wing);
+        shape.lineTo(length, 0);
+        shape.lineTo(length - head, wing);
+        shape.lineTo(length - head, neck);
+        shape.closeSubpath();
+    } else {
+        QPainterPathStroker stroker;
+        stroker.setWidth(stroke);
+        stroker.setCapStyle(Qt::RoundCap);
+        stroker.setJoinStyle(Qt::RoundJoin);
+        QPainterPath shaft;
+        shaft.moveTo(0, 0);
+        shaft.lineTo(length, 0);
+        auto makeHead = [&](qreal tip, qreal back) {
+            QPainterPath path;
+            path.moveTo(back, -wing);
+            path.lineTo(tip, 0);
+            path.lineTo(back, wing);
+            if (a.arrowStyle == Style::Open) return stroker.createStroke(path);
+            path.closeSubpath();
+            return path.united(stroker.createStroke(path));
+        };
+        shape = stroker.createStroke(shaft).united(makeHead(length, length - head));
+        if (doubleHead) shape = shape.united(makeHead(0, head));
+    }
+    const QPointF axis = delta / length;
+    const QTransform toCanvas(axis.x(), axis.y(), -axis.y(), axis.x(), tail.x(), tail.y());
+    return toCanvas.map(shape);
+}
+}
+
+QString Annotation::numberLabel() const
+{
+    if (number < 1) return QString::number(number);
+    if (numberFormat == NumberFormat::Padded)
+        return QString::number(number).rightJustified(2, QLatin1Char('0'));
+    if (numberFormat == NumberFormat::UpperAlpha || numberFormat == NumberFormat::LowerAlpha) {
+        const char first = numberFormat == NumberFormat::UpperAlpha ? 'A' : 'a';
+        QString label;
+        for (int n = number; n > 0; n /= 26) {
+            --n;
+            label.prepend(QLatin1Char(char(first + n % 26)));
+        }
+        return label;
+    }
+    if ((numberFormat == NumberFormat::UpperRoman || numberFormat == NumberFormat::LowerRoman)
+        && number <= 3999) {
+        static const struct { int value; const char *digits; } roman[] = {
+            {1000, "M"}, {900, "CM"}, {500, "D"}, {400, "CD"}, {100, "C"}, {90, "XC"},
+            {50, "L"}, {40, "XL"}, {10, "X"}, {9, "IX"}, {5, "V"}, {4, "IV"}, {1, "I"}
+        };
+        QString label;
+        int remaining = number;
+        for (const auto &part : roman) {
+            while (remaining >= part.value) {
+                label += QLatin1String(part.digits);
+                remaining -= part.value;
+            }
+        }
+        return numberFormat == NumberFormat::UpperRoman ? label : label.toLower();
+    }
+    return QString::number(number);
+}
 
 void Annotation::paint(QPainter &p, const QImage *base, qreal dpr) const
 {
@@ -22,21 +130,9 @@ void Annotation::paint(QPainter &p, const QImage *base, qreal dpr) const
         p.setBrush(Qt::NoBrush);
         p.drawEllipse(rect);
         break;
-    case Arrow: {
-        if (points.size() < 2) break;
-        p.setPen(pen);
-        const QPoint a = points.first(), b = points.last();
-        p.drawLine(a, b);
-        const double ang = std::atan2(double(b.y() - a.y()), double(b.x() - a.x()));
-        const int len = 8 + width * 3;
-        const QPoint p1(b.x() - int(len * std::cos(ang - 0.45)), b.y() - int(len * std::sin(ang - 0.45)));
-        const QPoint p2(b.x() - int(len * std::cos(ang + 0.45)), b.y() - int(len * std::sin(ang + 0.45)));
-        QPolygon head;
-        head << b << p1 << p2;
-        p.setBrush(color);
-        p.drawPolygon(head);
+    case Arrow:
+        p.fillPath(arrowShape(*this), color);
         break;
-    }
     case Line:
         if (points.size() >= 2) {
             p.setPen(pen);
@@ -74,17 +170,22 @@ void Annotation::paint(QPainter &p, const QImage *base, qreal dpr) const
         break;
     }
     case Number: {
-        const int r = 11 + width;
-        const QRect box(pos.x() - r, pos.y() - r, r * 2, r * 2);
-        p.setPen(Qt::NoPen);
-        p.setBrush(color);
-        p.drawEllipse(box);
-        p.setPen(Qt::white);
-        QFont f;
-        f.setPixelSize(r + 4);
-        f.setBold(true);
-        p.setFont(f);
-        p.drawText(box, Qt::AlignCenter, QString::number(number));
+        auto shape = numberShape(*this);
+        switch (numberFill) {
+        case NumberFill::Badge:
+            p.fillPath(shape.badge, color);
+            p.fillPath(shape.glyph, Qt::white);
+            break;
+        case NumberFill::Ink:
+            p.fillPath(shape.glyph, color);
+            break;
+        case NumberFill::Cutout:
+            // Leave the glyph untouched on any destination, including earlier annotations.
+            shape.badge.addPath(shape.glyph);
+            shape.badge.setFillRule(Qt::OddEvenFill);
+            p.fillPath(shape.badge, color);
+            break;
+        }
         break;
     }
     case Pixelate: {
@@ -123,6 +224,8 @@ QRect Annotation::bounds() const
         r = rect.normalized();
         break;
     case Arrow:
+        r = arrowShape(*this).boundingRect().toAlignedRect();
+        break;
     case Line:
     case Pen:
     case Highlighter:
@@ -145,8 +248,8 @@ QRect Annotation::bounds() const
         break;
     }
     case Number: {
-        const int rad = 11 + width;
-        r = QRect(pos.x() - rad, pos.y() - rad, rad * 2, rad * 2);
+        const auto shape = numberShape(*this);
+        r = (numberFill == NumberFill::Ink ? shape.glyph : shape.badge).boundingRect().toAlignedRect();
         break;
     }
     }
@@ -176,7 +279,10 @@ bool Annotation::hitTest(const QPoint &p) const
         if (kind == Pixelate) return r.contains(p);
         return r.adjusted(-tolerance, -tolerance, tolerance, tolerance).contains(p);
     }
-    case Arrow:
+    case Arrow: {
+        const QPainterPath shape = arrowShape(*this);
+        return shape.intersects(QRectF(p.x() - 4, p.y() - 4, 8, 8));
+    }
     case Line:
         return points.size() >= 2 && nearSegment(points.first(), points.last());
     case Pen:
@@ -187,8 +293,10 @@ bool Annotation::hitTest(const QPoint &p) const
     case Text:
         return bounds().contains(p);
     case Number: {
-        const QPoint d = p - pos;
-        return d.manhattanLength() <= 16 + width;
+        const auto shape = numberShape(*this);
+        if (numberFill == NumberFill::Ink)
+            return shape.glyph.boundingRect().adjusted(-4, -4, 4, 4).contains(p);
+        return shape.badge.intersects(QRectF(p.x() - 4, p.y() - 4, 8, 8));
     }
     }
     return false;

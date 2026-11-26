@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(TaskPinQt VERSION 0.4.6 LANGUAGES CXX)
+project(TaskPinQt VERSION 0.4.7 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -15,6 +15,11 @@ include(CTest)
 find_package(Qt6 6.4 REQUIRED COMPONENTS Core Gui Widgets Sql Network PrintSupport Svg)
 if(BUILD_TESTING)
     find_package(Qt6 6.4 REQUIRED COMPONENTS Test)
+    qt_add_executable(TaskPinAnnotationTests tests/tst_annotation.cpp src/ui/Annotation.cpp)
+    target_include_directories(TaskPinAnnotationTests PRIVATE src)
+    target_link_libraries(TaskPinAnnotationTests PRIVATE Qt6::Test Qt6::Gui)
+    add_test(NAME TaskPinAnnotationTests COMMAND TaskPinAnnotationTests)
+    set_tests_properties(TaskPinAnnotationTests PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
     qt_add_executable(TaskPinScreenshotTests
         tests/tst_screenshot.cpp
         src/ui/SnipOverlay.h src/ui/SnipOverlay.cpp
@@ -157,7 +162,7 @@ if(WIN32)
                     --no-opengl-sw "$<TARGET_FILE:TaskPinQt>"
             COMMENT "windeployqt")
         if(BUILD_TESTING)
-            foreach(test_target TaskPinScreenshotTests TaskPinIntegrationTests TaskPinExperienceTests TaskPinTranslationTests TaskPinTranslationCanvasTests)
+            foreach(test_target TaskPinAnnotationTests TaskPinScreenshotTests TaskPinIntegrationTests TaskPinExperienceTests TaskPinTranslationTests TaskPinTranslationCanvasTests)
                 add_custom_command(TARGET ${test_target} POST_BUILD
                     COMMAND "${WINDEPLOYQT}" --no-translations --no-system-d3d-compiler
                             --no-opengl-sw "$<TARGET_FILE:${test_target}>"
@@ -167,7 +172,7 @@ if(WIN32)
     endif()
     if(BUILD_TESTING)
         find_file(QT_OFFSCREEN_PLUGIN qoffscreen.dll HINTS "${Qt6_DIR}/../../../plugins/platforms" NO_DEFAULT_PATH)
-        foreach(test_target TaskPinScreenshotTests TaskPinIntegrationTests TaskPinExperienceTests TaskPinTranslationTests TaskPinTranslationCanvasTests)
+        foreach(test_target TaskPinAnnotationTests TaskPinScreenshotTests TaskPinIntegrationTests TaskPinExperienceTests TaskPinTranslationTests TaskPinTranslationCanvasTests)
             add_custom_command(TARGET ${test_target} POST_BUILD
                 COMMAND ${CMAKE_COMMAND} -E copy_if_different "$<TARGET_FILE:Qt6::Test>"
                         "$<TARGET_FILE_DIR:${test_target}>")

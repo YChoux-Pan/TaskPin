@@ -4,20 +4,20 @@
   <p><strong>Keep the picture. Capture the thought.</strong></p>
   <p>Screenshots, desktop image pins and daily tasks in one compact Windows tool.</p>
   <p>
-    <a href="https://github.com/YChoux-Pan/TaskPin/releases/tag/v0.4.6"><img src="https://img.shields.io/badge/preview-v0.4.6-4C9AFF" alt="0.4.6 preview" /></a>
+    <a href="https://github.com/YChoux-Pan/TaskPin/releases/tag/v0.4.7"><img src="https://img.shields.io/badge/preview-v0.4.7-4C9AFF" alt="0.4.7 preview" /></a>
     <img src="https://img.shields.io/badge/platform-Windows%2010%20%2F%2011-0078D4" alt="Windows 10 / 11 x64" />
     <img src="https://img.shields.io/badge/C%2B%2B-17-00599C" alt="C++17" />
     <a href="https://github.com/YChoux-Pan/TaskPin/actions/workflows/windows.yml"><img src="https://github.com/YChoux-Pan/TaskPin/actions/workflows/windows.yml/badge.svg?branch=main" alt="Windows build and test" /></a>
     <a href="LICENSE"><img src="https://img.shields.io/badge/license-Unlicense-3EC46B" alt="Unlicense" /></a>
   </p>
-  <p><a href="https://github.com/YChoux-Pan/TaskPin/releases/tag/v0.4.6"><strong>Download for Windows</strong></a> · <a href="README.md">简体中文</a> · <a href="CHANGELOG.md">Changelog</a> · <a href="https://github.com/YChoux-Pan/TaskPin/issues">Report an issue</a></p>
+  <p><a href="https://github.com/YChoux-Pan/TaskPin/releases/tag/v0.4.7"><strong>Download for Windows</strong></a> · <a href="README.md">简体中文</a> · <a href="CHANGELOG.md">Changelog</a> · <a href="https://github.com/YChoux-Pan/TaskPin/issues">Report an issue</a></p>
 </div>
 
 ---
 
 TaskPin connects **capture → annotate or pin → recognize as a task → review on a card or calendar**. Use its screenshot tools on their own, or keep daily tasks within reach on the desktop. Screenshots, tasks and PaddleOCR are processed locally; AI is optional.
 
-**0.4.6: OCR background warmup and live screenshot text formatting.** Local OCR and cloud translation modes warm the selected model in a low-priority background process after startup, reducing first-capture delay. Screenshot text can use a transparent background, and color/font size update the current draft immediately. A minus, current size, and plus control replace the ambiguous paired labels. The crosshair is shown only while selecting a region.
+**0.4.7 screenshot editor update.** Drag text and numbered markers in place, adjust rectangle strokes with a slider or the arrow keys, and choose arrow shapes and numbering styles. Translation pins show status in red over the image.
 
 ## Features
 
@@ -58,14 +58,14 @@ Successful save and quick-save copy the **absolute file path** to the clipboard.
 
 **Windows 10 / 11 x64. The interface is primarily Chinese.**
 
-1. Download <code>TaskPin-0.4.6-windows-x64.zip</code> from the [0.4.6 release](https://github.com/YChoux-Pan/TaskPin/releases/tag/v0.4.6).
+1. Download <code>TaskPin-0.4.7-windows-x64.zip</code> from the [0.4.7 release](https://github.com/YChoux-Pan/TaskPin/releases/tag/v0.4.7).
 2. Extract the complete folder and run <code>TaskPinQt.exe</code>. Keep all DLLs and plugin directories. No Qt SDK is required.
 3. Press **F1** to capture or **F3** to pin a clipboard image. Open Settings, Calendar and other tools from the tray.
 
-Version 0.4.6 is a preview. The release also includes source, icons, change notes, test reports and SHA256SUMS.txt. Exit through the tray before replacing application files. User data stays in the local user profile.
+Version 0.4.7 is a preview. The release also includes source, icons, change notes, test reports and SHA256SUMS.txt. Exit through the tray before replacing application files. User data stays in the local user profile.
 
 ~~~powershell
-Get-FileHash -Algorithm SHA256 -LiteralPath .\TaskPin-0.4.6-windows-x64.zip
+Get-FileHash -Algorithm SHA256 -LiteralPath .\TaskPin-0.4.7-windows-x64.zip
 ~~~
 
 Compare the result with the matching checksum entry.

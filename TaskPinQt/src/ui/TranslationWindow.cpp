@@ -109,8 +109,7 @@ void TranslationWindow::paintEvent(QPaintEvent *event)
 {
     PinWindow::paintEvent(event);if(!m_statusVisible||width()<50||height()<25)return;
     QPainter p(this);const QRect box(5,qMax(4,height()-48),qMax(1,width()-10),qMin(42,height()-8));
-    p.setPen(Qt::NoPen);p.setBrush(QColor(18,23,31,225));p.drawRoundedRect(box,5,5);
-    QFont font=p.font();font.setPixelSize(12);p.setFont(font);p.setPen(Qt::white);
+    QFont font=p.font();font.setPixelSize(12);p.setFont(font);p.setPen(Qt::red);
     p.drawText(box.adjusted(5,2,-5,-2),Qt::AlignVCenter|Qt::TextWordWrap,m_message);
 }
 void TranslationWindow::extendMenu(QMenu *menu)

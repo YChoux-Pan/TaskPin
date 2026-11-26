@@ -12,8 +12,8 @@ const Definition definitions[] = {
     { "tool:select", "选择", "V" },
     { "tool:rect", "矩形", "R" },
     { "tool:ellipse", "椭圆", "O" },
-    { "tool:arrow", "箭头", "A" },
-    { "tool:line", "直线", "L" },
+    { "tool:arrow", "箭头", "A · Tab 切换直线" },
+    { "tool:line", "直线", "L · Tab 切换箭头" },
     { "tool:pen", "画笔", "P" },
     { "tool:marker", "荧光笔", "H" },
     { "tool:text", "文字", "T" },
@@ -33,6 +33,10 @@ const Definition definitions[] = {
     { "custom", "自选颜色", "" },
     { "width-", "减小线宽", "滚轮 ↓" },
     { "width+", "增大线宽", "滚轮 ↑" },
+    { "width-slider", "矩形线宽", "← / →" },
+    { "arrow-style", "箭头样式", "A" },
+    { "number-format", "编号格式", "" },
+    { "number-fill", "编号配色", "" },
     { "font-", "减小字号", "滚轮 ↓" },
     { "font+", "增大字号", "滚轮 ↑" },
     { "font-value", "当前字号", "" },
@@ -66,15 +70,22 @@ QRect SnipToolbar::layout(QVector<SnipAction> &actions, const QRect &viewport, c
     constexpr int pad = 6, gap = 3, button = 30, margin = 4;
     const QRect available = viewport.adjusted(margin, margin, -margin, -margin);
     QVector<int> cells;
+    QVector<int> spans;
     auto sizeFor = [&](const QRect &space, int &columns) {
         columns = qMin(20, (space.width() - 2 * pad + gap) / (button + gap));
         if (columns < 1) return QSize();
         cells.clear();
+        spans.clear();
         int index = 0;
         for (const auto &action : actions) {
+            const int span = action.id == "width-slider" ? qMin(5, columns) : 1;
+            if (columns - index % columns < span)
+                index += columns - index % columns;
             if (action.id == "font-" && columns >= 3 && columns - index % columns < 3)
                 index += columns - index % columns;
-            cells.append(index++);
+            cells.append(index);
+            spans.append(span);
+            index += span;
         }
         const int rows = (index + columns - 1) / columns;
         return QSize(columns * (button + gap) - gap + 2 * pad, rows * (button + gap) - gap + 2 * pad);
@@ -102,6 +113,6 @@ QRect SnipToolbar::layout(QVector<SnipAction> &actions, const QRect &viewport, c
     if (bar.isEmpty()) return {};
     for (int i = 0; i < actions.size(); ++i)
         actions[i].rect = QRect(bar.left() + pad + (cells[i] % columns) * (button + gap),
-            bar.top() + pad + (cells[i] / columns) * (button + gap), button, button);
+            bar.top() + pad + (cells[i] / columns) * (button + gap), spans[i] * (button + gap) - gap, button);
     return bar;
 }
